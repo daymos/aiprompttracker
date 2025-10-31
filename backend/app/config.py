@@ -4,7 +4,7 @@ from functools import lru_cache
 class Settings(BaseSettings):
     # API Keys
     RAPIDAPI_KEY: str = ""
-    GROQ_API_KEY: str = ""
+    OPENAI_API_KEY: str = ""  # For GPT-4o
     
     # Auth
     JWT_SECRET_KEY: str
