@@ -12,8 +12,8 @@ tasks:
       - task: db-start
       - echo "🔧 Starting backend on http://localhost:8000"
       - cd {{.BACKEND_DIR}} && uvicorn app.main:app --reload &
-      - echo "🎨 Starting frontend..."
-      - cd {{.FRONTEND_DIR}} && flutter run -d chrome
+      - echo "🎨 Starting frontend on http://localhost:8080..."
+      - cd {{.FRONTEND_DIR}} && flutter run -d chrome --web-port=8080
 
   setup:
     desc: First time setup - install dependencies and setup database
