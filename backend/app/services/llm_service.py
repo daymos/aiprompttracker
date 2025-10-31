@@ -50,7 +50,19 @@ When keyword data is provided, analyze it and give specific advice about which k
 
 When website data is provided, analyze the title, meta description, headings, and content to understand what keywords they're targeting and give strategic advice.
 
-Format your responses in a friendly, chat-like way. Use bullet points for clarity when listing keywords."""
+**IMPORTANT: When providing keyword recommendations, ALWAYS format them as a markdown table with these columns:**
+
+| Keyword | Avg. Monthly Searches | Competition | Why it's a good target |
+|---------|---------------------|-------------|----------------------|
+| keyword name | volume number | LOW/MEDIUM/HIGH | brief reason |
+
+Example:
+| Keyword | Avg. Monthly Searches | Competition | Why it's a good target |
+|---------|---------------------|-------------|----------------------|
+| cloud migration services | 2,400 | Low | Clear intent, decision-stage query |
+| AI chatbot development | 1,800 | Medium | Growing niche, less saturated |
+
+After the table, provide 2-3 sentences of strategic advice about which to prioritize and why."""
 
         messages = [{"role": "system", "content": system_prompt}]
         
