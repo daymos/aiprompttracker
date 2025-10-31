@@ -11,8 +11,23 @@ tasks:
       - echo "🚀 Starting KeywordsChat..."
       - task: db-start
       - echo "🔧 Starting backend on http://localhost:8000"
-      - cd {{.BACKEND_DIR}} && uvicorn app.main:app --reload &
+      - cd {{.BACKEND_DIR}} && uvicorn app.main:app --reload --reload-delay 0.5 &
       - echo "🎨 Starting frontend on http://localhost:8080..."
+      - echo "💡 Hot reload enabled - Press 'r' to reload, 'R' to restart"
+      - cd {{.FRONTEND_DIR}} && flutter run -d chrome --web-port=8080
+
+  dev-backend:
+    desc: Start backend only with hot reload
+    cmds:
+      - task: db-start
+      - echo "🔧 Starting backend on http://localhost:8000 with hot reload..."
+      - cd {{.BACKEND_DIR}} && uvicorn app.main:app --reload --reload-delay 0.5
+
+  dev-frontend:
+    desc: Start frontend only with hot reload
+    cmds:
+      - echo "🎨 Starting frontend on http://localhost:8080 with hot reload..."
+      - echo "💡 Press 'r' to hot reload or 'R' to hot restart"
       - cd {{.FRONTEND_DIR}} && flutter run -d chrome --web-port=8080
 
   setup:

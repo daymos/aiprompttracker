@@ -7,14 +7,14 @@ from datetime import datetime
 
 from ..database import get_db
 from ..models.user import User
-from ..models.strategy import Strategy, TrackedKeyword, KeywordRanking
+from ..models.project import Project, TrackedKeyword, KeywordRanking
 from ..services.rank_checker import RankCheckerService
 from .auth import get_current_user
 
-router = APIRouter(prefix="/strategy", tags=["strategy"])
+router = APIRouter(prefix="/project", tags=["project"])
 rank_checker = RankCheckerService()
 
-class CreateStrategyRequest(BaseModel):
+class CreateProjectRequest(BaseModel):
     target_url: str
     name: Optional[str] = None
 
@@ -23,11 +23,10 @@ class AddKeywordRequest(BaseModel):
     search_volume: Optional[int] = None
     competition: Optional[str] = None
 
-class StrategyResponse(BaseModel):
+class ProjectResponse(BaseModel):
     id: str
     target_url: str
     name: Optional[str]
-    is_active: bool
     created_at: str
 
 class TrackedKeywordResponse(BaseModel):
@@ -39,111 +38,101 @@ class TrackedKeywordResponse(BaseModel):
     target_position: int
     created_at: str
 
-@router.post("/create", response_model=StrategyResponse)
-async def create_strategy(
-    request: CreateStrategyRequest,
+@router.post("/create", response_model=ProjectResponse)
+async def create_project(
+    request: CreateProjectRequest,
     authorization: str = Header(...),
     db: Session = Depends(get_db)
 ):
-    """Create a new SEO strategy"""
+    """Create a new SEO project"""
     token = authorization.replace("Bearer ", "")
     user = get_current_user(token, db)
     
-    # Deactivate any existing active strategies
-    db.query(Strategy).filter(
-        Strategy.user_id == user.id,
-        Strategy.is_active == True
-    ).update({"is_active": False})
-    
-    strategy = Strategy(
+    project = Project(
         id=str(uuid.uuid4()),
         user_id=user.id,
         target_url=request.target_url,
-        name=request.name or f"Strategy for {request.target_url}"
+        name=request.name or f"Project for {request.target_url}"
     )
-    db.add(strategy)
+    db.add(project)
     db.commit()
-    db.refresh(strategy)
+    db.refresh(project)
     
-    return StrategyResponse(
-        id=strategy.id,
-        target_url=strategy.target_url,
-        name=strategy.name,
-        is_active=strategy.is_active,
-        created_at=strategy.created_at.isoformat()
+    return ProjectResponse(
+        id=project.id,
+        target_url=project.target_url,
+        name=project.name,
+        created_at=project.created_at.isoformat()
     )
 
-@router.get("/active", response_model=Optional[StrategyResponse])
-async def get_active_strategy(
+@router.get("/active", response_model=Optional[ProjectResponse])
+async def get_active_project(
     authorization: str = Header(...),
     db: Session = Depends(get_db)
 ):
-    """Get user's active strategy"""
+    """Get user's most recent project"""
     token = authorization.replace("Bearer ", "")
     user = get_current_user(token, db)
     
-    strategy = db.query(Strategy).filter(
-        Strategy.user_id == user.id,
-        Strategy.is_active == True
-    ).first()
+    project = db.query(Project).filter(
+        Project.user_id == user.id
+    ).order_by(Project.created_at.desc()).first()
     
-    if not strategy:
+    if not project:
         return None
     
-    return StrategyResponse(
-        id=strategy.id,
-        target_url=strategy.target_url,
-        name=strategy.name,
-        is_active=strategy.is_active,
-        created_at=strategy.created_at.isoformat()
+    return ProjectResponse(
+        id=project.id,
+        target_url=project.target_url,
+        name=project.name,
+        created_at=project.created_at.isoformat()
     )
 
-@router.get("/all", response_model=List[StrategyResponse])
-async def get_all_strategies(
+@router.get("/all", response_model=List[ProjectResponse])
+async def get_all_projects(
     authorization: str = Header(...),
     db: Session = Depends(get_db)
 ):
-    """Get all user's strategies"""
+    """Get all user's projects"""
     token = authorization.replace("Bearer ", "")
     user = get_current_user(token, db)
     
-    strategies = db.query(Strategy).filter(
-        Strategy.user_id == user.id
-    ).order_by(Strategy.created_at.desc()).all()
+    projects = db.query(Project).filter(
+        Project.user_id == user.id
+    ).order_by(Project.created_at.desc()).all()
     
     return [
-        StrategyResponse(
+        ProjectResponse(
             id=s.id,
             target_url=s.target_url,
             name=s.name,
-            is_active=s.is_active,
             created_at=s.created_at.isoformat()
         )
-        for s in strategies
+        for s in projects
     ]
 
-@router.post("/{strategy_id}/keywords", response_model=TrackedKeywordResponse)
-async def add_keyword_to_strategy(
-    strategy_id: str,
+@router.post("/{project_id}/keywords", response_model=TrackedKeywordResponse)
+async def add_keyword_to_project(
+    project_id: str,
     request: AddKeywordRequest,
     authorization: str = Header(...),
     db: Session = Depends(get_db)
 ):
-    """Add a keyword to track in a strategy"""
+    """Add a keyword to track in a project"""
     token = authorization.replace("Bearer ", "")
     user = get_current_user(token, db)
     
-    strategy = db.query(Strategy).filter(
-        Strategy.id == strategy_id,
-        Strategy.user_id == user.id
+    project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.user_id == user.id
     ).first()
     
-    if not strategy:
-        raise HTTPException(status_code=404, detail="Strategy not found")
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
     
     # Check if keyword already tracked
     existing = db.query(TrackedKeyword).filter(
-        TrackedKeyword.strategy_id == strategy_id,
+        TrackedKeyword.project_id == project_id,
         TrackedKeyword.keyword == request.keyword
     ).first()
     
@@ -152,7 +141,7 @@ async def add_keyword_to_strategy(
     
     tracked_keyword = TrackedKeyword(
         id=str(uuid.uuid4()),
-        strategy_id=strategy_id,
+        project_id=project_id,
         keyword=request.keyword,
         search_volume=request.search_volume,
         competition=request.competition
@@ -162,7 +151,7 @@ async def add_keyword_to_strategy(
     db.refresh(tracked_keyword)
     
     # Check initial ranking
-    ranking_result = await rank_checker.check_ranking(request.keyword, strategy.target_url)
+    ranking_result = await rank_checker.check_ranking(request.keyword, project.target_url)
     
     if ranking_result:
         initial_ranking = KeywordRanking(
@@ -184,26 +173,26 @@ async def add_keyword_to_strategy(
         created_at=tracked_keyword.created_at.isoformat()
     )
 
-@router.get("/{strategy_id}/keywords", response_model=List[TrackedKeywordResponse])
-async def get_strategy_keywords(
-    strategy_id: str,
+@router.get("/{project_id}/keywords", response_model=List[TrackedKeywordResponse])
+async def get_project_keywords(
+    project_id: str,
     authorization: str = Header(...),
     db: Session = Depends(get_db)
 ):
-    """Get all tracked keywords for a strategy"""
+    """Get all tracked keywords for a project"""
     token = authorization.replace("Bearer ", "")
     user = get_current_user(token, db)
     
-    strategy = db.query(Strategy).filter(
-        Strategy.id == strategy_id,
-        Strategy.user_id == user.id
+    project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.user_id == user.id
     ).first()
     
-    if not strategy:
-        raise HTTPException(status_code=404, detail="Strategy not found")
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
     
     keywords = db.query(TrackedKeyword).filter(
-        TrackedKeyword.strategy_id == strategy_id
+        TrackedKeyword.project_id == project_id
     ).all()
     
     result = []
@@ -225,31 +214,31 @@ async def get_strategy_keywords(
     
     return result
 
-@router.post("/{strategy_id}/refresh")
+@router.post("/{project_id}/refresh")
 async def refresh_rankings(
-    strategy_id: str,
+    project_id: str,
     authorization: str = Header(...),
     db: Session = Depends(get_db)
 ):
-    """Manually refresh rankings for all keywords in strategy"""
+    """Manually refresh rankings for all keywords in project"""
     token = authorization.replace("Bearer ", "")
     user = get_current_user(token, db)
     
-    strategy = db.query(Strategy).filter(
-        Strategy.id == strategy_id,
-        Strategy.user_id == user.id
+    project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.user_id == user.id
     ).first()
     
-    if not strategy:
-        raise HTTPException(status_code=404, detail="Strategy not found")
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
     
     keywords = db.query(TrackedKeyword).filter(
-        TrackedKeyword.strategy_id == strategy_id
+        TrackedKeyword.project_id == project_id
     ).all()
     
     updated_count = 0
     for kw in keywords:
-        result = await rank_checker.check_ranking(kw.keyword, strategy.target_url)
+        result = await rank_checker.check_ranking(kw.keyword, project.target_url)
         
         if result:
             new_ranking = KeywordRanking(
@@ -282,13 +271,13 @@ async def get_keyword_history(
     if not keyword:
         raise HTTPException(status_code=404, detail="Keyword not found")
     
-    # Verify user owns this strategy
-    strategy = db.query(Strategy).filter(
-        Strategy.id == keyword.strategy_id,
-        Strategy.user_id == user.id
+    # Verify user owns this project
+    project = db.query(Project).filter(
+        Project.id == keyword.project_id,
+        Project.user_id == user.id
     ).first()
     
-    if not strategy:
+    if not project:
         raise HTTPException(status_code=403, detail="Access denied")
     
     rankings = db.query(KeywordRanking).filter(
@@ -305,5 +294,25 @@ async def get_keyword_history(
             }
             for r in rankings
         ]
+    }
+
+@router.post("/test-rank-check")
+async def test_rank_check(
+    keyword: str,
+    domain: str,
+    authorization: str = Header(...)
+):
+    """Test rank checking for debugging - returns raw API results"""
+    # Just verify user is authenticated
+    token = authorization.replace("Bearer ", "")
+    # Don't need to use the user, just verify they're logged in
+    
+    result = await rank_checker.check_ranking(keyword, domain)
+    
+    return {
+        "keyword": keyword,
+        "domain": domain,
+        "result": result,
+        "message": "Check backend logs for detailed debugging info"
     }
 

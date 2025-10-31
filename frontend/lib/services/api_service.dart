@@ -66,11 +66,11 @@ class ApiService {
     }
   }
   
-  // Strategy endpoints
+  // Project endpoints
   
-  Future<Map<String, dynamic>?> getActiveStrategy() async {
+  Future<Map<String, dynamic>?> getActiveProject() async {
     final response = await http.get(
-      Uri.parse('$baseUrl/strategy/active'),
+      Uri.parse('$baseUrl/project/active'),
       headers: _headers(),
     );
     
@@ -81,26 +81,26 @@ class ApiService {
       }
       return jsonDecode(body);
     } else {
-      throw Exception('Failed to get active strategy');
+      throw Exception('Failed to get active project');
     }
   }
   
-  Future<List<dynamic>> getAllStrategies() async {
+  Future<List<dynamic>> getAllProjects() async {
     final response = await http.get(
-      Uri.parse('$baseUrl/strategy/all'),
+      Uri.parse('$baseUrl/project/all'),
       headers: _headers(),
     );
     
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
-      throw Exception('Failed to get strategies');
+      throw Exception('Failed to get projects');
     }
   }
   
-  Future<Map<String, dynamic>> createStrategy(String targetUrl, String? name) async {
+  Future<Map<String, dynamic>> createProject(String targetUrl, String? name) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/strategy/create'),
+      Uri.parse('$baseUrl/project/create'),
       headers: _headers(),
       body: jsonEncode({
         'target_url': targetUrl,
@@ -111,31 +111,31 @@ class ApiService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
-      throw Exception('Failed to create strategy: ${response.body}');
+      throw Exception('Failed to create project: ${response.body}');
     }
   }
   
-  Future<List<dynamic>> getStrategyKeywords(String strategyId) async {
+  Future<List<dynamic>> getProjectKeywords(String projectId) async {
     final response = await http.get(
-      Uri.parse('$baseUrl/strategy/$strategyId/keywords'),
+      Uri.parse('$baseUrl/project/$projectId/keywords'),
       headers: _headers(),
     );
     
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
-      throw Exception('Failed to get strategy keywords');
+      throw Exception('Failed to get project keywords');
     }
   }
   
-  Future<Map<String, dynamic>> addKeywordToStrategy(
-    String strategyId,
+  Future<Map<String, dynamic>> addKeywordToProject(
+    String projectId,
     String keyword,
     int? searchVolume,
     String? competition,
   ) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/strategy/$strategyId/keywords'),
+      Uri.parse('$baseUrl/project/$projectId/keywords'),
       headers: _headers(),
       body: jsonEncode({
         'keyword': keyword,
@@ -151,9 +151,9 @@ class ApiService {
     }
   }
   
-  Future<void> refreshRankings(String strategyId) async {
+  Future<void> refreshRankings(String projectId) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/strategy/$strategyId/refresh'),
+      Uri.parse('$baseUrl/project/$projectId/refresh'),
       headers: _headers(),
     );
     
@@ -164,7 +164,7 @@ class ApiService {
   
   Future<Map<String, dynamic>> getKeywordHistory(String keywordId) async {
     final response = await http.get(
-      Uri.parse('$baseUrl/strategy/keywords/$keywordId/history'),
+      Uri.parse('$baseUrl/project/keywords/$keywordId/history'),
       headers: _headers(),
     );
     

@@ -18,12 +18,23 @@ class AuthScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(
-                Icons.search,
-                size: 80,
-                color: Colors.deepPurple,
+              // Logo
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.network(
+                  '/logo.svg',
+                  height: 140,
+                  width: 140,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Icon(
+                      Icons.search,
+                      size: 80,
+                      color: Colors.deepPurple,
+                    );
+                  },
+                ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
               const Text(
                 'KeywordsChat',
                 style: TextStyle(

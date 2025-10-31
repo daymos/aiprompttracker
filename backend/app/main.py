@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 
 from .config import get_settings
-from .api import auth, keyword_chat, strategy
+from .api import auth, keyword_chat, project
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router, prefix=settings.API_V1_PREFIX)
 app.include_router(keyword_chat.router, prefix=settings.API_V1_PREFIX)
-app.include_router(strategy.router, prefix=settings.API_V1_PREFIX)
+app.include_router(project.router, prefix=settings.API_V1_PREFIX)
 
 @app.get("/")
 async def root():

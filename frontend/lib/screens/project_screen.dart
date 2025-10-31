@@ -1,39 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-import '../providers/strategy_provider.dart';
+import '../providers/project_provider.dart';
 
-class StrategyScreen extends StatefulWidget {
-  const StrategyScreen({super.key});
+class ProjectScreen extends StatefulWidget {
+  const ProjectScreen({super.key});
 
   @override
-  State<StrategyScreen> createState() => _StrategyScreenState();
+  State<ProjectScreen> createState() => _ProjectScreenState();
 }
 
-class _StrategyScreenState extends State<StrategyScreen> {
+class _ProjectScreenState extends State<ProjectScreen> {
   final TextEditingController _urlController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
-  bool _isCreatingStrategy = false;
+  bool _isCreatingProject = false;
   bool _showCreateForm = false;
 
   @override
   void initState() {
     super.initState();
-    // Load strategies after build completes to avoid setState during build
+    // Load projects after build completes to avoid setState during build
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadStrategies();
+      _loadProjects();
     });
   }
 
-  Future<void> _loadStrategies() async {
-    final strategyProvider = Provider.of<StrategyProvider>(context, listen: false);
+  Future<void> _loadProjects() async {
+    final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     
-    await strategyProvider.loadAllStrategies(authProvider.apiService);
-    await strategyProvider.loadActiveStrategy(authProvider.apiService);
+    await projectProvider.loadAllProjects(authProvider.apiService);
+    await projectProvider.loadActiveProject(authProvider.apiService);
   }
 
-  Future<void> _createStrategy() async {
+  Future<void> _createProject() async {
     if (_urlController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a target URL')),
@@ -41,13 +41,13 @@ class _StrategyScreenState extends State<StrategyScreen> {
       return;
     }
 
-    setState(() => _isCreatingStrategy = true);
+    setState(() => _isCreatingProject = true);
 
-    final strategyProvider = Provider.of<StrategyProvider>(context, listen: false);
+    final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     try {
-      await strategyProvider.createStrategy(
+      await projectProvider.createProject(
         authProvider.apiService,
         _urlController.text,
         _nameController.text.isEmpty ? null : _nameController.text,
@@ -62,7 +62,7 @@ class _StrategyScreenState extends State<StrategyScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Strategy created successfully!')),
+          const SnackBar(content: Text('Project created successfully!')),
         );
       }
     } catch (e) {
@@ -73,17 +73,17 @@ class _StrategyScreenState extends State<StrategyScreen> {
       }
     } finally {
       if (mounted) {
-        setState(() => _isCreatingStrategy = false);
+        setState(() => _isCreatingProject = false);
       }
     }
   }
 
   Future<void> _refreshRankings() async {
-    final strategyProvider = Provider.of<StrategyProvider>(context, listen: false);
+    final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     try {
-      await strategyProvider.refreshRankings(authProvider.apiService);
+      await projectProvider.refreshRankings(authProvider.apiService);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Rankings updated!')),
@@ -101,19 +101,32 @@ class _StrategyScreenState extends State<StrategyScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
-    final strategyProvider = context.watch<StrategyProvider>();
-    final selectedStrategy = strategyProvider.selectedStrategy;
-    final allStrategies = strategyProvider.allStrategies;
-    final keywords = strategyProvider.trackedKeywords;
+    final projectProvider = context.watch<ProjectProvider>();
+    final selectedProject = projectProvider.selectedProject;
+    final allProjects = projectProvider.allProjects;
+    final keywords = projectProvider.trackedKeywords;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Strategies'),
+        title: Row(
+          children: [
+            Image.network(
+              '/logo-icon.svg',
+              height: 32,
+              width: 32,
+              errorBuilder: (context, error, stackTrace) {
+                return const Icon(Icons.track_changes, size: 24);
+              },
+            ),
+            const SizedBox(width: 12),
+            const Text('My Projects'),
+          ],
+        ),
         actions: [
-          if (selectedStrategy != null)
+          if (selectedProject != null)
             IconButton(
               icon: const Icon(Icons.refresh),
-              onPressed: strategyProvider.isLoading ? null : _refreshRankings,
+              onPressed: projectProvider.isLoading ? null : _refreshRankings,
               tooltip: 'Refresh Rankings',
             ),
           IconButton(
@@ -123,7 +136,7 @@ class _StrategyScreenState extends State<StrategyScreen> {
                 _showCreateForm = !_showCreateForm;
               });
             },
-            tooltip: 'Add Strategy',
+            tooltip: 'Add Project',
           ),
         ],
       ),
@@ -147,7 +160,7 @@ class _StrategyScreenState extends State<StrategyScreen> {
                           Row(
                             children: [
                               Text(
-                                'Create New Strategy',
+                                'Create New Project',
                                 style: Theme.of(context).textTheme.titleLarge,
                               ),
                               const Spacer(),
@@ -176,17 +189,17 @@ class _StrategyScreenState extends State<StrategyScreen> {
                           TextField(
                             controller: _nameController,
                             decoration: const InputDecoration(
-                              labelText: 'Strategy Name (Optional)',
+                              labelText: 'Project Name (Optional)',
                               border: OutlineInputBorder(),
                             ),
                           ),
                           const SizedBox(height: 16),
-                          _isCreatingStrategy
+                          _isCreatingProject
                               ? const Center(child: CircularProgressIndicator())
                               : ElevatedButton.icon(
-                                  onPressed: _createStrategy,
+                                  onPressed: _createProject,
                                   icon: const Icon(Icons.add),
-                                  label: const Text('Create Strategy'),
+                                  label: const Text('Create Project'),
                                   style: ElevatedButton.styleFrom(
                                     minimumSize: const Size.fromHeight(50),
                                   ),
@@ -196,44 +209,8 @@ class _StrategyScreenState extends State<StrategyScreen> {
                     ),
                   ),
                 
-                // Strategy Selector
-                if (allStrategies.isNotEmpty)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Select Strategy',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 8),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: allStrategies.map((strategy) {
-                            final isSelected = selectedStrategy?.id == strategy.id;
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 8.0),
-                              child: FilterChip(
-                                label: Text(strategy.name),
-                                selected: isSelected,
-                                onSelected: (_) async {
-                                  final authProvider = Provider.of<AuthProvider>(context, listen: false);
-                                  await strategyProvider.selectStrategy(authProvider.apiService, strategy);
-                                },
-                                avatar: strategy.isActive 
-                                  ? const Icon(Icons.star, size: 16) 
-                                  : null,
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-                  ),
-                
                 // Empty state
-                if (allStrategies.isEmpty)
+                if (allProjects.isEmpty)
                   Expanded(
                     child: Center(
                       child: Column(
@@ -246,7 +223,7 @@ class _StrategyScreenState extends State<StrategyScreen> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'No Strategies Yet',
+                            'No Projects Yet',
                             style: TextStyle(
                               fontSize: 20,
                               color: Colors.grey[600],
@@ -254,7 +231,7 @@ class _StrategyScreenState extends State<StrategyScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Create your first SEO strategy to start tracking keywords',
+                            'Create your first SEO project to start tracking keywords',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 16,
@@ -269,13 +246,13 @@ class _StrategyScreenState extends State<StrategyScreen> {
                               });
                             },
                             icon: const Icon(Icons.add),
-                            label: const Text('Create Strategy'),
+                            label: const Text('Create Project'),
                           ),
                         ],
                       ),
                     ),
                   )
-                else if (selectedStrategy != null)
+                else if (selectedProject != null)
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -290,12 +267,12 @@ class _StrategyScreenState extends State<StrategyScreen> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        selectedStrategy.name,
+                                        selectedProject.name,
                                         style: Theme.of(context).textTheme.titleLarge,
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        selectedStrategy.targetUrl,
+                                        selectedProject.targetUrl,
                                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                           color: Colors.grey[400],
                                         ),
@@ -303,12 +280,6 @@ class _StrategyScreenState extends State<StrategyScreen> {
                                     ],
                                   ),
                                 ),
-                                if (selectedStrategy.isActive)
-                                  Chip(
-                                    label: const Text('Active'),
-                                    avatar: const Icon(Icons.star, size: 16),
-                                    backgroundColor: Colors.green.withOpacity(0.2),
-                                  ),
                               ],
                             ),
                           ),
@@ -320,7 +291,7 @@ class _StrategyScreenState extends State<StrategyScreen> {
                         ),
                         const SizedBox(height: 12),
                         Expanded(
-                          child: strategyProvider.isLoading
+                          child: projectProvider.isLoading
                               ? const Center(child: CircularProgressIndicator())
                               : keywords.isEmpty
                                   ? const Center(

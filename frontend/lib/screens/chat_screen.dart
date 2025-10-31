@@ -126,7 +126,20 @@ class _ChatScreenState extends State<ChatScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('KeywordsChat'),
+        title: Row(
+          children: [
+            Image.network(
+              '/logo-icon.svg',
+              height: 32,
+              width: 32,
+              errorBuilder: (context, error, stackTrace) {
+                return const Icon(Icons.search, size: 24);
+              },
+            ),
+            const SizedBox(width: 12),
+            const Text('KeywordsChat'),
+          ],
+        ),
         leading: IconButton(
           icon: Icon(_showConversations ? Icons.close : Icons.menu),
           onPressed: () {
@@ -139,9 +152,9 @@ class _ChatScreenState extends State<ChatScreen> {
           IconButton(
             icon: const Icon(Icons.track_changes),
             onPressed: () {
-              Navigator.pushNamed(context, '/strategy');
+              Navigator.pushNamed(context, '/project');
             },
-            tooltip: 'My Strategy',
+            tooltip: 'My Projects',
           ),
           IconButton(
             icon: const Icon(Icons.download),
@@ -152,6 +165,7 @@ class _ChatScreenState extends State<ChatScreen> {
             icon: const Icon(Icons.add),
             onPressed: () {
               chatProvider.startNewConversation();
+              MessageBubble.clearAnimationCache();
               setState(() {
                 _showConversations = false;
               });
@@ -238,13 +252,13 @@ class _ChatScreenState extends State<ChatScreen> {
           
           // Main chat area
           Expanded(
-            child: Column(
-              children: [
-                // Messages
-                Expanded(
-                  child: chatProvider.messages.isEmpty
-                      ? _buildEmptyState()
-                      : ListView.builder(
+            child: chatProvider.messages.isEmpty
+                ? _buildEmptyStateWithInput()
+                : Column(
+                    children: [
+                      // Messages
+                      Expanded(
+                        child: ListView.builder(
                           controller: _scrollController,
                           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                           itemCount: chatProvider.messages.length,
@@ -259,90 +273,166 @@ class _ChatScreenState extends State<ChatScreen> {
                             );
                           },
                         ),
-                ),
-                
-                // Loading indicator
-                if (chatProvider.isLoading)
-                  const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: LinearProgressIndicator(),
-                  ),
-                
-                // Input area
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 4,
-                        offset: const Offset(0, -2),
                       ),
+                      
+                      // Loading indicator
+                      if (chatProvider.isLoading)
+                        const Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: LinearProgressIndicator(),
+                        ),
+                      
+                      // Input area (bottom)
+                      _buildInputArea(),
                     ],
                   ),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 900),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _messageController,
-                              decoration: const InputDecoration(
-                                hintText: 'Ask about keywords...',
-                                border: OutlineInputBorder(),
-                              ),
-                              maxLines: null,
-                              textInputAction: TextInputAction.send,
-                              onSubmitted: (_) => _sendMessage(),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton.filled(
-                            onPressed: _sendMessage,
-                            icon: const Icon(Icons.send),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyStateWithInput() {
+    final authProvider = context.watch<AuthProvider>();
+    final userName = authProvider.name?.split(' ').first ?? 'there';
+    
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.search,
-            size: 64,
-            color: Colors.grey[600],
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 700),
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Logo and Greeting
+              Column(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      '/logo.svg',
+                      height: 80,
+                      width: 80,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(Icons.search, size: 64);
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.waving_hand,
+                        size: 28,
+                        color: Colors.orange[300],
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Hello, $userName',
+                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.w300,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 48),
+              
+              // Centered input
+              TextField(
+                controller: _messageController,
+                decoration: InputDecoration(
+                  hintText: 'Ask about keywords for your content...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
+                  suffixIcon: Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 8, 12, 8),
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: IconButton(
+                        onPressed: _sendMessage,
+                        icon: const Icon(Icons.arrow_upward),
+                        iconSize: 16,
+                        padding: EdgeInsets.zero,
+                        color: Theme.of(context).colorScheme.onPrimary,
+                      ),
+                    ),
+                  ),
+                ),
+                maxLines: null,
+                textInputAction: TextInputAction.send,
+                onSubmitted: (_) => _sendMessage(),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          Text(
-            'Start a conversation',
-            style: TextStyle(
-              fontSize: 20,
-              color: Colors.grey[600],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Ask me about keywords for your content',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[500],
-            ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInputArea() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, -2),
           ),
         ],
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 700),
+          child: TextField(
+            controller: _messageController,
+            decoration: InputDecoration(
+              hintText: 'Ask about keywords...',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 16,
+              ),
+              suffixIcon: Padding(
+                padding: const EdgeInsets.fromLTRB(8, 8, 12, 8),
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: IconButton(
+                    onPressed: _sendMessage,
+                    icon: const Icon(Icons.arrow_upward),
+                    iconSize: 16,
+                    padding: EdgeInsets.zero,
+                    color: Theme.of(context).colorScheme.onPrimary,
+                  ),
+                ),
+              ),
+            ),
+            maxLines: null,
+            textInputAction: TextInputAction.send,
+            onSubmitted: (_) => _sendMessage(),
+          ),
+        ),
       ),
     );
   }

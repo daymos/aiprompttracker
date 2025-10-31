@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:provider/provider.dart';
 import '../providers/chat_provider.dart';
-import '../providers/strategy_provider.dart';
+import '../providers/project_provider.dart';
 import '../providers/auth_provider.dart';
 import '../models/keyword_data.dart';
 
@@ -13,47 +13,107 @@ class MessageBubble extends StatefulWidget {
 
   @override
   State<MessageBubble> createState() => _MessageBubbleState();
+  
+  // Static method to clear animated messages when starting a new conversation
+  static void clearAnimationCache() {
+    _MessageBubbleState._animatedMessages.clear();
+  }
 }
 
 class _MessageBubbleState extends State<MessageBubble> {
   Set<String> addedKeywords = {};
-  bool _strategiesLoaded = false;
+  bool _projectsLoaded = false;
+  String _displayedText = '';
+  bool _isAnimating = false;
+  static final Set<String> _animatedMessages = {};
   
   @override
   void initState() {
     super.initState();
-    _loadStrategies();
+    _loadProjects();
+    _startTextAnimation();
   }
   
-  Future<void> _loadStrategies() async {
-    if (_strategiesLoaded) return;
+  void _startTextAnimation() {
+    // Only animate assistant messages
+    if (widget.message.role != 'assistant') {
+      setState(() {
+        _displayedText = widget.message.content;
+      });
+      return;
+    }
     
-    final strategyProvider = Provider.of<StrategyProvider>(context, listen: false);
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    // Don't re-animate messages we've already shown
+    if (_animatedMessages.contains(widget.message.id)) {
+      setState(() {
+        _displayedText = widget.message.content;
+        _isAnimating = false;
+      });
+      return;
+    }
     
-    await strategyProvider.loadAllStrategies(authProvider.apiService);
-    _strategiesLoaded = true;
+    // Mark this message as animated
+    _animatedMessages.add(widget.message.id);
+    
+    // Animate text character by character
+    _isAnimating = true;
+    final fullText = widget.message.content;
+    int currentIndex = 0;
+    
+    // Use a faster speed for better UX (20ms per character)
+    const duration = Duration(milliseconds: 20);
+    
+    void animateNext() {
+      if (!mounted || currentIndex >= fullText.length) {
+        if (mounted) {
+          setState(() {
+            _isAnimating = false;
+            _displayedText = fullText;
+          });
+        }
+        return;
+      }
+      
+      setState(() {
+        currentIndex++;
+        _displayedText = fullText.substring(0, currentIndex);
+      });
+      
+      Future.delayed(duration, animateNext);
+    }
+    
+    animateNext();
   }
   
-  Future<void> _addKeywordToStrategy(KeywordData keyword) async {
-    final strategyProvider = Provider.of<StrategyProvider>(context, listen: false);
+  Future<void> _loadProjects() async {
+    if (_projectsLoaded) return;
+    
+    final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     
-    // Load strategies if not already loaded
-    await _loadStrategies();
+    await projectProvider.loadAllProjects(authProvider.apiService);
+    _projectsLoaded = true;
+  }
+  
+  Future<void> _addKeywordToProject(KeywordData keyword) async {
+    final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
     
-    final strategies = strategyProvider.allStrategies;
+    // Load projects if not already loaded
+    await _loadProjects();
     
-    // No strategies - prompt to create
-    if (strategies.isEmpty) {
+    final projects = projectProvider.allProjects;
+    
+    // No projects - prompt to create
+    if (projects.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Please create a strategy first!'),
+            content: const Text('Please create a project first!'),
             action: SnackBarAction(
               label: 'Create',
               onPressed: () {
-                Navigator.pushNamed(context, '/strategy');
+                Navigator.pushNamed(context, '/project');
               },
             ),
           ),
@@ -62,28 +122,25 @@ class _MessageBubbleState extends State<MessageBubble> {
       return;
     }
     
-    // Single strategy - add directly
-    if (strategies.length == 1) {
-      await _addToSpecificStrategy(strategies[0].id, keyword);
+    // Single project - add directly
+    if (projects.length == 1) {
+      await _addToSpecificProject(projects[0].id, keyword);
       return;
     }
     
-    // Multiple strategies - show selector
+    // Multiple projects - show selector
     if (mounted) {
-      final selectedStrategyId = await showDialog<String>(
+      final selectedProjectId = await showDialog<String>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Select Strategy'),
+          title: const Text('Select Project'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
-            children: strategies.map((strategy) => ListTile(
-              leading: Icon(
-                strategy.isActive ? Icons.star : Icons.public,
-                color: strategy.isActive ? Colors.amber : null,
-              ),
-              title: Text(strategy.name),
-              subtitle: Text(strategy.targetUrl),
-              onTap: () => Navigator.pop(context, strategy.id),
+            children: projects.map((project) => ListTile(
+              leading: const Icon(Icons.public),
+              title: Text(project.name),
+              subtitle: Text(project.targetUrl),
+              onTap: () => Navigator.pop(context, project.id),
             )).toList(),
           ),
           actions: [
@@ -95,18 +152,18 @@ class _MessageBubbleState extends State<MessageBubble> {
         ),
       );
       
-      if (selectedStrategyId != null) {
-        await _addToSpecificStrategy(selectedStrategyId, keyword);
+      if (selectedProjectId != null) {
+        await _addToSpecificProject(selectedProjectId, keyword);
       }
     }
   }
   
-  Future<void> _addToSpecificStrategy(String strategyId, KeywordData keyword) async {
+  Future<void> _addToSpecificProject(String projectId, KeywordData keyword) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     
     try {
-      final response = await authProvider.apiService.addKeywordToStrategy(
-        strategyId,
+      final response = await authProvider.apiService.addKeywordToProject(
+        projectId,
         keyword.keyword,
         keyword.searchVolume,
         keyword.competition,
@@ -119,7 +176,7 @@ class _MessageBubbleState extends State<MessageBubble> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✓ Added "${keyword.keyword}" to strategy'),
+            content: Text('✓ Added "${keyword.keyword}" to project'),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 2),
           ),
@@ -174,15 +231,15 @@ class _MessageBubbleState extends State<MessageBubble> {
                           style: const TextStyle(color: Colors.white),
                         )
                       : MarkdownBody(
-                          data: widget.message.content,
+                          data: _displayedText,
                           styleSheet: MarkdownStyleSheet(
                             p: Theme.of(context).textTheme.bodyMedium,
                           ),
                         ),
                 ),
                 
-                // Show "Add to Strategy" buttons if keywords detected
-                if (keywords.isNotEmpty && !isUser) ...[
+                // Show "Add to Project" buttons if keywords detected (only after animation completes)
+                if (keywords.isNotEmpty && !isUser && !_isAnimating) ...[
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
@@ -190,7 +247,7 @@ class _MessageBubbleState extends State<MessageBubble> {
                     children: keywords.map((kw) {
                       final isAdded = addedKeywords.contains(kw.keyword);
                       return ElevatedButton.icon(
-                        onPressed: isAdded ? null : () => _addKeywordToStrategy(kw),
+                        onPressed: isAdded ? null : () => _addKeywordToProject(kw),
                         icon: Icon(isAdded ? Icons.check : Icons.add, size: 16),
                         label: Text(
                           isAdded ? 'Added' : 'Add "${kw.keyword}"',

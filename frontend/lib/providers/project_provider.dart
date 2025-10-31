@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 
-class Strategy {
+class Project {
   final String id;
   final String targetUrl;
   final String name;
-  final bool isActive;
   final DateTime createdAt;
 
-  Strategy({
+  Project({
     required this.id,
     required this.targetUrl,
     required this.name,
-    required this.isActive,
     required this.createdAt,
   });
 }
@@ -37,46 +35,45 @@ class TrackedKeyword {
   });
 }
 
-class StrategyProvider with ChangeNotifier {
-  Strategy? _activeStrategy;
-  Strategy? _selectedStrategy; // Currently viewing strategy
-  List<Strategy> _allStrategies = [];
+class ProjectProvider with ChangeNotifier {
+  Project? _activeProject;
+  Project? _selectedProject; // Currently viewing project
+  List<Project> _allProjects = [];
   List<TrackedKeyword> _trackedKeywords = [];
   bool _isLoading = false;
 
-  Strategy? get activeStrategy => _activeStrategy;
-  Strategy? get selectedStrategy => _selectedStrategy;
-  List<Strategy> get allStrategies => _allStrategies;
+  Project? get activeProject => _activeProject;
+  Project? get selectedProject => _selectedProject;
+  List<Project> get allProjects => _allProjects;
   List<TrackedKeyword> get trackedKeywords => _trackedKeywords;
   bool get isLoading => _isLoading;
 
-  Future<void> loadActiveStrategy(ApiService apiService) async {
+  Future<void> loadActiveProject(ApiService apiService) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      final response = await apiService.getActiveStrategy();
+      final response = await apiService.getActiveProject();
       
       if (response != null) {
-        _activeStrategy = Strategy(
+        _activeProject = Project(
           id: response['id'],
           targetUrl: response['target_url'],
-          name: response['name'] ?? 'My Strategy',
-          isActive: response['is_active'],
+          name: response['name'] ?? 'My Project',
           createdAt: DateTime.parse(response['created_at']),
         );
 
-        // Set as selected if no strategy is selected
-        if (_selectedStrategy == null) {
-          _selectedStrategy = _activeStrategy;
-          await loadTrackedKeywords(apiService, _activeStrategy!.id);
+        // Set as selected if no project is selected
+        if (_selectedProject == null) {
+          _selectedProject = _activeProject;
+          await loadTrackedKeywords(apiService, _activeProject!.id);
         }
       } else {
-        _activeStrategy = null;
+        _activeProject = null;
         _trackedKeywords = [];
       }
     } catch (e) {
-      _activeStrategy = null;
+      _activeProject = null;
       _trackedKeywords = [];
     } finally {
       _isLoading = false;
@@ -84,57 +81,55 @@ class StrategyProvider with ChangeNotifier {
     }
   }
   
-  Future<void> selectStrategy(ApiService apiService, Strategy strategy) async {
-    _selectedStrategy = strategy;
-    await loadTrackedKeywords(apiService, strategy.id);
+  Future<void> selectProject(ApiService apiService, Project project) async {
+    _selectedProject = project;
+    await loadTrackedKeywords(apiService, project.id);
   }
   
-  Future<void> loadAllStrategies(ApiService apiService) async {
+  Future<void> loadAllProjects(ApiService apiService) async {
     try {
-      final strategies = await apiService.getAllStrategies();
+      final projects = await apiService.getAllProjects();
       
-      _allStrategies = strategies.map((s) => Strategy(
+      _allProjects = projects.map((s) => Project(
         id: s['id'],
         targetUrl: s['target_url'],
-        name: s['name'] ?? 'My Strategy',
-        isActive: s['is_active'],
+        name: s['name'] ?? 'My Project',
         createdAt: DateTime.parse(s['created_at']),
       )).toList();
       
       notifyListeners();
     } catch (e) {
-      _allStrategies = [];
+      _allProjects = [];
     }
   }
 
-  Future<void> createStrategy(ApiService apiService, String targetUrl, String? name) async {
+  Future<void> createProject(ApiService apiService, String targetUrl, String? name) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      final response = await apiService.createStrategy(targetUrl, name);
+      final response = await apiService.createProject(targetUrl, name);
       
-      final newStrategy = Strategy(
+      final newProject = Project(
         id: response['id'],
         targetUrl: response['target_url'],
-        name: response['name'] ?? 'My Strategy',
-        isActive: response['is_active'],
+        name: response['name'] ?? 'My Project',
         createdAt: DateTime.parse(response['created_at']),
       );
       
-      _activeStrategy = newStrategy;
-      _selectedStrategy = newStrategy; // Auto-select the new strategy
+      _activeProject = newProject;
+      _selectedProject = newProject; // Auto-select the new project
       _trackedKeywords = [];
-      await loadAllStrategies(apiService); // Refresh all strategies list
+      await loadAllProjects(apiService); // Refresh all projects list
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  Future<void> loadTrackedKeywords(ApiService apiService, String strategyId) async {
+  Future<void> loadTrackedKeywords(ApiService apiService, String projectId) async {
     try {
-      final keywords = await apiService.getStrategyKeywords(strategyId);
+      final keywords = await apiService.getProjectKeywords(projectId);
       
       _trackedKeywords = keywords.map((k) => TrackedKeyword(
         id: k['id'],
@@ -152,13 +147,13 @@ class StrategyProvider with ChangeNotifier {
     }
   }
 
-  Future<void> addKeyword(ApiService apiService, String keyword, int? searchVolume, String? competition, {String? strategyId}) async {
-    final targetStrategyId = strategyId ?? _selectedStrategy?.id;
-    if (targetStrategyId == null) return;
+  Future<void> addKeyword(ApiService apiService, String keyword, int? searchVolume, String? competition, {String? projectId}) async {
+    final targetProjectId = projectId ?? _selectedProject?.id;
+    if (targetProjectId == null) return;
 
     try {
-      final response = await apiService.addKeywordToStrategy(
-        targetStrategyId,
+      final response = await apiService.addKeywordToProject(
+        targetProjectId,
         keyword,
         searchVolume,
         competition,
@@ -174,8 +169,8 @@ class StrategyProvider with ChangeNotifier {
         createdAt: DateTime.parse(response['created_at']),
       );
 
-      // Only add to tracked keywords if it's the currently selected strategy
-      if (targetStrategyId == _selectedStrategy?.id) {
+      // Only add to tracked keywords if it's the currently selected project
+      if (targetProjectId == _selectedProject?.id) {
         _trackedKeywords.add(newKeyword);
       }
       notifyListeners();
@@ -185,14 +180,14 @@ class StrategyProvider with ChangeNotifier {
   }
 
   Future<void> refreshRankings(ApiService apiService) async {
-    if (_selectedStrategy == null) return;
+    if (_selectedProject == null) return;
 
     _isLoading = true;
     notifyListeners();
 
     try {
-      await apiService.refreshRankings(_selectedStrategy!.id);
-      await loadTrackedKeywords(apiService, _selectedStrategy!.id); // Reload to get updated rankings
+      await apiService.refreshRankings(_selectedProject!.id);
+      await loadTrackedKeywords(apiService, _selectedProject!.id); // Reload to get updated rankings
     } finally {
       _isLoading = false;
       notifyListeners();

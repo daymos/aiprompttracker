@@ -9,7 +9,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from app.database import Base
-from app.models import user, conversation, strategy
+from app.models import user, conversation, project
 
 # this is the Alembic Config object
 config = context.config

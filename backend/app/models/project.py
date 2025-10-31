@@ -1,36 +1,35 @@
-from sqlalchemy import Column, String, Integer, Float, DateTime, ForeignKey, Boolean
+from sqlalchemy import Column, String, Integer, Float, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from ..database import Base
 
-class Strategy(Base):
-    """User's active SEO strategy with tracked keywords"""
-    __tablename__ = "strategies"
+class Project(Base):
+    """User's SEO project with tracked keywords"""
+    __tablename__ = "projects"
     
     id = Column(String, primary_key=True)
     user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
     target_url = Column(String, nullable=False)  # The website they're trying to rank
-    name = Column(String, nullable=True)  # Optional strategy name
-    is_active = Column(Boolean, default=True)
+    name = Column(String, nullable=True)  # Optional project name
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
-    tracked_keywords = relationship("TrackedKeyword", back_populates="strategy")
-    user = relationship("User", back_populates="strategies")
+    tracked_keywords = relationship("TrackedKeyword", back_populates="project")
+    user = relationship("User", back_populates="projects")
 
 class TrackedKeyword(Base):
-    """Individual keyword being tracked in a strategy"""
+    """Individual keyword being tracked in a project"""
     __tablename__ = "tracked_keywords"
     
     id = Column(String, primary_key=True)
-    strategy_id = Column(String, ForeignKey("strategies.id"), nullable=False, index=True)
+    project_id = Column(String, ForeignKey("projects.id"), nullable=False, index=True)
     keyword = Column(String, nullable=False)
     search_volume = Column(Integer, nullable=True)
     competition = Column(String, nullable=True)  # LOW, MEDIUM, HIGH
     target_position = Column(Integer, default=10)  # Goal ranking position
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
-    strategy = relationship("Strategy", back_populates="tracked_keywords")
+    project = relationship("Project", back_populates="tracked_keywords")
     rankings = relationship("KeywordRanking", back_populates="tracked_keyword", order_by="KeywordRanking.checked_at.desc()")
 
 class KeywordRanking(Base):
@@ -44,4 +43,3 @@ class KeywordRanking(Base):
     checked_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     
     tracked_keyword = relationship("TrackedKeyword", back_populates="rankings")
-

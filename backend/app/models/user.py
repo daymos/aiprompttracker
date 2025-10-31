@@ -15,5 +15,5 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     conversations = relationship("Conversation", back_populates="user")
-    strategies = relationship("Strategy", back_populates="user")
+    projects = relationship("Project", back_populates="user")
 
