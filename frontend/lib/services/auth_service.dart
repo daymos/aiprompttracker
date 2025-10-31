@@ -7,6 +7,7 @@ class AuthService {
   static const String baseUrl = 'http://localhost:8000/api/v1';
   
   final GoogleSignIn _googleSignIn = GoogleSignIn(
+    clientId: '149794489949-n76062u9scrnki2sbp22aaivat2eccri.apps.googleusercontent.com',
     scopes: ['email', 'profile'],
   );
   
