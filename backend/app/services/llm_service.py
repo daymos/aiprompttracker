@@ -9,13 +9,14 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 class LLMService:
-    """Service for LLM interactions via OpenAI GPT-4o"""
+    """Service for LLM interactions via Groq"""
     
     def __init__(self):
         self.client = AsyncOpenAI(
-            api_key=settings.OPENAI_API_KEY
+            api_key=settings.GROQ_API_KEY,
+            base_url="https://api.groq.com/openai/v1"
         )
-        self.model = "gpt-4o"  # GPT-4o - faster and smarter than GPT-4
+        self.model = "openai/gpt-oss-120b"  # GPT-OSS 120B via Groq
         self.web_scraper = WebScraperService()
     
     def _extract_url(self, text: str) -> Optional[str]:
