@@ -1,7 +1,9 @@
 import logging
-from typing import List, Dict, Any
+import re
+from typing import List, Dict, Any, Optional
 from openai import AsyncOpenAI
 from ..config import get_settings
+from .web_scraper import WebScraperService
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -15,6 +17,14 @@ class LLMService:
             base_url="https://api.groq.com/openai/v1"
         )
         self.model = "llama-3.3-70b-versatile"
+        self.web_scraper = WebScraperService()
+    
+    def _extract_url(self, text: str) -> Optional[str]:
+        """Extract URL from user message"""
+        # Simple URL pattern matching
+        url_pattern = r'https?://[^\s]+|www\.[^\s]+|[a-zA-Z0-9-]+\.(com|net|org|io|co|app|dev)[^\s]*'
+        match = re.search(url_pattern, text)
+        return match.group(0) if match else None
     
     async def generate_keyword_advice(
         self, 
@@ -32,9 +42,13 @@ Your job is to help users find keywords they can actually rank for. Focus on:
 - Relevance to their business/topic
 - Actionable recommendations (which keywords to target first)
 
+You can also analyze competitor websites to understand their SEO strategy, keywords they're targeting, and content structure.
+
 Keep responses conversational and concise. Don't overwhelm with data - give clear recommendations.
 
 When keyword data is provided, analyze it and give specific advice about which keywords to target and why.
+
+When website data is provided, analyze the title, meta description, headings, and content to understand what keywords they're targeting and give strategic advice.
 
 Format your responses in a friendly, chat-like way. Use bullet points for clarity when listing keywords."""
 
@@ -44,8 +58,29 @@ Format your responses in a friendly, chat-like way. Use bullet points for clarit
         if conversation_history:
             messages.extend(conversation_history[-5:])  # Last 5 messages for context
         
-        # Add keyword data if available
+        # Check if user is asking about a website
+        url = self._extract_url(user_message)
+        website_data = None
+        if url:
+            logger.info(f"Detected URL in message: {url}")
+            website_data = await self.web_scraper.fetch_website(url)
+        
+        # Build user content with all available data
         user_content = user_message
+        
+        if website_data:
+            if 'error' in website_data:
+                user_content += f"\n\n[Note: Could not fetch website - {website_data['error']}]"
+            else:
+                user_content += f"\n\nWebsite Analysis for {website_data['url']}:\n"
+                user_content += f"Title: {website_data.get('title', 'N/A')}\n"
+                user_content += f"Meta Description: {website_data.get('meta_description', 'N/A')}\n"
+                if website_data.get('meta_keywords'):
+                    user_content += f"Meta Keywords: {website_data['meta_keywords']}\n"
+                user_content += f"H1 Headings: {website_data['headings']['h1']}\n"
+                user_content += f"H2 Headings: {website_data['headings']['h2'][:5]}\n"
+                user_content += f"Content Preview: {website_data.get('main_content', '')[:500]}\n"
+        
         if keyword_data:
             user_content += f"\n\nKeyword Data:\n{keyword_data}"
         
