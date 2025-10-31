@@ -4,6 +4,7 @@ import '../providers/auth_provider.dart';
 import '../providers/chat_provider.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/conversation_list.dart';
+import 'dart:html' as html;
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -22,6 +23,44 @@ class _ChatScreenState extends State<ChatScreen> {
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+  
+  void _downloadConversationAsCSV() {
+    final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+    
+    if (chatProvider.messages.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No messages to export')),
+      );
+      return;
+    }
+    
+    // Build CSV content
+    final buffer = StringBuffer();
+    buffer.writeln('Timestamp,Role,Message');
+    
+    for (final message in chatProvider.messages) {
+      // Escape quotes and newlines for CSV
+      final content = message.content
+          .replaceAll('"', '""')
+          .replaceAll('\n', ' ')
+          .replaceAll('\r', '');
+      
+      buffer.writeln('${message.createdAt.toIso8601String()},${message.role},"$content"');
+    }
+    
+    // Create download
+    final bytes = buffer.toString().codeUnits;
+    final blob = html.Blob([bytes]);
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    final anchor = html.AnchorElement(href: url)
+      ..setAttribute('download', 'conversation_${DateTime.now().millisecondsSinceEpoch}.csv')
+      ..click();
+    html.Url.revokeObjectUrl(url);
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Conversation exported to CSV')),
+    );
   }
 
   void _scrollToBottom() {
@@ -97,6 +136,11 @@ class _ChatScreenState extends State<ChatScreen> {
           },
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.download),
+            onPressed: chatProvider.messages.isEmpty ? null : _downloadConversationAsCSV,
+            tooltip: 'Download as CSV',
+          ),
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () {
