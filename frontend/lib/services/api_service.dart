@@ -174,5 +174,16 @@ class ApiService {
       throw Exception('Failed to get keyword history');
     }
   }
+  
+  Future<void> deleteConversation(String conversationId) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/chat/conversation/$conversationId'),
+      headers: _headers(),
+    );
+    
+    if (response.statusCode != 200) {
+      throw Exception('Failed to delete conversation');
+    }
+  }
 }
 

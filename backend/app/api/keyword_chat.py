@@ -190,6 +190,36 @@ async def get_conversation(
         ]
     }
 
+@router.delete("/conversation/{conversation_id}")
+async def delete_conversation(
+    conversation_id: str,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """Delete a conversation and all its messages"""
+    
+    token = authorization.replace("Bearer ", "")
+    user = get_current_user(token, db)
+    
+    conversation = db.query(Conversation).filter(
+        Conversation.id == conversation_id,
+        Conversation.user_id == user.id
+    ).first()
+    
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    # Delete all messages first
+    db.query(Message).filter(
+        Message.conversation_id == conversation_id
+    ).delete()
+    
+    # Delete conversation
+    db.delete(conversation)
+    db.commit()
+    
+    return {"message": "Conversation deleted successfully"}
+
 def should_fetch_keyword_data(message: str) -> bool:
     """Determine if we should fetch keyword data based on the message"""
     keywords_triggers = [
