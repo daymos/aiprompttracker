@@ -17,12 +17,143 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _showConversations = false;
+  bool _hasShownWelcomeModal = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Show welcome modal after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_hasShownWelcomeModal) {
+        _showWelcomeModal();
+        _hasShownWelcomeModal = true;
+      }
+    });
+  }
 
   @override
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _showWelcomeModal() {
+    final chatProvider = context.read<ChatProvider>();
+    
+    // Only show if this is truly the first visit (no messages)
+    if (chatProvider.messages.isNotEmpty) return;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(
+          'Want to start with a guided conversation about SEO?',
+          textAlign: TextAlign.center,
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _messageController.text = 'Yes, show me what keywords.chat can do for me. I\'d like to understand all the features and how you can help with my SEO.';
+                _sendMessage();
+              },
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              ),
+              child: const Text('Yes, show me what keywords.chat can do for me'),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('No thanks, I\'ll explore on my own'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showGuidesModal() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(
+          'Guided Conversations',
+          textAlign: TextAlign.center,
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildGuideButton(
+                'What can Keywords.chat do?',
+                'What can keywords.chat do for me? I\'d like to understand all the features and how you can help with my SEO.',
+                Icons.info_outline,
+              ),
+              const SizedBox(height: 12),
+              _buildGuideButton(
+                'Track keywords',
+                'I want to track keywords for my website. Can you help me set up keyword tracking and monitoring?',
+                Icons.track_changes,
+              ),
+              const SizedBox(height: 12),
+              _buildGuideButton(
+                'Analyze my website',
+                'I want to analyze my website for SEO opportunities. Can you help me understand what keywords I should target?',
+                Icons.search,
+              ),
+              const SizedBox(height: 12),
+              _buildGuideButton(
+                'Find keyword ideas',
+                'I need help finding keyword ideas for my niche. What should I be ranking for?',
+                Icons.lightbulb_outline,
+              ),
+              const SizedBox(height: 12),
+              _buildGuideButton(
+                'Understand keyword difficulty',
+                'Can you explain keyword difficulty and help me find keywords I can actually rank for?',
+                Icons.analytics_outlined,
+              ),
+              const SizedBox(height: 12),
+              _buildGuideButton(
+                'Create an SEO strategy',
+                'I\'m new to SEO. Can you help me create a keyword strategy for my website?',
+                Icons.map_outlined,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGuideButton(String title, String prompt, IconData icon) {
+    return OutlinedButton.icon(
+      onPressed: () {
+        Navigator.pop(context);
+        _messageController.text = prompt;
+        _sendMessage();
+      },
+      icon: Icon(icon, size: 20),
+      label: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(title),
+      ),
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.all(16),
+        alignment: Alignment.centerLeft,
+      ),
+    );
   }
   
   void _downloadConversationAsCSV() {
@@ -126,81 +257,137 @@ class _ChatScreenState extends State<ChatScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          children: [
-            Image.network(
-              '/logo-icon.svg',
-              height: 32,
-              width: 32,
-              errorBuilder: (context, error, stackTrace) {
-                return const Icon(Icons.search, size: 24);
-              },
-            ),
-            const SizedBox(width: 12),
-            const Text('KeywordsChat'),
-          ],
-        ),
-        leading: IconButton(
-          icon: Icon(_showConversations ? Icons.close : Icons.menu),
-          onPressed: () {
-            setState(() {
-              _showConversations = !_showConversations;
-            });
-          },
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.track_changes),
-            onPressed: () {
-              Navigator.pushNamed(context, '/project');
-            },
-            tooltip: 'My Projects',
-          ),
-          IconButton(
-            icon: const Icon(Icons.download),
-            onPressed: chatProvider.messages.isEmpty ? null : _downloadConversationAsCSV,
-            tooltip: 'Download as CSV',
-          ),
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () {
-              chatProvider.startNewConversation();
-              MessageBubble.clearAnimationCache();
-              setState(() {
-                _showConversations = false;
-              });
-            },
-            tooltip: 'New conversation',
-          ),
-          PopupMenuButton(
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                child: ListTile(
-                  leading: const Icon(Icons.person),
-                  title: Text(authProvider.name ?? authProvider.email ?? 'User'),
-                  dense: true,
-                ),
-              ),
-              PopupMenuItem(
-                child: const ListTile(
-                  leading: Icon(Icons.logout),
-                  title: Text('Sign out'),
-                  dense: true,
-                ),
-                onTap: () async {
-                  await authProvider.signOut();
-                },
-              ),
-            ],
-          ),
-        ],
+        toolbarHeight: 0,
+        elevation: 0,
       ),
       body: Row(
         children: [
-          // Conversation list sidebar
+          // Persistent left sidebar with icons
+          Container(
+            width: 60,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              border: Border(
+                right: BorderSide(
+                  color: Theme.of(context).dividerColor.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+            ),
+            child: Column(
+              children: [
+                const SizedBox(height: 16),
+                // Logo
+                const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Text(
+                    'K',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // New conversation button
+                IconButton(
+                  onPressed: () {
+                    chatProvider.startNewConversation();
+                    MessageBubble.clearAnimationCache();
+                    setState(() {
+                      _showConversations = false;
+                    });
+                  },
+                  icon: const Icon(Icons.add),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                  ),
+                  tooltip: 'New conversation',
+                ),
+                const SizedBox(height: 12),
+                // Conversations toggle
+                IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _showConversations = !_showConversations;
+                    });
+                  },
+                  icon: const Icon(Icons.chat_bubble_outline),
+                  style: IconButton.styleFrom(
+                    backgroundColor: _showConversations 
+                      ? Theme.of(context).colorScheme.secondaryContainer 
+                      : Colors.transparent,
+                  ),
+                  tooltip: 'Conversations',
+                ),
+                const SizedBox(height: 12),
+                // Projects button
+                IconButton(
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/project');
+                  },
+                  icon: const Icon(Icons.track_changes),
+                  tooltip: 'My Projects',
+                ),
+                const SizedBox(height: 12),
+                // Guides button
+                IconButton(
+                  onPressed: _showGuidesModal,
+                  icon: const Icon(Icons.help_outline),
+                  tooltip: 'Guides',
+                ),
+                const Spacer(),
+                // User menu at bottom
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: PopupMenuButton<String>(
+                    child: CircleAvatar(
+                      backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                      radius: 18,
+                      child: Text(
+                        (authProvider.name?.substring(0, 1) ?? authProvider.email?.substring(0, 1) ?? 'U').toUpperCase(),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onPrimaryContainer,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                    itemBuilder: (context) => <PopupMenuEntry<String>>[
+                      PopupMenuItem<String>(
+                        enabled: false,
+                        child: ListTile(
+                          leading: const Icon(Icons.person),
+                          title: Text(authProvider.name ?? authProvider.email ?? 'User'),
+                          dense: true,
+                        ),
+                      ),
+                      const PopupMenuDivider(),
+                      const PopupMenuItem<String>(
+                        value: 'signout',
+                        child: ListTile(
+                          leading: Icon(Icons.logout),
+                          title: Text('Sign out'),
+                          dense: true,
+                        ),
+                      ),
+                    ],
+                    onSelected: (value) async {
+                      if (value == 'signout') {
+                        await authProvider.signOut();
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // Expandable conversation list
           if (_showConversations)
             SizedBox(
-              width: 300,
+              width: 280,
               child: ConversationList(
                 onConversationSelected: (conversationId) async {
                   // Load the conversation messages
@@ -293,8 +480,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildEmptyStateWithInput() {
-    final authProvider = context.watch<AuthProvider>();
-    final userName = authProvider.name?.split(' ').first ?? 'there';
+    final chatProvider = context.watch<ChatProvider>();
     
     return Center(
       child: ConstrainedBox(
@@ -304,47 +490,31 @@ class _ChatScreenState extends State<ChatScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Logo and Greeting
+              // Title
               Column(
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      '/logo.svg',
-                      height: 80,
-                      width: 80,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Icon(Icons.search, size: 64);
-                      },
+                  Text(
+                    'Welcome to Keywords.chat',
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.waving_hand,
-                        size: 28,
-                        color: Colors.orange[300],
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Hello, $userName',
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.w300,
-                        ),
-                      ),
-                    ],
+                  const SizedBox(height: 4),
+                  Text(
+                    'SEO tools via chatbot',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: Theme.of(context).textTheme.bodySmall?.color,
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 48),
+              const SizedBox(height: 64),
               
               // Centered input
               TextField(
                 controller: _messageController,
                 decoration: InputDecoration(
-                  hintText: 'Ask about keywords for your content...',
+                  hintText: 'Let\'s talk about SEO for your website...',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -354,20 +524,47 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                   suffixIcon: Padding(
                     padding: const EdgeInsets.fromLTRB(8, 8, 12, 8),
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: IconButton(
-                        onPressed: _sendMessage,
-                        icon: const Icon(Icons.arrow_upward),
-                        iconSize: 16,
-                        padding: EdgeInsets.zero,
-                        color: Theme.of(context).colorScheme.onPrimary,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Download CSV button
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: chatProvider.messages.isEmpty
+                                ? Theme.of(context).colorScheme.surfaceVariant
+                                : Theme.of(context).colorScheme.secondaryContainer,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: IconButton(
+                            onPressed: chatProvider.messages.isEmpty ? null : _downloadConversationAsCSV,
+                            icon: const Icon(Icons.download),
+                            iconSize: 16,
+                            padding: EdgeInsets.zero,
+                            color: chatProvider.messages.isEmpty
+                                ? Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.4)
+                                : Theme.of(context).colorScheme.onSecondaryContainer,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Submit button
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: IconButton(
+                            onPressed: _sendMessage,
+                            icon: const Icon(Icons.arrow_upward),
+                            iconSize: 16,
+                            padding: EdgeInsets.zero,
+                            color: Theme.of(context).colorScheme.onPrimary,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -383,6 +580,8 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildInputArea() {
+    final chatProvider = context.watch<ChatProvider>();
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -401,7 +600,7 @@ class _ChatScreenState extends State<ChatScreen> {
           child: TextField(
             controller: _messageController,
             decoration: InputDecoration(
-              hintText: 'Ask about keywords...',
+              hintText: 'Let\'s talk about SEO for your website...',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -411,20 +610,47 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
               suffixIcon: Padding(
                 padding: const EdgeInsets.fromLTRB(8, 8, 12, 8),
-                child: Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: IconButton(
-                    onPressed: _sendMessage,
-                    icon: const Icon(Icons.arrow_upward),
-                    iconSize: 16,
-                    padding: EdgeInsets.zero,
-                    color: Theme.of(context).colorScheme.onPrimary,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Download CSV button
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: chatProvider.messages.isEmpty
+                            ? Theme.of(context).colorScheme.surfaceVariant
+                            : Theme.of(context).colorScheme.secondaryContainer,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: IconButton(
+                        onPressed: chatProvider.messages.isEmpty ? null : _downloadConversationAsCSV,
+                        icon: const Icon(Icons.download),
+                        iconSize: 16,
+                        padding: EdgeInsets.zero,
+                        color: chatProvider.messages.isEmpty
+                            ? Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.4)
+                            : Theme.of(context).colorScheme.onSecondaryContainer,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Submit button
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: IconButton(
+                        onPressed: _sendMessage,
+                        icon: const Icon(Icons.arrow_upward),
+                        iconSize: 16,
+                        padding: EdgeInsets.zero,
+                        color: Theme.of(context).colorScheme.onPrimary,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

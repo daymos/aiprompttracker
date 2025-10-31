@@ -196,32 +196,48 @@ class _MessageBubbleState extends State<MessageBubble> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = context.watch<AuthProvider>();
     final isUser = widget.message.role == 'user';
     final keywords = !isUser ? KeywordData.parseFromMessage(widget.message.content) : <KeywordData>[];
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
-        mainAxisAlignment:
-            isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!isUser) ...[
-            CircleAvatar(
-              backgroundColor: Colors.deepPurple,
-              child: const Icon(Icons.smart_toy, color: Colors.white),
-            ),
-            const SizedBox(width: 8),
-          ],
+          // Avatar on the left for both user and AI
+          CircleAvatar(
+            backgroundColor: isUser ? Colors.blue : Colors.deepPurple,
+            radius: 18,
+            child: isUser
+                ? Text(
+                    (authProvider.name?.substring(0, 1) ?? authProvider.email?.substring(0, 1) ?? 'U').toUpperCase(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  )
+                : const Text(
+                    'K',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+          ),
+          const SizedBox(width: 12),
           Flexible(
             child: Column(
-              crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: isUser
-                        ? Colors.deepPurple
+                        ? Colors.grey[800]
                         : Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -264,13 +280,6 @@ class _MessageBubbleState extends State<MessageBubble> {
               ],
             ),
           ),
-          if (isUser) ...[
-            const SizedBox(width: 8),
-            CircleAvatar(
-              backgroundColor: Colors.blue,
-              child: const Icon(Icons.person, color: Colors.white),
-            ),
-          ],
         ],
       ),
     );
