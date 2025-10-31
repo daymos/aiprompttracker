@@ -3,8 +3,7 @@ from functools import lru_cache
 
 class Settings(BaseSettings):
     # API Keys
-    DATAFORSEO_LOGIN: str = ""
-    DATAFORSEO_PASSWORD: str = ""
+    RAPIDAPI_KEY: str = ""
     GROQ_API_KEY: str = ""
     
     # Auth

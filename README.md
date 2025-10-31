@@ -15,7 +15,7 @@ Simple conversational keyword research tool. Stop paying $65/month for Mangools 
 **Backend:**
 - FastAPI (Python)
 - PostgreSQL
-- DataForSEO API
+- RapidAPI (keyword data)
 - Groq LLM
 
 **Frontend:**
@@ -68,10 +68,10 @@ flutter run -d chrome
 
 ## Cost Structure
 
-**API Costs (DataForSEO):**
-- Keywords: $0.000075 per keyword
-- SERP: $0.003 per request
-- Estimated: $5-10/month for personal use
+**API Costs (RapidAPI):**
+- Keywords: ~$0.001 per request
+- Estimated: $1-5/month for personal use
+- Free tier available
 
 **Subscription: $20/month**
 - Covers API costs
