@@ -17,27 +17,96 @@ class MessageBubble extends StatefulWidget {
 
 class _MessageBubbleState extends State<MessageBubble> {
   Set<String> addedKeywords = {};
+  bool _strategiesLoaded = false;
+  
+  @override
+  void initState() {
+    super.initState();
+    _loadStrategies();
+  }
+  
+  Future<void> _loadStrategies() async {
+    if (_strategiesLoaded) return;
+    
+    final strategyProvider = Provider.of<StrategyProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
+    await strategyProvider.loadAllStrategies(authProvider.apiService);
+    _strategiesLoaded = true;
+  }
   
   Future<void> _addKeywordToStrategy(KeywordData keyword) async {
     final strategyProvider = Provider.of<StrategyProvider>(context, listen: false);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     
-    // Check if user has an active strategy
-    if (strategyProvider.activeStrategy == null) {
+    // Load strategies if not already loaded
+    await _loadStrategies();
+    
+    final strategies = strategyProvider.allStrategies;
+    
+    // No strategies - prompt to create
+    if (strategies.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please create a strategy first!'),
-            action: SnackBarAction(label: 'Create', onPressed: null),
+          SnackBar(
+            content: const Text('Please create a strategy first!'),
+            action: SnackBarAction(
+              label: 'Create',
+              onPressed: () {
+                Navigator.pushNamed(context, '/strategy');
+              },
+            ),
           ),
         );
       }
       return;
     }
     
+    // Single strategy - add directly
+    if (strategies.length == 1) {
+      await _addToSpecificStrategy(strategies[0].id, keyword);
+      return;
+    }
+    
+    // Multiple strategies - show selector
+    if (mounted) {
+      final selectedStrategyId = await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Select Strategy'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: strategies.map((strategy) => ListTile(
+              leading: Icon(
+                strategy.isActive ? Icons.star : Icons.public,
+                color: strategy.isActive ? Colors.amber : null,
+              ),
+              title: Text(strategy.name),
+              subtitle: Text(strategy.targetUrl),
+              onTap: () => Navigator.pop(context, strategy.id),
+            )).toList(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+          ],
+        ),
+      );
+      
+      if (selectedStrategyId != null) {
+        await _addToSpecificStrategy(selectedStrategyId, keyword);
+      }
+    }
+  }
+  
+  Future<void> _addToSpecificStrategy(String strategyId, KeywordData keyword) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
     try {
-      await strategyProvider.addKeyword(
-        authProvider.apiService,
+      final response = await authProvider.apiService.addKeywordToStrategy(
+        strategyId,
         keyword.keyword,
         keyword.searchVolume,
         keyword.competition,

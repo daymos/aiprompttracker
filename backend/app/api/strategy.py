@@ -98,6 +98,30 @@ async def get_active_strategy(
         created_at=strategy.created_at.isoformat()
     )
 
+@router.get("/all", response_model=List[StrategyResponse])
+async def get_all_strategies(
+    authorization: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """Get all user's strategies"""
+    token = authorization.replace("Bearer ", "")
+    user = get_current_user(token, db)
+    
+    strategies = db.query(Strategy).filter(
+        Strategy.user_id == user.id
+    ).order_by(Strategy.created_at.desc()).all()
+    
+    return [
+        StrategyResponse(
+            id=s.id,
+            target_url=s.target_url,
+            name=s.name,
+            is_active=s.is_active,
+            created_at=s.created_at.isoformat()
+        )
+        for s in strategies
+    ]
+
 @router.post("/{strategy_id}/keywords", response_model=TrackedKeywordResponse)
 async def add_keyword_to_strategy(
     strategy_id: str,

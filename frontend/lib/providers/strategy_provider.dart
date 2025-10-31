@@ -39,10 +39,12 @@ class TrackedKeyword {
 
 class StrategyProvider with ChangeNotifier {
   Strategy? _activeStrategy;
+  List<Strategy> _allStrategies = [];
   List<TrackedKeyword> _trackedKeywords = [];
   bool _isLoading = false;
 
   Strategy? get activeStrategy => _activeStrategy;
+  List<Strategy> get allStrategies => _allStrategies;
   List<TrackedKeyword> get trackedKeywords => _trackedKeywords;
   bool get isLoading => _isLoading;
 
@@ -74,6 +76,24 @@ class StrategyProvider with ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+  
+  Future<void> loadAllStrategies(ApiService apiService) async {
+    try {
+      final strategies = await apiService.getAllStrategies();
+      
+      _allStrategies = strategies.map((s) => Strategy(
+        id: s['id'],
+        targetUrl: s['target_url'],
+        name: s['name'] ?? 'My Strategy',
+        isActive: s['is_active'],
+        createdAt: DateTime.parse(s['created_at']),
+      )).toList();
+      
+      notifyListeners();
+    } catch (e) {
+      _allStrategies = [];
     }
   }
 
@@ -119,12 +139,13 @@ class StrategyProvider with ChangeNotifier {
     }
   }
 
-  Future<void> addKeyword(ApiService apiService, String keyword, int? searchVolume, String? competition) async {
-    if (_activeStrategy == null) return;
+  Future<void> addKeyword(ApiService apiService, String keyword, int? searchVolume, String? competition, {String? strategyId}) async {
+    final targetStrategyId = strategyId ?? _activeStrategy?.id;
+    if (targetStrategyId == null) return;
 
     try {
       final response = await apiService.addKeywordToStrategy(
-        _activeStrategy!.id,
+        targetStrategyId,
         keyword,
         searchVolume,
         competition,
@@ -140,7 +161,10 @@ class StrategyProvider with ChangeNotifier {
         createdAt: DateTime.parse(response['created_at']),
       );
 
-      _trackedKeywords.add(newKeyword);
+      // Only add to tracked keywords if it's the active strategy
+      if (targetStrategyId == _activeStrategy?.id) {
+        _trackedKeywords.add(newKeyword);
+      }
       notifyListeners();
     } catch (e) {
       rethrow;

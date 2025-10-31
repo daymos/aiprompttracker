@@ -85,6 +85,19 @@ class ApiService {
     }
   }
   
+  Future<List<dynamic>> getAllStrategies() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/strategy/all'),
+      headers: _headers(),
+    );
+    
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to get strategies');
+    }
+  }
+  
   Future<Map<String, dynamic>> createStrategy(String targetUrl, String? name) async {
     final response = await http.post(
       Uri.parse('$baseUrl/strategy/create'),
