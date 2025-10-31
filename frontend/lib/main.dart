@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/chat_provider.dart';
+import 'providers/strategy_provider.dart';
 import 'screens/auth_screen.dart';
 import 'screens/chat_screen.dart';
+import 'screens/strategy_screen.dart';
 
 void main() {
   runApp(const KeywordsChatApp());
@@ -18,6 +20,7 @@ class KeywordsChatApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
+        ChangeNotifierProvider(create: (_) => StrategyProvider()),
       ],
       child: MaterialApp(
         title: 'KeywordsChat',
@@ -28,7 +31,11 @@ class KeywordsChatApp extends StatelessWidget {
           ),
           useMaterial3: true,
         ),
-        home: const AuthWrapper(),
+        initialRoute: '/',
+        routes: {
+          '/': (context) => const AuthWrapper(),
+          '/strategy': (context) => const StrategyScreen(),
+        },
         debugShowCheckedModeBanner: false,
       ),
     );

@@ -137,6 +137,13 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.track_changes),
+            onPressed: () {
+              Navigator.pushNamed(context, '/strategy');
+            },
+            tooltip: 'My Strategy',
+          ),
+          IconButton(
             icon: const Icon(Icons.download),
             onPressed: chatProvider.messages.isEmpty ? null : _downloadConversationAsCSV,
             tooltip: 'Download as CSV',

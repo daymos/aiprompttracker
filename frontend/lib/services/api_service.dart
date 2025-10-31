@@ -65,5 +65,88 @@ class ApiService {
       throw Exception('Failed to get conversation');
     }
   }
+  
+  // Strategy endpoints
+  
+  Future<Map<String, dynamic>?> getActiveStrategy() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/strategy/active'),
+      headers: _headers(),
+    );
+    
+    if (response.statusCode == 200) {
+      final body = response.body;
+      if (body == 'null' || body.isEmpty) {
+        return null;
+      }
+      return jsonDecode(body);
+    } else {
+      throw Exception('Failed to get active strategy');
+    }
+  }
+  
+  Future<Map<String, dynamic>> createStrategy(String targetUrl, String? name) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/strategy/create'),
+      headers: _headers(),
+      body: jsonEncode({
+        'target_url': targetUrl,
+        'name': name,
+      }),
+    );
+    
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to create strategy: ${response.body}');
+    }
+  }
+  
+  Future<List<dynamic>> getStrategyKeywords(String strategyId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/strategy/$strategyId/keywords'),
+      headers: _headers(),
+    );
+    
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to get strategy keywords');
+    }
+  }
+  
+  Future<Map<String, dynamic>> addKeywordToStrategy(
+    String strategyId,
+    String keyword,
+    int? searchVolume,
+    String? competition,
+  ) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/strategy/$strategyId/keywords'),
+      headers: _headers(),
+      body: jsonEncode({
+        'keyword': keyword,
+        'search_volume': searchVolume,
+        'competition': competition,
+      }),
+    );
+    
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to add keyword: ${response.body}');
+    }
+  }
+  
+  Future<void> refreshRankings(String strategyId) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/strategy/$strategyId/refresh'),
+      headers: _headers(),
+    );
+    
+    if (response.statusCode != 200) {
+      throw Exception('Failed to refresh rankings');
+    }
+  }
 }
 
