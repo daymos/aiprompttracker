@@ -239,11 +239,16 @@ class _ChatScreenState extends State<ChatScreen> {
                       ? _buildEmptyState()
                       : ListView.builder(
                           controller: _scrollController,
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                           itemCount: chatProvider.messages.length,
                           itemBuilder: (context, index) {
-                            return MessageBubble(
-                              message: chatProvider.messages[index],
+                            return Center(
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(maxWidth: 900),
+                                child: MessageBubble(
+                                  message: chatProvider.messages[index],
+                                ),
+                              ),
                             );
                           },
                         ),
