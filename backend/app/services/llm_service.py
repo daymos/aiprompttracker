@@ -56,7 +56,11 @@ Format your responses in a friendly, chat-like way. Use bullet points for clarit
         
         # Add conversation history if provided
         if conversation_history:
-            messages.extend(conversation_history[-5:])  # Last 5 messages for context
+            history_to_add = conversation_history[-5:]  # Last 5 messages for context
+            logger.info(f"Adding {len(history_to_add)} messages from conversation history to LLM context")
+            messages.extend(history_to_add)
+        else:
+            logger.info("No conversation history available (new conversation)")
         
         # Check if user is asking about a website
         url = self._extract_url(user_message)

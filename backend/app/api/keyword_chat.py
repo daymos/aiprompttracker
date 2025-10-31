@@ -86,6 +86,11 @@ async def send_message(
         for msg in messages[:-1]  # Exclude the message we just added
     ]
     
+    # Debug logging
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Conversation has {len(messages)} total messages, passing {len(conversation_history)} as history")
+    
     # Check if user is asking for keyword research
     keyword_data = None
     if should_fetch_keyword_data(request.message):
