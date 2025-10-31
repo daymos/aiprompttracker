@@ -1,4 +1,5 @@
 from sqlalchemy import Column, String, DateTime, Text, JSON, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from ..database import Base
 
@@ -10,6 +11,9 @@ class Conversation(Base):
     title = Column(String, nullable=True)  # Auto-generated from first message
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    messages = relationship("Message", back_populates="conversation", order_by="Message.created_at")
+    user = relationship("User", back_populates="conversations")
 
 class Message(Base):
     __tablename__ = "messages"
@@ -20,4 +24,6 @@ class Message(Base):
     content = Column(Text, nullable=False)
     message_metadata = Column(JSON, nullable=True)  # Store keyword data, etc.
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    conversation = relationship("Conversation", back_populates="messages")
 
