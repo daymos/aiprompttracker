@@ -14,20 +14,22 @@ class _StrategyScreenState extends State<StrategyScreen> {
   final TextEditingController _urlController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   bool _isCreatingStrategy = false;
+  bool _showCreateForm = false;
 
   @override
   void initState() {
     super.initState();
-    // Load strategy after build completes to avoid setState during build
+    // Load strategies after build completes to avoid setState during build
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadStrategy();
+      _loadStrategies();
     });
   }
 
-  Future<void> _loadStrategy() async {
+  Future<void> _loadStrategies() async {
     final strategyProvider = Provider.of<StrategyProvider>(context, listen: false);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     
+    await strategyProvider.loadAllStrategies(authProvider.apiService);
     await strategyProvider.loadActiveStrategy(authProvider.apiService);
   }
 

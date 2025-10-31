@@ -64,8 +64,11 @@ class StrategyProvider with ChangeNotifier {
           createdAt: DateTime.parse(response['created_at']),
         );
 
-        // Load tracked keywords
-        await loadTrackedKeywords(apiService, _activeStrategy!.id);
+        // Set as selected if no strategy is selected
+        if (_selectedStrategy == null) {
+          _selectedStrategy = _activeStrategy;
+          await loadTrackedKeywords(apiService, _activeStrategy!.id);
+        }
       } else {
         _activeStrategy = null;
         _trackedKeywords = [];
@@ -77,6 +80,11 @@ class StrategyProvider with ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+  
+  Future<void> selectStrategy(ApiService apiService, Strategy strategy) async {
+    _selectedStrategy = strategy;
+    await loadTrackedKeywords(apiService, strategy.id);
   }
   
   Future<void> loadAllStrategies(ApiService apiService) async {
