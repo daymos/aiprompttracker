@@ -18,6 +18,6 @@ class Message(Base):
     conversation_id = Column(String, ForeignKey("conversations.id"), nullable=False, index=True)
     role = Column(String, nullable=False)  # 'user' or 'assistant'
     content = Column(Text, nullable=False)
-    metadata = Column(JSON, nullable=True)  # Store keyword data, etc.
+    message_metadata = Column(JSON, nullable=True)  # Store keyword data, etc.
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

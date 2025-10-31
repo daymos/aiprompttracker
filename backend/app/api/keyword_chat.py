@@ -108,7 +108,7 @@ async def send_message(
         conversation_id=conversation.id,
         role="assistant",
         content=assistant_response,
-        metadata={"keyword_data": keyword_data} if keyword_data else None
+        message_metadata={"keyword_data": keyword_data} if keyword_data else None
     )
     db.add(assistant_message)
     db.commit()
