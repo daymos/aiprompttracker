@@ -18,7 +18,10 @@ class _StrategyScreenState extends State<StrategyScreen> {
   @override
   void initState() {
     super.initState();
-    _loadStrategy();
+    // Load strategy after build completes to avoid setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadStrategy();
+    });
   }
 
   Future<void> _loadStrategy() async {
