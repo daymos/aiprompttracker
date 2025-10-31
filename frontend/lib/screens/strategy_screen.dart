@@ -300,6 +300,17 @@ class _StrategyScreenState extends State<StrategyScreen> {
                           return Card(
                             margin: const EdgeInsets.only(bottom: 12),
                             child: ListTile(
+                              onTap: () {
+                                Navigator.pushNamed(
+                                  context,
+                                  '/keyword-detail',
+                                  arguments: {
+                                    'keywordId': keyword.id,
+                                    'keyword': keyword.keyword,
+                                    'currentPosition': keyword.currentPosition,
+                                  },
+                                );
+                              },
                               leading: CircleAvatar(
                                 backgroundColor: _getPositionColor(keyword.currentPosition),
                                 child: Text(
@@ -317,16 +328,24 @@ class _StrategyScreenState extends State<StrategyScreen> {
                               subtitle: Text(
                                 '${keyword.searchVolume ?? '--'} searches/mo • ${keyword.competition ?? 'UNKNOWN'} competition',
                               ),
-                              trailing: keyword.currentPosition != null
-                                  ? Chip(
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (keyword.currentPosition != null)
+                                    Chip(
                                       label: Text('Position ${keyword.currentPosition}'),
                                       backgroundColor: _getPositionColor(keyword.currentPosition)
                                           .withOpacity(0.2),
                                     )
-                                  : const Chip(
+                                  else
+                                    const Chip(
                                       label: Text('Not ranked'),
                                       backgroundColor: Colors.grey,
                                     ),
+                                  const SizedBox(width: 8),
+                                  const Icon(Icons.chevron_right),
+                                ],
+                              ),
                             ),
                           );
                         },

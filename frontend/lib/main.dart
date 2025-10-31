@@ -6,6 +6,7 @@ import 'providers/strategy_provider.dart';
 import 'screens/auth_screen.dart';
 import 'screens/chat_screen.dart';
 import 'screens/strategy_screen.dart';
+import 'screens/keyword_detail_screen.dart';
 
 void main() {
   runApp(const KeywordsChatApp());
@@ -32,9 +33,22 @@ class KeywordsChatApp extends StatelessWidget {
           useMaterial3: true,
         ),
         initialRoute: '/',
-        routes: {
-          '/': (context) => const AuthWrapper(),
-          '/strategy': (context) => const StrategyScreen(),
+        onGenerateRoute: (settings) {
+          if (settings.name == '/') {
+            return MaterialPageRoute(builder: (context) => const AuthWrapper());
+          } else if (settings.name == '/strategy') {
+            return MaterialPageRoute(builder: (context) => const StrategyScreen());
+          } else if (settings.name == '/keyword-detail') {
+            final args = settings.arguments as Map<String, dynamic>;
+            return MaterialPageRoute(
+              builder: (context) => KeywordDetailScreen(
+                keywordId: args['keywordId'],
+                keyword: args['keyword'],
+                currentPosition: args['currentPosition'],
+              ),
+            );
+          }
+          return null;
         },
         debugShowCheckedModeBanner: false,
       ),
