@@ -93,16 +93,7 @@ async def send_message(
     
     # Check if user is asking for keyword research
     keyword_data = None
-    
-    # Don't fetch new keywords if user is asking to filter/refine existing results
-    filter_phrases = [
-        'top volume', 'lowest kd', 'lowest competition', 'highest volume',
-        'best option', 'easiest to rank', 'prioritize', 'which one',
-        'sort by', 'filter', 'narrow down', 'focus on'
-    ]
-    is_filtering_request = any(phrase in request.message.lower() for phrase in filter_phrases)
-    
-    if should_fetch_keyword_data(request.message) and not is_filtering_request:
+    if should_fetch_keyword_data(request.message):
         # Extract potential keywords from the message
         keywords = extract_keywords_from_message(request.message)
         if keywords:
