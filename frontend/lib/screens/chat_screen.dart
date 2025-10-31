@@ -137,11 +137,50 @@ class _ChatScreenState extends State<ChatScreen> {
             SizedBox(
               width: 300,
               child: ConversationList(
-                onConversationSelected: (conversationId) {
-                  // TODO: Load conversation
+                onConversationSelected: (conversationId) async {
+                  // Load the conversation messages
                   setState(() {
                     _showConversations = false;
                   });
+                  
+                  final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                  final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+                  
+                  chatProvider.setLoading(true);
+                  
+                  try {
+                    final conversationData = await authProvider.apiService.getConversation(conversationId);
+                    
+                    // Load messages
+                    final messages = (conversationData['messages'] as List).map((m) => Message(
+                      id: m['id'],
+                      role: m['role'],
+                      content: m['content'],
+                      createdAt: DateTime.parse(m['created_at']),
+                    )).toList();
+                    
+                    chatProvider.setCurrentConversation(conversationId);
+                    chatProvider.setMessages(messages);
+                    
+                    // Scroll to bottom
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (_scrollController.hasClients) {
+                        _scrollController.animateTo(
+                          _scrollController.position.maxScrollExtent,
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOut,
+                        );
+                      }
+                    });
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error loading conversation: $e')),
+                      );
+                    }
+                  } finally {
+                    chatProvider.setLoading(false);
+                  }
                 },
               ),
             ),
