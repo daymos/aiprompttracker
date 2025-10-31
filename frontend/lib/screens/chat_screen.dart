@@ -49,9 +49,9 @@ class _ChatScreenState extends State<ChatScreen> {
       buffer.writeln('${message.createdAt.toIso8601String()},${message.role},"$content"');
     }
     
-    // Create download
-    final bytes = buffer.toString().codeUnits;
-    final blob = html.Blob([bytes]);
+    // Create download with proper text encoding
+    final csvContent = buffer.toString();
+    final blob = html.Blob([csvContent], 'text/csv;charset=utf-8');
     final url = html.Url.createObjectUrlFromBlob(blob);
     final anchor = html.AnchorElement(href: url)
       ..setAttribute('download', 'conversation_${DateTime.now().millisecondsSinceEpoch}.csv')
