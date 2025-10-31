@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/chat_provider.dart';
 import '../widgets/message_bubble.dart';
-import '../widgets/conversation_list.dart';
 import 'dart:html' as html;
 
 class ChatScreen extends StatefulWidget {
@@ -16,7 +15,6 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  bool _showConversations = false;
   bool _hasShownWelcomeModal = false;
 
   @override
@@ -76,85 +74,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  void _showGuidesModal() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text(
-          'Guided Conversations',
-          textAlign: TextAlign.center,
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildGuideButton(
-                'What can Keywords.chat do?',
-                'What can keywords.chat do for me? I\'d like to understand all the features and how you can help with my SEO.',
-                Icons.info_outline,
-              ),
-              const SizedBox(height: 12),
-              _buildGuideButton(
-                'Track keywords',
-                'I want to track keywords for my website. Can you help me set up keyword tracking and monitoring?',
-                Icons.track_changes,
-              ),
-              const SizedBox(height: 12),
-              _buildGuideButton(
-                'Analyze my website',
-                'I want to analyze my website for SEO opportunities. Can you help me understand what keywords I should target?',
-                Icons.search,
-              ),
-              const SizedBox(height: 12),
-              _buildGuideButton(
-                'Find keyword ideas',
-                'I need help finding keyword ideas for my niche. What should I be ranking for?',
-                Icons.lightbulb_outline,
-              ),
-              const SizedBox(height: 12),
-              _buildGuideButton(
-                'Understand keyword difficulty',
-                'Can you explain keyword difficulty and help me find keywords I can actually rank for?',
-                Icons.analytics_outlined,
-              ),
-              const SizedBox(height: 12),
-              _buildGuideButton(
-                'Create an SEO strategy',
-                'I\'m new to SEO. Can you help me create a keyword strategy for my website?',
-                Icons.map_outlined,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildGuideButton(String title, String prompt, IconData icon) {
-    return OutlinedButton.icon(
-      onPressed: () {
-        Navigator.pop(context);
-        _messageController.text = prompt;
-        _sendMessage();
-      },
-      icon: Icon(icon, size: 20),
-      label: Align(
-        alignment: Alignment.centerLeft,
-        child: Text(title),
-      ),
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.all(16),
-        alignment: Alignment.centerLeft,
-      ),
-    );
-  }
   
   void _downloadConversationAsCSV() {
     final chatProvider = Provider.of<ChatProvider>(context, listen: false);
@@ -295,9 +214,6 @@ class _ChatScreenState extends State<ChatScreen> {
                   onPressed: () {
                     chatProvider.startNewConversation();
                     MessageBubble.clearAnimationCache();
-                    setState(() {
-                      _showConversations = false;
-                    });
                   },
                   icon: const Icon(Icons.add),
                   style: IconButton.styleFrom(
@@ -306,19 +222,12 @@ class _ChatScreenState extends State<ChatScreen> {
                   tooltip: 'New conversation',
                 ),
                 const SizedBox(height: 12),
-                // Conversations toggle
+                // Conversations button
                 IconButton(
                   onPressed: () {
-                    setState(() {
-                      _showConversations = !_showConversations;
-                    });
+                    Navigator.pushNamed(context, '/conversations');
                   },
                   icon: const Icon(Icons.chat_bubble_outline),
-                  style: IconButton.styleFrom(
-                    backgroundColor: _showConversations 
-                      ? Theme.of(context).colorScheme.secondaryContainer 
-                      : Colors.transparent,
-                  ),
                   tooltip: 'Conversations',
                 ),
                 const SizedBox(height: 12),
@@ -333,7 +242,9 @@ class _ChatScreenState extends State<ChatScreen> {
                 const SizedBox(height: 12),
                 // Guides button
                 IconButton(
-                  onPressed: _showGuidesModal,
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/guides');
+                  },
                   icon: const Icon(Icons.help_outline),
                   tooltip: 'Guides',
                 ),
@@ -383,59 +294,6 @@ class _ChatScreenState extends State<ChatScreen> {
               ],
             ),
           ),
-          
-          // Expandable conversation list
-          if (_showConversations)
-            SizedBox(
-              width: 280,
-              child: ConversationList(
-                onConversationSelected: (conversationId) async {
-                  // Load the conversation messages
-                  setState(() {
-                    _showConversations = false;
-                  });
-                  
-                  final authProvider = Provider.of<AuthProvider>(context, listen: false);
-                  final chatProvider = Provider.of<ChatProvider>(context, listen: false);
-                  
-                  chatProvider.setLoading(true);
-                  
-                  try {
-                    final conversationData = await authProvider.apiService.getConversation(conversationId);
-                    
-                    // Load messages
-                    final messages = (conversationData['messages'] as List).map((m) => Message(
-                      id: m['id'],
-                      role: m['role'],
-                      content: m['content'],
-                      createdAt: DateTime.parse(m['created_at']),
-                    )).toList();
-                    
-                    chatProvider.setCurrentConversation(conversationId);
-                    chatProvider.setMessages(messages);
-                    
-                    // Scroll to bottom
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (_scrollController.hasClients) {
-                        _scrollController.animateTo(
-                          _scrollController.position.maxScrollExtent,
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeOut,
-                        );
-                      }
-                    });
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error loading conversation: $e')),
-                      );
-                    }
-                  } finally {
-                    chatProvider.setLoading(false);
-                  }
-                },
-              ),
-            ),
           
           // Main chat area
           Expanded(

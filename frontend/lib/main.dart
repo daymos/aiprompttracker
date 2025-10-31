@@ -6,6 +6,8 @@ import 'providers/project_provider.dart';
 import 'screens/auth_screen.dart';
 import 'screens/chat_screen.dart';
 import 'screens/project_screen.dart';
+import 'screens/guides_screen.dart';
+import 'screens/conversations_screen.dart';
 import 'screens/keyword_detail_screen.dart';
 
 void main() {
@@ -38,6 +40,10 @@ class KeywordsChatApp extends StatelessWidget {
             return MaterialPageRoute(builder: (context) => const AuthWrapper());
           } else if (settings.name == '/project') {
             return MaterialPageRoute(builder: (context) => const ProjectScreen());
+          } else if (settings.name == '/guides') {
+            return MaterialPageRoute(builder: (context) => const GuidesScreen());
+          } else if (settings.name == '/conversations') {
+            return MaterialPageRoute(builder: (context) => const ConversationsScreen());
           } else if (settings.name == '/keyword-detail') {
             final args = settings.arguments as Map<String, dynamic>;
             return MaterialPageRoute(
