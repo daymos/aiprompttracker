@@ -53,11 +53,16 @@ class _StrategyScreenState extends State<StrategyScreen> {
         _nameController.text.isEmpty ? null : _nameController.text,
       );
 
+      // Clear form and hide it
+      _urlController.clear();
+      _nameController.clear();
+      setState(() {
+        _showCreateForm = false;
+      });
+
       if (mounted) {
-        _urlController.clear();
-        _nameController.clear();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Strategy created!')),
+          const SnackBar(content: Text('Strategy created successfully!')),
         );
       }
     } catch (e) {
@@ -97,263 +102,293 @@ class _StrategyScreenState extends State<StrategyScreen> {
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
     final strategyProvider = context.watch<StrategyProvider>();
+    final selectedStrategy = strategyProvider.selectedStrategy;
+    final allStrategies = strategyProvider.allStrategies;
+    final keywords = strategyProvider.trackedKeywords;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Strategy'),
+        title: const Text('My Strategies'),
         actions: [
-          if (strategyProvider.activeStrategy != null)
+          if (selectedStrategy != null)
             IconButton(
               icon: const Icon(Icons.refresh),
-              onPressed: _refreshRankings,
-              tooltip: 'Refresh rankings',
+              onPressed: strategyProvider.isLoading ? null : _refreshRankings,
+              tooltip: 'Refresh Rankings',
             ),
-          PopupMenuButton(
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                child: ListTile(
-                  leading: const Icon(Icons.person),
-                  title: Text(authProvider.name ?? authProvider.email ?? 'User'),
-                  dense: true,
-                ),
-              ),
-              PopupMenuItem(
-                child: const ListTile(
-                  leading: Icon(Icons.logout),
-                  title: Text('Sign out'),
-                  dense: true,
-                ),
-                onTap: () async {
-                  await authProvider.signOut();
-                },
-              ),
-            ],
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: () {
+              setState(() {
+                _showCreateForm = !_showCreateForm;
+              });
+            },
+            tooltip: 'Add Strategy',
           ),
         ],
       ),
-      body: strategyProvider.activeStrategy == null
-          ? _buildNoStrategy()
-          : _buildStrategyView(strategyProvider),
-    );
-  }
-
-  Widget _buildNoStrategy() {
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600),
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.track_changes,
-                size: 80,
-                color: Colors.grey[400],
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Create Your SEO Strategy',
-                style: Theme.of(context).textTheme.headlineSmall,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Track your keyword rankings over time and see how your SEO efforts pay off.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey[600],
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 32),
-              TextField(
-                controller: _urlController,
-                decoration: const InputDecoration(
-                  labelText: 'Target URL',
-                  hintText: 'https://mywebsite.com',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.link),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Strategy Name (optional)',
-                  hintText: 'My Main Website',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.label),
-                ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: _isCreatingStrategy ? null : _createStrategy,
-                  child: _isCreatingStrategy
-                      ? const CircularProgressIndicator()
-                      : const Text('Create Strategy'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStrategyView(StrategyProvider provider) {
-    final strategy = provider.activeStrategy!;
-    final keywords = provider.trackedKeywords;
-
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1200),
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Strategy header
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 900),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Create Strategy Form
+                if (_showCreateForm)
+                  Card(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.track_changes, size: 32),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  strategy.name,
-                                  style: Theme.of(context).textTheme.titleLarge,
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  strategy.targetUrl,
-                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: Colors.grey[600],
+                          Row(
+                            children: [
+                              Text(
+                                'Create New Strategy',
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
+                              const Spacer(),
+                              IconButton(
+                                icon: const Icon(Icons.close),
+                                onPressed: () {
+                                  setState(() {
+                                    _showCreateForm = false;
+                                    _urlController.clear();
+                                    _nameController.clear();
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller: _urlController,
+                            decoration: const InputDecoration(
+                              labelText: 'Target Website URL',
+                              hintText: 'https://example.com',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _nameController,
+                            decoration: const InputDecoration(
+                              labelText: 'Strategy Name (Optional)',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          _isCreatingStrategy
+                              ? const Center(child: CircularProgressIndicator())
+                              : ElevatedButton.icon(
+                                  onPressed: _createStrategy,
+                                  icon: const Icon(Icons.add),
+                                  label: const Text('Create Strategy'),
+                                  style: ElevatedButton.styleFrom(
+                                    minimumSize: const Size.fromHeight(50),
                                   ),
                                 ),
-                              ],
+                        ],
+                      ),
+                    ),
+                  ),
+                
+                // Strategy Selector
+                if (allStrategies.isNotEmpty)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Select Strategy',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: allStrategies.map((strategy) {
+                            final isSelected = selectedStrategy?.id == strategy.id;
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8.0),
+                              child: FilterChip(
+                                label: Text(strategy.name),
+                                selected: isSelected,
+                                onSelected: (_) async {
+                                  final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                                  await strategyProvider.selectStrategy(authProvider.apiService, strategy);
+                                },
+                                avatar: strategy.isActive 
+                                  ? const Icon(Icons.star, size: 16) 
+                                  : null,
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                
+                // Empty state
+                if (allStrategies.isEmpty)
+                  Expanded(
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.track_changes,
+                            size: 64,
+                            color: Colors.grey[600],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No Strategies Yet',
+                            style: TextStyle(
+                              fontSize: 20,
+                              color: Colors.grey[600],
                             ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Create your first SEO strategy to start tracking keywords',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey[500],
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                _showCreateForm = true;
+                              });
+                            },
+                            icon: const Icon(Icons.add),
+                            label: const Text('Create Strategy'),
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Keywords header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Tracked Keywords',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  Text(
-                    '${keywords.length} keywords',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey[600],
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Keywords list
-              Expanded(
-                child: keywords.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.search, size: 64, color: Colors.grey[400]),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No keywords tracked yet',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Add keywords from chat to start tracking',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Colors.grey[500],
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: keywords.length,
-                        itemBuilder: (context, index) {
-                          final keyword = keywords[index];
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            child: ListTile(
-                              onTap: () {
-                                Navigator.pushNamed(
-                                  context,
-                                  '/keyword-detail',
-                                  arguments: {
-                                    'keywordId': keyword.id,
-                                    'keyword': keyword.keyword,
-                                    'currentPosition': keyword.currentPosition,
-                                  },
-                                );
-                              },
-                              leading: CircleAvatar(
-                                backgroundColor: _getPositionColor(keyword.currentPosition),
-                                child: Text(
-                                  keyword.currentPosition?.toString() ?? '--',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
+                  )
+                else if (selectedStrategy != null)
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        selectedStrategy.name,
+                                        style: Theme.of(context).textTheme.titleLarge,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        selectedStrategy.targetUrl,
+                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                          color: Colors.grey[400],
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ),
-                              title: Text(
-                                keyword.keyword,
-                                style: const TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              subtitle: Text(
-                                '${keyword.searchVolume ?? '--'} searches/mo • ${keyword.competition ?? 'UNKNOWN'} competition',
-                              ),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (keyword.currentPosition != null)
-                                    Chip(
-                                      label: Text('Position ${keyword.currentPosition}'),
-                                      backgroundColor: _getPositionColor(keyword.currentPosition)
-                                          .withOpacity(0.2),
-                                    )
-                                  else
-                                    const Chip(
-                                      label: Text('Not ranked'),
-                                      backgroundColor: Colors.grey,
-                                    ),
-                                  const SizedBox(width: 8),
-                                  const Icon(Icons.chevron_right),
-                                ],
-                              ),
+                                if (selectedStrategy.isActive)
+                                  Chip(
+                                    label: const Text('Active'),
+                                    avatar: const Icon(Icons.star, size: 16),
+                                    backgroundColor: Colors.green.withOpacity(0.2),
+                                  ),
+                              ],
                             ),
-                          );
-                        },
-                      ),
-              ),
-            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Tracked Keywords',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        const SizedBox(height: 12),
+                        Expanded(
+                          child: strategyProvider.isLoading
+                              ? const Center(child: CircularProgressIndicator())
+                              : keywords.isEmpty
+                                  ? const Center(
+                                      child: Text('No keywords tracked yet. Add some from the chat!'),
+                                    )
+                                  : ListView.builder(
+                                      itemCount: keywords.length,
+                                      itemBuilder: (context, index) {
+                                        final keyword = keywords[index];
+                                        return Card(
+                                          margin: const EdgeInsets.only(bottom: 12),
+                                          child: ListTile(
+                                            onTap: () {
+                                              Navigator.pushNamed(
+                                                context,
+                                                '/keyword-detail',
+                                                arguments: {
+                                                  'keywordId': keyword.id,
+                                                  'keyword': keyword.keyword,
+                                                  'currentPosition': keyword.currentPosition,
+                                                },
+                                              );
+                                            },
+                                            leading: CircleAvatar(
+                                              backgroundColor: _getPositionColor(keyword.currentPosition),
+                                              child: Text(
+                                                keyword.currentPosition?.toString() ?? '--',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                            title: Text(
+                                              keyword.keyword,
+                                              style: const TextStyle(fontWeight: FontWeight.bold),
+                                            ),
+                                            subtitle: Text(
+                                              '${keyword.searchVolume ?? '--'} searches/mo • ${keyword.competition ?? 'UNKNOWN'} competition',
+                                            ),
+                                            trailing: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                if (keyword.currentPosition != null)
+                                                  Chip(
+                                                    label: Text('Position ${keyword.currentPosition}'),
+                                                    backgroundColor: _getPositionColor(keyword.currentPosition)
+                                                        .withOpacity(0.2),
+                                                  )
+                                                else
+                                                  const Chip(
+                                                    label: Text('Not ranked'),
+                                                    backgroundColor: Colors.grey,
+                                                  ),
+                                                const SizedBox(width: 8),
+                                                const Icon(Icons.chevron_right),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -374,4 +409,3 @@ class _StrategyScreenState extends State<StrategyScreen> {
     super.dispose();
   }
 }
-

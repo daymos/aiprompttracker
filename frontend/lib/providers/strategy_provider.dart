@@ -39,11 +39,13 @@ class TrackedKeyword {
 
 class StrategyProvider with ChangeNotifier {
   Strategy? _activeStrategy;
+  Strategy? _selectedStrategy; // Currently viewing strategy
   List<Strategy> _allStrategies = [];
   List<TrackedKeyword> _trackedKeywords = [];
   bool _isLoading = false;
 
   Strategy? get activeStrategy => _activeStrategy;
+  Strategy? get selectedStrategy => _selectedStrategy;
   List<Strategy> get allStrategies => _allStrategies;
   List<TrackedKeyword> get trackedKeywords => _trackedKeywords;
   bool get isLoading => _isLoading;
@@ -112,7 +114,7 @@ class StrategyProvider with ChangeNotifier {
     try {
       final response = await apiService.createStrategy(targetUrl, name);
       
-      _activeStrategy = Strategy(
+      final newStrategy = Strategy(
         id: response['id'],
         targetUrl: response['target_url'],
         name: response['name'] ?? 'My Strategy',
@@ -120,7 +122,10 @@ class StrategyProvider with ChangeNotifier {
         createdAt: DateTime.parse(response['created_at']),
       );
       
+      _activeStrategy = newStrategy;
+      _selectedStrategy = newStrategy; // Auto-select the new strategy
       _trackedKeywords = [];
+      await loadAllStrategies(apiService); // Refresh all strategies list
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -148,7 +153,7 @@ class StrategyProvider with ChangeNotifier {
   }
 
   Future<void> addKeyword(ApiService apiService, String keyword, int? searchVolume, String? competition, {String? strategyId}) async {
-    final targetStrategyId = strategyId ?? _activeStrategy?.id;
+    final targetStrategyId = strategyId ?? _selectedStrategy?.id;
     if (targetStrategyId == null) return;
 
     try {
@@ -169,8 +174,8 @@ class StrategyProvider with ChangeNotifier {
         createdAt: DateTime.parse(response['created_at']),
       );
 
-      // Only add to tracked keywords if it's the active strategy
-      if (targetStrategyId == _activeStrategy?.id) {
+      // Only add to tracked keywords if it's the currently selected strategy
+      if (targetStrategyId == _selectedStrategy?.id) {
         _trackedKeywords.add(newKeyword);
       }
       notifyListeners();
@@ -180,14 +185,14 @@ class StrategyProvider with ChangeNotifier {
   }
 
   Future<void> refreshRankings(ApiService apiService) async {
-    if (_activeStrategy == null) return;
+    if (_selectedStrategy == null) return;
 
     _isLoading = true;
     notifyListeners();
 
     try {
-      await apiService.refreshRankings(_activeStrategy!.id);
-      await loadTrackedKeywords(apiService, _activeStrategy!.id);
+      await apiService.refreshRankings(_selectedStrategy!.id);
+      await loadTrackedKeywords(apiService, _selectedStrategy!.id); // Reload to get updated rankings
     } finally {
       _isLoading = false;
       notifyListeners();
