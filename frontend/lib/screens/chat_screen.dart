@@ -274,26 +274,31 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                     ],
                   ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _messageController,
-                          decoration: const InputDecoration(
-                            hintText: 'Ask about keywords...',
-                            border: OutlineInputBorder(),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 900),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _messageController,
+                              decoration: const InputDecoration(
+                                hintText: 'Ask about keywords...',
+                                border: OutlineInputBorder(),
+                              ),
+                              maxLines: null,
+                              textInputAction: TextInputAction.send,
+                              onSubmitted: (_) => _sendMessage(),
+                            ),
                           ),
-                          maxLines: null,
-                          textInputAction: TextInputAction.send,
-                          onSubmitted: (_) => _sendMessage(),
-                        ),
+                          const SizedBox(width: 8),
+                          IconButton.filled(
+                            onPressed: _sendMessage,
+                            icon: const Icon(Icons.send),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      IconButton.filled(
-                        onPressed: _sendMessage,
-                        icon: const Icon(Icons.send),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ],
