@@ -5,7 +5,7 @@ Simple conversational keyword research tool. Stop paying $65/month for Mangools 
 ## Features
 
 - 💬 Chat-based keyword research
-- 🔍 Real keyword data from DataForSEO
+- 🔍 Real keyword data from RapidAPI
 - 🤖 AI-powered recommendations
 - 📊 Conversation history
 - 🔐 Google Sign-In authentication
