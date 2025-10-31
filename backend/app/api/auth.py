@@ -16,6 +16,7 @@ settings = get_settings()
 
 class GoogleAuthRequest(BaseModel):
     id_token: str
+    access_token: str = None  # Optional for web clients
 
 class AuthResponse(BaseModel):
     access_token: str
@@ -28,16 +29,33 @@ async def google_auth(auth_request: GoogleAuthRequest, db: Session = Depends(get
     """Authenticate with Google Sign-In"""
     
     try:
-        # Verify the Google ID token
-        idinfo = id_token.verify_oauth2_token(
-            auth_request.id_token,
-            requests.Request(),
-            settings.GOOGLE_CLIENT_ID
-        )
-        
-        email = idinfo.get("email")
-        name = idinfo.get("name", "")
-        google_id = idinfo.get("sub")
+        # Try ID token first (native apps)
+        if auth_request.id_token and not auth_request.id_token.startswith('ya29'):
+            # Verify the Google ID token
+            idinfo = id_token.verify_oauth2_token(
+                auth_request.id_token,
+                requests.Request(),
+                settings.GOOGLE_CLIENT_ID
+            )
+            
+            email = idinfo.get("email")
+            name = idinfo.get("name", "")
+            google_id = idinfo.get("sub")
+        else:
+            # For web, use access token to get user info
+            token_to_use = auth_request.access_token or auth_request.id_token
+            import httpx
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    'https://www.googleapis.com/oauth2/v3/userinfo',
+                    headers={'Authorization': f'Bearer {token_to_use}'}
+                )
+                response.raise_for_status()
+                idinfo = response.json()
+            
+            email = idinfo.get("email")
+            name = idinfo.get("name", "")
+            google_id = idinfo.get("sub")
         
         if not email:
             raise HTTPException(status_code=400, detail="Email not found in token")

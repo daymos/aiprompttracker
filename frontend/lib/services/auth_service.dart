@@ -21,12 +21,13 @@ class AuthService {
       
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
       
-      // Send ID token to backend
+      // Send both tokens to backend (web uses access token, native uses id token)
       final response = await http.post(
         Uri.parse('$baseUrl/auth/google'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'id_token': googleAuth.idToken,
+          'id_token': googleAuth.idToken ?? googleAuth.accessToken ?? '',
+          'access_token': googleAuth.accessToken,
         }),
       );
       
