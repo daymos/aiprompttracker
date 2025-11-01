@@ -5,6 +5,7 @@ import '../providers/chat_provider.dart';
 import '../providers/project_provider.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/conversation_list.dart';
+import '../widgets/theme_switcher.dart';
 import 'dart:html' as html;
 
 class ChatScreen extends StatefulWidget {
@@ -211,10 +212,6 @@ class _ChatScreenState extends State<ChatScreen> {
     final chatProvider = context.watch<ChatProvider>();
 
     return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: 0,
-        elevation: 0,
-      ),
       body: Row(
         children: [
           // Persistent left sidebar with icons
@@ -303,6 +300,11 @@ class _ChatScreenState extends State<ChatScreen> {
                   tooltip: 'How it works',
                 ),
                 const Spacer(),
+                // Theme switcher
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 12),
+                  child: ThemeSwitcher(),
+                ),
                 // User menu at bottom
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16),
