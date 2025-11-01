@@ -248,3 +248,4 @@ You now have a **complete, minimal, working MVP** that:
 
 **Your move:** Get API keys, test it, tweak the LLM prompts to match your needs, deploy, cancel Mangools, save $768/year. 🚀
 
+

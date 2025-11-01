@@ -47,3 +47,4 @@ echo "Press Ctrl+C to stop all services"
 trap "echo '🛑 Stopping services...'; kill $BACKEND_PID $FRONTEND_PID; docker-compose -f backend/docker-compose.yml stop; exit" INT
 wait
 
+
