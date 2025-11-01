@@ -26,6 +26,56 @@ class LLMService:
         match = re.search(url_pattern, text)
         return match.group(0) if match else None
     
+    async def extract_keyword_intent(
+        self,
+        user_message: str,
+        conversation_history: List[Dict[str, str]] = None
+    ) -> Optional[str]:
+        """
+        Use LLM to determine if user wants keyword research and extract the topic.
+        Returns the keyword/topic to research, or None if no research needed.
+        """
+        
+        system_prompt = """You are a keyword extraction assistant. Your job is to determine if the user wants keyword research and extract the specific keyword/topic.
+
+Guidelines:
+1. If user requests keyword research but provides NO specific topic/niche → Return NULL
+2. If user says "find keywords for X" or mentions a specific topic/niche → Extract and return that topic
+3. If user is asking about something unrelated to keyword research → Return NULL
+4. If the topic is too vague or generic to research meaningfully → Return NULL
+
+Your response MUST be ONLY:
+- The specific keyword/topic to research (e.g., "AI chatbots")
+- OR the word "NULL" if no specific topic was provided
+
+Do not explain or add any other text. Just the keyword or NULL."""
+
+        messages = [{"role": "system", "content": system_prompt}]
+        
+        if conversation_history:
+            messages.extend(conversation_history[-3:])  # Last 3 for context
+        
+        messages.append({"role": "user", "content": user_message})
+        
+        try:
+            response = await self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                temperature=0.1,  # Low temperature for consistent extraction
+                max_tokens=50
+            )
+            
+            result = response.choices[0].message.content.strip()
+            
+            if result.upper() == "NULL" or not result:
+                return None
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error extracting keyword intent: {e}")
+            return None
+    
     async def generate_keyword_advice(
         self, 
         user_message: str,
@@ -182,9 +232,10 @@ WITH WEBSITE DATA:
 - Suggest keyword themes based on content
 - Offer to fetch real search data for those themes
 
-WITHOUT DATA:
-- Explain what you can do: "I can analyze [URL] or research keywords for [topic]"
-- Ask what they'd like you to do next
+WITHOUT DATA (but user requested keyword research):
+- User wants keyword research but didn't specify what topic/niche
+- You need a specific topic to research before you can fetch data
+- Ask naturally what they want you to research
 
 **TONE:**
 - Helpful and responsive
@@ -372,10 +423,14 @@ You're guiding a journey from "here's my website" to "here's your complete keywo
                 user_content += f"4. Offer to fetch real search volume data for specific keywords\n"
             else:
                 # No website data either
-                user_content += f"No website or keyword data available. Options:\n"
-                user_content += f"1. Ask the user for a URL to analyze\n"
-                user_content += f"2. Ask what their business/product does (if not already asked)\n"
-                user_content += f"3. If you have some context, suggest keyword themes\n"
+                # Check if user seems to want keyword research
+                message_lower = user_message.lower()
+                if any(word in message_lower for word in ['keyword', 'research', 'seo', 'rank', 'search volume']):
+                    user_content += f"User requested keyword research but didn't specify a topic/niche.\n"
+                    user_content += f"You need to know what topic to research before you can fetch data.\n"
+                else:
+                    user_content += f"No specific keyword research request detected.\n"
+                    user_content += f"Respond to their query naturally.\n"
             
             user_content += f"\nDo NOT make up search volumes or competition levels. You can suggest keywords to research.\n"
         

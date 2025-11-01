@@ -387,7 +387,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'SEO tools via chatbot',
+                    'Powerful SEO toolkit at your command',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       color: Theme.of(context).textTheme.bodySmall?.color,
                     ),
@@ -412,7 +412,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       decoration: InputDecoration(
                         hintText: _selectedMode == 'agent'
                             ? 'Share your website and I\'ll guide you through SEO strategy...'
-                            : 'Let\'s talk about SEO for your website...',
+                            : 'Ask me to analyze a website, research keywords, check rankings...',
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                       ),
@@ -581,7 +581,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   decoration: InputDecoration(
                     hintText: _selectedMode == 'agent'
                         ? 'Share your website and I\'ll guide you through SEO strategy...'
-                        : 'Let\'s talk about SEO for your website...',
+                        : 'Ask me to analyze a website, research keywords, check rankings...',
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                   ),

@@ -93,14 +93,20 @@ async def send_message(
     logger = logging.getLogger(__name__)
     logger.info(f"Conversation has {len(messages)} total messages, passing {len(conversation_history)} as history")
     
-    # Check if user is asking for keyword research
+    # Use LLM to intelligently extract keywords to research
     keyword_data = None
-    if should_fetch_keyword_data(request.message):
-        # Extract potential keywords from the message
-        keywords = extract_keywords_from_message(request.message)
-        if keywords:
-            # Fetch keyword data from DataForSEO
-            keyword_data = await keyword_service.analyze_keywords(keywords[0], limit=10)
+    
+    # Ask LLM if user wants keyword research and what topic
+    keyword_to_research = await llm_service.extract_keyword_intent(
+        user_message=request.message,
+        conversation_history=conversation_history
+    )
+    
+    if keyword_to_research:
+        logger.info(f"LLM extracted keyword to research: {keyword_to_research}")
+        keyword_data = await keyword_service.analyze_keywords(keyword_to_research, limit=10)
+    else:
+        logger.info("LLM determined no specific keyword research needed")
     
     # Get user's projects and tracked keywords for context
     user_projects = db.query(Project).filter(Project.user_id == user.id).all()
