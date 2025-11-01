@@ -62,6 +62,13 @@ class GuidesScreen extends StatelessWidget {
               
               _buildFeatureSection(
                 context,
+                Icons.link,
+                'Backlink Building',
+                'Submit your project to 100+ curated directories with a single chat command. Get submission URLs for Product Hunt, AI tool directories, SaaS lists, and startup directories.',
+              ),
+              
+              _buildFeatureSection(
+                context,
                 Icons.auto_awesome,
                 'Two Modes',
                 'Choose between "Ask" mode (direct commands) or "Agent" mode (guided workflow) depending on whether you want quick answers or step-by-step assistance.',

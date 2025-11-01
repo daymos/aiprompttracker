@@ -8,8 +8,12 @@ from datetime import datetime
 from ..database import get_db
 from ..models.user import User
 from ..models.project import Project, TrackedKeyword, KeywordRanking
+from ..models.backlink import BacklinkSubmission, BacklinkCampaign
 from ..services.rank_checker import RankCheckerService
 from .auth import get_current_user
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/project", tags=["project"])
 rank_checker = RankCheckerService()
@@ -315,4 +319,73 @@ async def test_rank_check(
         "result": result,
         "message": "Check backend logs for detailed debugging info"
     }
+
+@router.delete("/{project_id}")
+async def delete_project(
+    project_id: str,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """Delete a project and all related data (keywords, rankings, backlinks)"""
+    token = authorization.replace("Bearer ", "")
+    user = get_current_user(token, db)
+    
+    # Verify project exists and belongs to user
+    project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.user_id == user.id
+    ).first()
+    
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    try:
+        # Delete all keyword rankings first
+        keywords = db.query(TrackedKeyword).filter(
+            TrackedKeyword.project_id == project_id
+        ).all()
+        
+        ranking_count = 0
+        for keyword in keywords:
+            deleted = db.query(KeywordRanking).filter(
+                KeywordRanking.tracked_keyword_id == keyword.id
+            ).delete()
+            ranking_count += deleted
+        
+        # Delete tracked keywords
+        keyword_count = db.query(TrackedKeyword).filter(
+            TrackedKeyword.project_id == project_id
+        ).delete()
+        
+        # Delete backlink submissions
+        submission_count = db.query(BacklinkSubmission).filter(
+            BacklinkSubmission.project_id == project_id
+        ).delete()
+        
+        # Delete backlink campaigns
+        campaign_count = db.query(BacklinkCampaign).filter(
+            BacklinkCampaign.project_id == project_id
+        ).delete()
+        
+        # Delete the project itself
+        db.delete(project)
+        
+        db.commit()
+        
+        logger.info(f"Deleted project {project_id}: {keyword_count} keywords, {ranking_count} rankings, {submission_count} backlink submissions, {campaign_count} campaigns")
+        
+        return {
+            "message": "Project deleted successfully",
+            "deleted": {
+                "keywords": keyword_count,
+                "rankings": ranking_count,
+                "backlink_submissions": submission_count,
+                "backlink_campaigns": campaign_count
+            }
+        }
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error deleting project {project_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete project: {str(e)}")
 

@@ -83,7 +83,8 @@ Do not explain or add any other text. Just the keyword or NULL."""
         keyword_data: List[Dict[str, Any]] = None,
         conversation_history: List[Dict[str, str]] = None,
         mode: str = "ask",
-        user_projects: List[Dict[str, Any]] = None
+        user_projects: List[Dict[str, Any]] = None,
+        backlink_data: Optional[Dict[str, Any]] = None
     ) -> str:
         """Generate conversational keyword research advice"""
         
@@ -119,7 +120,7 @@ Do not explain or add any other text. Just the keyword or NULL."""
                 logger.info(f"Successfully analyzed {url}: {pages_analyzed} pages, sitemap: {sitemap_found}")
         
         # Build user content with all available data
-        user_content = self._build_user_content(user_message, website_data, keyword_data, user_projects)
+        user_content = self._build_user_content(user_message, website_data, keyword_data, user_projects, backlink_data)
         
         messages.append({"role": "user", "content": user_content})
         
@@ -163,6 +164,12 @@ After the introduction, respond naturally to user commands.
    - Competition levels (LOW/MEDIUM/HIGH)
    - SERP analysis for top keywords: Who's ranking? Major brands or weak sites?
    - Shows actual ranking difficulty based on current top 10 results
+
+3. **Backlink Building** (two-tier system)
+   - AUTO-SUBMITS to 50+ automated directories for fast indexation (72hr goal)
+   - Returns top 5-8 premium directories for manual submission (Product Hunt, G2, Capterra)
+   - Strategy: Volume first (get indexed), then authority (build rankings)
+   - Smart filtering based on product type (AI, SaaS, Startup, etc.)
 
 4. **Competitor Analysis** (automatic with URL)
    - Full site crawl of competitor sites
@@ -307,7 +314,14 @@ WITHOUT KEYWORD DATA:
 **REMEMBER:**
 You're guiding a journey from "here's my website" to "here's your complete keyword strategy." Take charge and lead."""
     
-    def _build_user_content(self, user_message: str, website_data: Optional[Dict[str, Any]], keyword_data: Optional[List[Dict[str, Any]]], user_projects: Optional[List[Dict[str, Any]]] = None) -> str:
+    def _build_user_content(
+        self, 
+        user_message: str, 
+        website_data: Optional[Dict[str, Any]], 
+        keyword_data: Optional[List[Dict[str, Any]]], 
+        user_projects: Optional[List[Dict[str, Any]]] = None,
+        backlink_data: Optional[Dict[str, Any]] = None
+    ) -> str:
         """Build user content with all available data"""
         user_content = user_message
         
@@ -415,6 +429,35 @@ You're guiding a journey from "here's my website" to "here's your complete keywo
                     user_content += f"Respond to their query naturally.\n"
             
             user_content += f"\nDo NOT make up search volumes or competition levels. You can suggest keywords to research.\n"
+        
+        # Add backlink campaign data if available
+        if backlink_data:
+            logger.info(f"Adding backlink data to LLM context: {len(backlink_data.get('submissions', []))} submissions")
+            user_content += f"\n\n[BACKLINK CAMPAIGN RESULTS]\n"
+            user_content += f"Project: {backlink_data['project_name']}\n"
+            
+            # Split by tier
+            manual_dirs = [s for s in backlink_data['submissions'] if s['directory'].get('tier') == 'top']
+            auto_dirs = [s for s in backlink_data['submissions'] if s['directory'].get('tier') in ['mid', 'volume']]
+            
+            logger.info(f"Backlink breakdown: {len(auto_dirs)} automated, {len(manual_dirs)} manual")
+            
+            if auto_dirs:
+                user_content += f"\n✓ AUTO-SUBMITTED to {len(auto_dirs)} directories\n"
+                user_content += f"These submissions help with fast indexation (72hr crawl goal).\n"
+                user_content += f"Examples: {', '.join([d['directory']['name'] for d in auto_dirs[:3]])}\n"
+            
+            if manual_dirs:
+                user_content += f"\n⚠ MANUAL SUBMISSION REQUIRED - Top-tier directories:\n"
+                for sub in manual_dirs:
+                    dir_info = sub['directory']
+                    user_content += f"  • {dir_info['name']} - {dir_info['category']} (DA: {dir_info.get('domain_authority', 'N/A')})\n"
+                    user_content += f"    Submit: {sub['submission_url']}\n"
+                    if dir_info.get('notes'):
+                        user_content += f"    Note: {dir_info['notes']}\n"
+                user_content += f"\nThese are premium directories requiring human input (Product Hunt = launch process, G2 = vendor registration, etc.)\n"
+            
+            user_content += f"\nStrategy: Auto-submissions get you indexed fast. Manual top-tier submissions build authority.\n"
         
         return user_content
 

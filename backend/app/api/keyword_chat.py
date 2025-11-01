@@ -12,6 +12,7 @@ from ..models.project import Project, TrackedKeyword
 from ..services.keyword_service import KeywordService
 from ..services.llm_service import LLMService
 from ..services.rank_checker import RankCheckerService
+from ..services.backlink_service import BacklinkService
 from .auth import get_current_user
 
 router = APIRouter(prefix="/chat", tags=["chat"])
@@ -19,6 +20,7 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 keyword_service = KeywordService()
 llm_service = LLMService()
 rank_checker = RankCheckerService()
+backlink_service = BacklinkService()
 
 class ChatRequest(BaseModel):
     message: str
@@ -126,6 +128,83 @@ async def send_message(
     
     # Get user's projects and tracked keywords for context
     user_projects = db.query(Project).filter(Project.user_id == user.id).all()
+    
+    # Check if user wants backlink submissions
+    backlink_campaign_data = None
+    message_lower = request.message.lower()
+    wants_backlinks = any(phrase in message_lower for phrase in [
+        'submit', 'backlink', 'directory', 'directories', 'listing', 'list my',
+        'get backlinks', 'build backlinks'
+    ])
+    
+    if wants_backlinks:
+        logger.info("User requested backlink submission")
+        
+        # Determine category filter
+        category_filter = None
+        if 'ai' in message_lower or 'artificial intelligence' in message_lower:
+            category_filter = 'AI'
+        elif 'saas' in message_lower:
+            category_filter = 'SaaS'
+        elif 'startup' in message_lower:
+            category_filter = 'Startup'
+        
+        # Try to find which project they're referring to
+        target_project = None
+        if user_projects:
+            # For now, use first project or try to match URL in message
+            for project in user_projects:
+                if project.target_url in request.message:
+                    target_project = project
+                    break
+            
+            if not target_project:
+                # Use first project
+                target_project = user_projects[0]
+        
+        if target_project:
+            # Seed directories if not already done
+            backlink_service.seed_directories(db)
+            
+            # Build product description from conversation history + project info
+            product_description = f"{target_project.name or ''} {target_project.target_url}"
+            
+            # Extract description from recent conversation messages
+            if conversation_history:
+                for msg in conversation_history[-3:]:  # Last 3 messages
+                    if msg.get('role') == 'user':
+                        product_description += " " + msg.get('content', '')
+            
+            # Create campaign with smart recommendations
+            try:
+                campaign = await backlink_service.create_submission_campaign(
+                    db=db,
+                    project_id=target_project.id,
+                    user_id=user.id,
+                    category_filter=category_filter,
+                    project_description=product_description
+                )
+                
+                # Get submission details for this campaign
+                submissions = backlink_service.get_project_submissions(db, target_project.id, campaign.id)
+                
+                # Count submissions by tier
+                manual_count = sum(1 for s in submissions if s['directory'].get('tier') == 'top')
+                auto_count = len(submissions) - manual_count
+                
+                backlink_campaign_data = {
+                    'campaign_id': campaign.id,
+                    'project_name': target_project.name or target_project.target_url,
+                    'total_directories': campaign.total_directories,
+                    'category_filter': category_filter,
+                    'submissions': submissions  # Pass all submissions
+                }
+                
+                logger.info(f"Created backlink campaign {campaign.id} with {campaign.total_directories} directories ({auto_count} auto, {manual_count} manual)")
+            except Exception as e:
+                logger.error(f"Error creating backlink campaign: {e}")
+        else:
+            logger.info("No project found for backlink submission")
     user_projects_data = []
     
     for project in user_projects:
@@ -154,7 +233,8 @@ async def send_message(
         keyword_data=keyword_data,
         conversation_history=conversation_history,
         mode=request.mode or "ask",
-        user_projects=user_projects_data if user_projects_data else None
+        user_projects=user_projects_data if user_projects_data else None,
+        backlink_data=backlink_campaign_data
     )
     
     # Save assistant message

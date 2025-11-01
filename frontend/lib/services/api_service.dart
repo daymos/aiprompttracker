@@ -186,5 +186,29 @@ class ApiService {
       throw Exception('Failed to delete conversation');
     }
   }
+  
+  Future<Map<String, dynamic>> getProjectBacklinks(String projectId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/backlinks/project/$projectId/submissions'),
+      headers: _headers(),
+    );
+    
+    if (response.statusCode != 200) {
+      throw Exception('Failed to fetch backlinks');
+    }
+    
+    return json.decode(response.body);
+  }
+
+  Future<void> deleteProject(String projectId) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/project/$projectId'),
+      headers: _headers(),
+    );
+    
+    if (response.statusCode != 200) {
+      throw Exception('Failed to delete project');
+    }
+  }
 }
 

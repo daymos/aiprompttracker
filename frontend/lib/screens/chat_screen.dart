@@ -16,6 +16,7 @@ class ChatScreen extends StatefulWidget {
 
 enum ViewState { chat, conversations, projects }
 enum ProjectViewState { list, detail }
+enum ProjectDetailTab { keywords, backlinks }
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
@@ -25,6 +26,7 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _shouldCancelRequest = false;
   ViewState _currentView = ViewState.chat;
   ProjectViewState _projectViewState = ProjectViewState.list;
+  ProjectDetailTab _selectedProjectTab = ProjectDetailTab.keywords;
 
   @override
   void initState() {
@@ -1107,61 +1109,147 @@ class _ChatScreenState extends State<ChatScreen> {
                         icon: const Icon(Icons.refresh),
                         tooltip: 'Refresh Rankings',
                       ),
+                      // Delete button
+                      IconButton(
+                        onPressed: projectProvider.isLoading
+                            ? null
+                            : () async {
+                                // Show confirmation dialog
+                                final confirmed = await showDialog<bool>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Delete Project'),
+                                    content: Text(
+                                      'Are you sure you want to delete "${project.name}"?\n\nThis will permanently delete:\n• All tracked keywords\n• Ranking history\n• Backlink submissions\n\nThis action cannot be undone.',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context, false),
+                                        child: const Text('Cancel'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context, true),
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: Colors.red,
+                                        ),
+                                        child: const Text('Delete'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                                
+                                if (confirmed == true) {
+                                  try {
+                                    await authProvider.apiService.deleteProject(project.id);
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Project deleted successfully')),
+                                      );
+                                      // Go back to project list
+                                      setState(() {
+                                        _projectViewState = ProjectViewState.list;
+                                      });
+                                      // Reload projects
+                                      projectProvider.loadAllProjects(authProvider.apiService);
+                                    }
+                                  } catch (e) {
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Error deleting project: $e')),
+                                      );
+                                    }
+                                  }
+                                }
+                              },
+                        icon: const Icon(Icons.delete_outline),
+                        tooltip: 'Delete Project',
+                        color: Colors.red[400],
+                      ),
                     ],
                   ),
                   const SizedBox(height: 24),
-                  Text(
-                    'Tracked Keywords',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '${keywords.length} keywords tracked',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey[400],
-                    ),
+                  // Tabs
+                  Row(
+                    children: [
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _selectedProjectTab = ProjectDetailTab.keywords;
+                          });
+                        },
+                        style: TextButton.styleFrom(
+                          backgroundColor: _selectedProjectTab == ProjectDetailTab.keywords
+                              ? Theme.of(context).colorScheme.primaryContainer
+                              : null,
+                        ),
+                        child: Text('Keywords (${keywords.length})'),
+                      ),
+                      const SizedBox(width: 8),
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _selectedProjectTab = ProjectDetailTab.backlinks;
+                          });
+                        },
+                        style: TextButton.styleFrom(
+                          backgroundColor: _selectedProjectTab == ProjectDetailTab.backlinks
+                              ? Theme.of(context).colorScheme.primaryContainer
+                              : null,
+                        ),
+                        child: const Text('Backlinks'),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
             
-            // Keywords list
+            // Content based on selected tab
             Expanded(
-              child: projectProvider.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : keywords.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.search,
-                                size: 64,
-                                color: Colors.grey[600],
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'No Keywords Yet',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Add keywords from the chat to start tracking',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.grey[500],
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : ListView.builder(
+              child: _selectedProjectTab == ProjectDetailTab.keywords
+                  ? _buildKeywordsTab(projectProvider, keywords)
+                  : _buildBacklinksTab(project),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildKeywordsTab(ProjectProvider projectProvider, List<TrackedKeyword> keywords) {
+    return projectProvider.isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : keywords.isEmpty
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.search,
+                      size: 64,
+                      color: Colors.grey[600],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No Keywords Yet',
+                      style: TextStyle(
+                        fontSize: 20,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Add keywords from the chat to start tracking',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey[500],
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : ListView.builder(
                           padding: const EdgeInsets.symmetric(horizontal: 24.0),
                           itemCount: keywords.length,
                           itemBuilder: (context, index) {
@@ -1264,12 +1352,196 @@ class _ChatScreenState extends State<ChatScreen> {
                               ),
                             );
                           },
-                        ),
+                        );
+  }
+
+  Widget _buildBacklinksTab(Project project) {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: Provider.of<AuthProvider>(context, listen: false)
+          .apiService
+          .getProjectBacklinks(project.id),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        
+        if (snapshot.hasError) {
+          return Center(
+            child: Text('Error: ${snapshot.error}'),
+          );
+        }
+        
+        final data = snapshot.data;
+        final submissions = (data?['submissions'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+        
+        if (submissions.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.link,
+                    size: 64,
+                    color: Colors.grey[600],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No Backlinks Yet',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Go to chat and say:',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[500],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceVariant,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '"Submit ${project.name} to directories"',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontFamily: 'monospace',
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+        
+        final statusBreakdown = data?['status_breakdown'] as Map<String, dynamic>?;
+        
+        return Column(
+          children: [
+            // Status summary
+            Container(
+              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceVariant,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildStatusChip('Submitted', statusBreakdown?['submitted'] ?? 0, Colors.green),
+                  _buildStatusChip('Pending', statusBreakdown?['pending'] ?? 0, Colors.orange),
+                  _buildStatusChip('Indexed', statusBreakdown?['indexed'] ?? 0, Colors.blue),
+                ],
+              ),
+            ),
+            // List of submissions
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: submissions.length,
+                itemBuilder: (context, index) {
+                  final submission = submissions[index];
+                  final directory = submission['directory'] as Map<String, dynamic>?;
+                  final status = submission['status'] as String? ?? 'pending';
+                  final submissionUrl = submission['submission_url'] as String?;
+                  
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    child: ListTile(
+                      leading: _buildStatusIcon(status),
+                      title: Text(
+                        directory?['name'] ?? 'Unknown',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(directory?['category'] ?? ''),
+                          if (directory?['tier'] != null)
+                            Text('Tier: ${directory!['tier']} • DA: ${directory['domain_authority'] ?? 'N/A'}'),
+                        ],
+                      ),
+                      trailing: submissionUrl != null
+                          ? IconButton(
+                              icon: const Icon(Icons.open_in_new),
+                              onPressed: () {
+                                // TODO: Open URL
+                                print('Open: $submissionUrl');
+                              },
+                            )
+                          : null,
+                    ),
+                  );
+                },
+              ),
             ),
           ],
-        ),
-      ),
+        );
+      },
     );
+  }
+  
+  Widget _buildStatusChip(String label, int count, Color color) {
+    return Column(
+      children: [
+        Text(
+          '$count',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
+          ),
+        ),
+      ],
+    );
+  }
+  
+  Widget _buildStatusIcon(String status) {
+    IconData icon;
+    Color color;
+    
+    switch (status) {
+      case 'submitted':
+        icon = Icons.check_circle;
+        color = Colors.green;
+        break;
+      case 'pending':
+        icon = Icons.pending;
+        color = Colors.orange;
+        break;
+      case 'indexed':
+        icon = Icons.done_all;
+        color = Colors.blue;
+        break;
+      case 'rejected':
+        icon = Icons.cancel;
+        color = Colors.red;
+        break;
+      default:
+        icon = Icons.circle_outlined;
+        color = Colors.grey;
+    }
+    
+    return Icon(icon, color: color);
   }
 
   Color _getPositionColor(int? position) {
