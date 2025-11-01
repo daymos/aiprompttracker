@@ -5,12 +5,14 @@ class Message {
   final String role;
   final String content;
   final DateTime createdAt;
+  final Map<String, dynamic>? messageMetadata;
   
   Message({
     required this.id,
     required this.role,
     required this.content,
     required this.createdAt,
+    this.messageMetadata,
   });
 }
 

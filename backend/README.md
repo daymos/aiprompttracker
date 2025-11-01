@@ -10,9 +10,8 @@ pip install -r requirements.txt
 ```
 
 2. Copy `.env.example` to `.env` and fill in your credentials:
-   - RapidAPI key (for keyword data & SERP analysis)
+   - RapidAPI key (for keyword data, SERP analysis, and backlink analysis)
    - Groq API key (for LLM)
-   - Moz API credentials (for backlink analysis - $5/month starter plan)
    - Google OAuth credentials
    - JWT secret
 
@@ -37,11 +36,15 @@ uvicorn app.main:app --reload
 - **SERP Analysis**: Analyze top 10 ranking sites and identify opportunities
 - **Website Analysis**: Full-site scraping with sitemap crawling
 - **Rank Tracking**: Check your Google rankings for tracked keywords
-- **Backlink Analysis** (NEW): 
-  - Get backlinks for any domain (up to 50 with $5/month plan)
-  - Compare your backlinks vs competitors (link gap analysis)
-  - DA/PA metrics for any domain
-  - 100 backlink rows/month for free beta users
+- **Backlink Analysis**: Powered by RapidAPI SEO Backlinks API
+  - Comprehensive backlink profiles for any domain
+  - Source URLs, anchor text, link quality metrics (inlink_rank, domain_inlink_rank)
+  - Spam score detection and nofollow tracking
+  - Historical trends: Monthly growth data for backlinks, referring domains, and DA
+  - Daily new/lost backlinks tracking
+  - Anchor text distribution analysis
+  - Compare backlinks: Find link gap opportunities between domains
+  - Per-request pricing (transparent billing)
 
 ## API Endpoints
 
@@ -50,21 +53,27 @@ uvicorn app.main:app --reload
 - `GET /api/v1/chat/conversations` - Get conversation list
 - `GET /api/v1/chat/conversation/{id}` - Get conversation details
 
-## Moz API Setup
+## RapidAPI Setup
 
-1. Sign up at https://moz.com/products/api
-2. Subscribe to $5/month Starter plan (750 rows/month)
-3. Get your Access ID and Secret Key
-4. Add to `.env`:
-```
-MOZ_ACCESS_ID=your_access_id
-MOZ_SECRET_KEY=your_secret_key
-```
+**Backlink Analysis** requires a subscription to the "SEO API - Get Backlinks" on RapidAPI.
 
-**Usage Tracking**: 
-- Free beta users: 100 backlink rows/month
-- Resets monthly automatically
-- Each backlink = 1 row, DA/PA lookup = 1 row
+1. Sign up at https://rapidapi.com
+2. Subscribe to "SEO API - Get Backlinks": https://rapidapi.com/seo-api-get-backlinks/api/seo-api-get-backlinks
+3. Your RapidAPI key is the same one used for keyword research
+
+**Pricing (RapidAPI)**: 
+- $9.99/month for 500 requests
+- $0.10 per additional request
+
+**Free Beta Tier**:
+- 5 backlink analyses per month (resets automatically)
+- Single domain analysis = 1 request
+- Domain comparison = 2 requests
+- Each request returns comprehensive data including:
+  - Full backlink list with source URLs, anchors, quality metrics
+  - Historical trends (monthly growth data)
+  - Daily new/lost backlinks tracking
+  - Anchor text distribution analysis
 
 ## Development
 

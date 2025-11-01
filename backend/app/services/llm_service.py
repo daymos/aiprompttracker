@@ -157,7 +157,7 @@ CRITICAL: Extract domain without http://, https://, or www. prefixes. Just the d
             system_prompt = self._get_agent_mode_prompt()
         else:
             system_prompt = self._get_ask_mode_prompt()
-        
+
         messages = [{"role": "system", "content": system_prompt}]
         
         # Add conversation history if provided
@@ -254,16 +254,21 @@ After the introduction, respond naturally to user commands.
    - SERP analysis for top keywords: Who's ranking? Major brands or weak sites?
    - Shows actual ranking difficulty based on current top 10 results
 
-# DISABLED: Backlink analysis (waiting for better API provider)
-# 3. **Backlink Analysis** (currently unavailable)
-#    - Feature temporarily disabled while we find a better data provider
+3. **Backlink Analysis** (powered by RapidAPI SEO Backlinks API)
+   - Get comprehensive backlink profile for any domain
+   - View source URLs, anchor text, link quality metrics (inlink_rank, domain_inlink_rank)
+   - Spam scores and nofollow detection
+   - Historical trends: Monthly growth data for backlinks, referring domains, and DA
+   - Recent activity: New and lost backlinks tracking (daily)
+   - Anchor text distribution analysis
+   - Compare backlinks: Find link gap opportunities (sites linking to competitor but not you)
 
-3. **Competitor Analysis** (automatic with URL)
+4. **Competitor Analysis** (automatic with URL)
    - Full site crawl of competitor sites
    - Identify their keyword focus
    - Analyze content strategy
 
-4. **User Project Context** (always available)
+5. **User Project Context** (always available)
    - Access to user's existing projects and tracked keywords
    - See what domains they're monitoring
    - View keywords they're already tracking with volumes and competition
@@ -541,7 +546,7 @@ You're guiding a journey from "here's my website" to "here's your complete keywo
             
             user_content += f"\nDo NOT make up search volumes or competition levels. You can suggest keywords to research.\n"
         
-        # Add backlink data if available
+        # Add backlink data if available (RapidAPI format)
         if backlink_data:
             if backlink_data.get('error'):
                 user_content += f"\n\n[BACKLINK ANALYSIS ERROR]\n"
@@ -555,19 +560,27 @@ You're guiding a journey from "here's my website" to "here's your complete keywo
                 # This is a comparison result
                 user_content += f"\n\n[BACKLINK COMPARISON COMPLETED]\n"
                 user_content += f"Comparing: {backlink_data.get('my_domain')} vs {backlink_data.get('competitor_domain')}\n"
-                user_content += f"Your backlinks: {backlink_data.get('my_backlinks_count', 0)}\n"
-                user_content += f"Competitor backlinks: {backlink_data.get('competitor_backlinks_count', 0)}\n"
-                user_content += f"Link gaps found: {backlink_data.get('gap_count', 0)}\n\n"
+                user_content += f"Your domain:\n"
+                user_content += f"  - Total backlinks: {backlink_data.get('my_backlinks_count', 0)}\n"
+                user_content += f"  - Referring domains: {backlink_data.get('my_referring_domains', 0)}\n"
+                user_content += f"Competitor domain:\n"
+                user_content += f"  - Total backlinks: {backlink_data.get('competitor_backlinks_count', 0)}\n"
+                user_content += f"  - Referring domains: {backlink_data.get('competitor_referring_domains', 0)}\n"
+                user_content += f"\nLink gap opportunities found: {backlink_data.get('gap_count', 0)}\n\n"
                 
                 if backlink_data.get('link_gaps'):
                     user_content += f"Top opportunities (sites linking to competitor but not you):\n"
-                    for gap in backlink_data['link_gaps'][:10]:
-                        user_content += f"- {gap.get('source_url')} (DA: {gap.get('domain_authority', 'N/A')}, "
-                        user_content += f"PA: {gap.get('page_authority', 'N/A')}, Spam: {gap.get('spam_score', 'N/A')})\n"
-                        user_content += f"  Anchor: \"{gap.get('anchor_text', 'N/A')}\"\n"
+                    for gap in backlink_data['link_gaps'][:15]:
+                        user_content += f"- {gap.get('url_from')}\n"
+                        user_content += f"  → Links to: {gap.get('url_to')}\n"
+                        user_content += f"  Link Quality: {gap.get('inlink_rank', 'N/A')}, Domain Quality: {gap.get('domain_inlink_rank', 'N/A')}\n"
+                        user_content += f"  Spam Score: {gap.get('spam_score', 'N/A')}\n"
+                        user_content += f"  Anchor: \"{gap.get('anchor', 'N/A')}\"\n"
+                        user_content += f"  Nofollow: {gap.get('nofollow', False)}\n"
+                        user_content += f"  First seen: {gap.get('first_seen', 'N/A')}\n\n"
                 
                 user_content += f"\nProvide actionable insights about:\n"
-                user_content += f"1. Which link opportunities are most valuable (high DA, low spam)\n"
+                user_content += f"1. Which link opportunities are most valuable (high inlink_rank/domain_inlink_rank, low spam, dofollow)\n"
                 user_content += f"2. How the user can approach these sites for links\n"
                 user_content += f"3. Overall backlink strategy recommendations\n"
             else:
@@ -575,20 +588,48 @@ You're guiding a journey from "here's my website" to "here's your complete keywo
                 user_content += f"\n\n[BACKLINK ANALYSIS COMPLETED]\n"
                 user_content += f"Domain: {backlink_data.get('target')}\n"
                 user_content += f"Total backlinks: {backlink_data.get('total_backlinks', 0)}\n"
-                user_content += f"Referring domains: {backlink_data.get('referring_domains', 0)}\n\n"
+                user_content += f"Referring domains: {backlink_data.get('referring_domains', 0)}\n"
+                user_content += f"Domain Authority: {backlink_data.get('domain_authority', 'N/A')}\n\n"
+                
+                # Show historical trend if available
+                overtime = backlink_data.get('overtime', [])
+                if overtime and len(overtime) > 1:
+                    user_content += f"Backlink Growth Trend (last {len(overtime)} months):\n"
+                    for month_data in overtime[:4]:  # Show last 4 months
+                        user_content += f"  {month_data.get('date')}: {month_data.get('backlinks')} backlinks, {month_data.get('refdomains')} domains, DA {month_data.get('da')}\n"
+                    user_content += "\n"
+                
+                # Show new/lost backlinks
+                new_and_lost = backlink_data.get('new_and_lost', [])
+                if new_and_lost:
+                    recent_changes = new_and_lost[:7]  # Last 7 days
+                    total_new = sum(day.get('new', 0) for day in recent_changes)
+                    total_lost = sum(day.get('lost', 0) for day in recent_changes)
+                    user_content += f"Recent Activity (last 7 days): +{total_new} new, -{total_lost} lost\n\n"
                 
                 if backlink_data.get('backlinks'):
-                    user_content += f"Top backlinks:\n"
-                    for link in backlink_data['backlinks'][:10]:
-                        user_content += f"- {link.get('source_url')} → {link.get('target_url')}\n"
-                        user_content += f"  DA: {link.get('domain_authority', 'N/A')}, PA: {link.get('page_authority', 'N/A')}, "
-                        user_content += f"Spam: {link.get('spam_score', 'N/A')}\n"
-                        user_content += f"  Anchor: \"{link.get('anchor_text', 'N/A')}\"\n"
+                    user_content += f"Top backlinks (showing 15):\n"
+                    for i, link in enumerate(backlink_data['backlinks'][:15], 1):
+                        user_content += f"{i}. {link.get('url_from')}\n"
+                        user_content += f"   → {link.get('url_to')}\n"
+                        user_content += f"   Link Quality: {link.get('inlink_rank', 'N/A')}, Domain Quality: {link.get('domain_inlink_rank', 'N/A')}\n"
+                        user_content += f"   Spam: {link.get('spam_score', 'N/A')}, Nofollow: {link.get('nofollow', False)}\n"
+                        user_content += f"   Anchor: \"{link.get('anchor', 'N/A')}\"\n"
+                        user_content += f"   Page Title: {link.get('title', 'N/A')[:80]}\n\n"
+                
+                # Show anchor text distribution
+                anchors = backlink_data.get('anchors', [])
+                if anchors:
+                    user_content += f"Top anchor texts used:\n"
+                    for anchor_data in anchors[:10]:
+                        user_content += f"  - \"{anchor_data.get('anchor_text')}\" ({anchor_data.get('external_pages', 0)} pages from {anchor_data.get('external_root_domains', 0)} domains)\n"
+                    user_content += "\n"
                 
                 user_content += f"\nProvide insights about:\n"
-                user_content += f"1. Quality of backlink profile (DA/PA distribution, spam scores)\n"
-                user_content += f"2. Anchor text diversity\n"
-                user_content += f"3. Recommendations for improving backlink strategy\n"
+                user_content += f"1. Overall backlink profile quality (looking at inlink ranks, spam scores, dofollow ratio)\n"
+                user_content += f"2. Anchor text diversity and naturalness\n"
+                user_content += f"3. Growth trend and recent activity\n"
+                user_content += f"4. Recommendations for improving backlink strategy\n"
         
         return user_content
 

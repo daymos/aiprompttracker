@@ -5,6 +5,8 @@ import '../providers/chat_provider.dart';
 import '../providers/project_provider.dart';
 import '../providers/auth_provider.dart';
 import '../models/keyword_data.dart';
+import 'dart:html' as html;
+import 'dart:convert';
 
 class MessageBubble extends StatefulWidget {
   final Message message;
@@ -93,6 +95,65 @@ class _MessageBubbleState extends State<MessageBubble> {
     }
     
     animateNext();
+  }
+  
+  void _downloadTableAsCSV() {
+    // Get keyword data from message metadata
+    final keywordData = widget.message.messageMetadata?['keyword_data'];
+    if (keywordData == null) return;
+    
+    // Convert to CSV
+    final csvContent = StringBuffer();
+    
+    // Header row
+    csvContent.writeln('Keyword,Avg. Monthly Searches,Competition,CPC,SERP Reality');
+    
+    // Data rows
+    for (final item in keywordData) {
+      final keyword = item['keyword'] ?? '';
+      final volume = item['search_volume'] ?? '';
+      final competition = item['competition'] ?? '';
+      final cpc = item['cpc'] ?? '';
+      final serpInsight = item['serp_insight'] ?? '';
+      
+      // Escape commas and quotes in CSV
+      final escapedKeyword = _escapeCsvField(keyword.toString());
+      final escapedSerpInsight = _escapeCsvField(serpInsight.toString());
+      
+      csvContent.writeln('$escapedKeyword,$volume,$competition,$cpc,$escapedSerpInsight');
+    }
+    
+    // Create blob and download
+    final bytes = utf8.encode(csvContent.toString());
+    final blob = html.Blob([bytes]);
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    final anchor = html.document.createElement('a') as html.AnchorElement
+      ..href = url
+      ..style.display = 'none'
+      ..download = 'keyword_data_${DateTime.now().millisecondsSinceEpoch}.csv';
+    html.document.body?.children.add(anchor);
+    anchor.click();
+    html.document.body?.children.remove(anchor);
+    html.Url.revokeObjectUrl(url);
+    
+    // Show success message
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('CSV downloaded successfully'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+  
+  String _escapeCsvField(String field) {
+    // Escape fields containing commas, quotes, or newlines
+    if (field.contains(',') || field.contains('"') || field.contains('\n')) {
+      return '"${field.replaceAll('"', '""')}"';
+    }
+    return field;
   }
   
   Future<void> _loadProjects() async {
@@ -256,6 +317,25 @@ class _MessageBubbleState extends State<MessageBubble> {
                           ),
                         ),
                 ),
+                
+                // Show CSV download button if table data is present (only after animation completes)
+                if (!isUser && !_isAnimating && widget.message.messageMetadata?['keyword_data'] != null) ...[
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: _downloadTableAsCSV,
+                      icon: const Icon(Icons.download, size: 16),
+                      label: const Text('Download as CSV'),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        textStyle: const TextStyle(fontSize: 12),
+                      ),
+                    ),
+                  ),
+                ],
                 
                 // Show "Add to Project" buttons if keywords detected (only after animation completes)
                 if (keywords.isNotEmpty && !isUser && !_isAnimating) ...[

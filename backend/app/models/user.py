@@ -12,9 +12,9 @@ class User(Base):
     provider = Column(String, nullable=False)  # 'google' or 'apple'
     is_subscribed = Column(Boolean, default=False)
     
-    # Backlink usage tracking (resets monthly)
-    backlink_rows_used = Column(Integer, default=0)
-    backlink_rows_limit = Column(Integer, default=100)  # Free beta tier
+    # Backlink usage tracking (resets monthly) - tracks API requests, not rows
+    backlink_rows_used = Column(Integer, default=0)  # Actually tracks requests
+    backlink_rows_limit = Column(Integer, default=5)  # Free beta: 5 requests/month
     backlink_usage_reset_at = Column(DateTime(timezone=True), server_default=func.now())
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())

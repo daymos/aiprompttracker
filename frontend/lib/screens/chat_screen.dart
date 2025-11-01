@@ -188,6 +188,7 @@ class _ChatScreenState extends State<ChatScreen> {
         role: 'assistant',
         content: response['message'],
         createdAt: DateTime.now(),
+        messageMetadata: response['message_metadata'] as Map<String, dynamic>?,
       ));
 
       _scrollToBottom();
@@ -570,13 +571,12 @@ class _ChatScreenState extends State<ChatScreen> {
           label: 'Website',
           message: 'Analyze my website',
         ),
-        // DISABLED: Backlinks button (waiting for better API provider)
-        // const SizedBox(width: 8),
-        // _buildSuggestionButton(
-        //   icon: Icons.link,
-        //   label: 'Backlinks',
-        //   message: 'Show me backlinks for my website',
-        // ),
+        const SizedBox(width: 8),
+        _buildSuggestionButton(
+          icon: Icons.link,
+          label: 'Backlinks',
+          message: 'Show me backlinks for my website',
+        ),
       ],
     );
   }
@@ -890,6 +890,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       role: m['role'],
                       content: m['content'],
                       createdAt: DateTime.parse(m['created_at']),
+                      messageMetadata: m['message_metadata'] as Map<String, dynamic>?,
                     )).toList();
                     
                     chatProvider.setCurrentConversation(conversationId);

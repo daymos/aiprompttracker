@@ -5,8 +5,6 @@ class Settings(BaseSettings):
     # API Keys
     RAPIDAPI_KEY: str = ""
     GROQ_API_KEY: str = ""
-    MOZ_ACCESS_ID: str = ""
-    MOZ_SECRET_KEY: str = ""
     
     # Auth
     JWT_SECRET_KEY: str

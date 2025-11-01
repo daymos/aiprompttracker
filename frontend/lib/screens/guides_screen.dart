@@ -60,13 +60,12 @@ class GuidesScreen extends StatelessWidget {
                 'Create projects to track your website\'s rankings for specific keywords. Monitor your position on Google and get updates when rankings change.',
               ),
               
-              // DISABLED: Backlink Analysis (waiting for better API provider)
-              // _buildFeatureSection(
-              //   context,
-              //   Icons.link,
-              //   'Backlink Analysis',
-              //   'Analyze backlinks for any domain using Moz Links API. See who links to you, compare your backlink profile to competitors, get Domain Authority scores, and discover link gap opportunities. 100 backlink rows/month for free beta users.',
-              // ),
+              _buildFeatureSection(
+                context,
+                Icons.link,
+                'Backlink Analysis',
+                'Comprehensive backlink analysis powered by RapidAPI. View full backlink profiles including source URLs, anchor text, link quality scores, spam detection, historical growth trends, daily new/lost tracking, and anchor text distribution. Compare backlinks between domains to find link gap opportunities. Free beta: 5 analyses per month (comparisons count as 2).',
+              ),
               
               _buildFeatureSection(
                 context,

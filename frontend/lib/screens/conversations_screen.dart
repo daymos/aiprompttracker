@@ -29,6 +29,7 @@ class ConversationsScreen extends StatelessWidget {
               role: m['role'],
               content: m['content'],
               createdAt: DateTime.parse(m['created_at']),
+              messageMetadata: m['message_metadata'] as Map<String, dynamic>?,
             )).toList();
             
             chatProvider.setCurrentConversation(conversationId);

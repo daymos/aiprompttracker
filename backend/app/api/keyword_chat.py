@@ -13,7 +13,7 @@ from ..models.project import Project, TrackedKeyword
 from ..services.keyword_service import KeywordService
 from ..services.llm_service import LLMService
 from ..services.rank_checker import RankCheckerService
-from ..services.moz_service import MozBacklinkService
+from ..services.rapidapi_backlinks_service import RapidAPIBacklinkService
 from .auth import get_current_user
 
 router = APIRouter(prefix="/chat", tags=["chat"])
@@ -21,7 +21,7 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 keyword_service = KeywordService()
 llm_service = LLMService()
 rank_checker = RankCheckerService()
-moz_service = MozBacklinkService()
+backlink_service = RapidAPIBacklinkService()
 
 class ChatRequest(BaseModel):
     message: str
@@ -135,58 +135,63 @@ async def send_message(
     else:
         logger.info("LLM determined no specific keyword research needed")
     
-    # DISABLED: Backlink analysis (Moz API - need better provider)
     # Use LLM to detect backlink intent and extract domain(s)
     backlink_data = None
     
-    # TODO: Re-enable when we have a better backlink API provider
-    if False:  # Disabled for now
-        backlink_intent = await llm_service.extract_backlink_intent(
-            user_message=request.message,
-            conversation_history=conversation_history
-        )
-    else:
-        backlink_intent = None
+    backlink_intent = await llm_service.extract_backlink_intent(
+        user_message=request.message,
+        conversation_history=conversation_history
+    )
     
-    if backlink_intent and False:  # Double-check it's disabled
+    if backlink_intent:
         logger.info(f"LLM detected backlink intent: {backlink_intent}")
         
-        # Check user's backlink quota
+        # Check user's backlink quota (free beta: 5 requests/month)
         if user.backlink_rows_used >= user.backlink_rows_limit:
-            logger.warning(f"User {user.id} has exceeded backlink quota")
+            logger.warning(f"User {user.id} has exceeded backlink quota ({user.backlink_rows_used}/{user.backlink_rows_limit})")
             backlink_data = {
-                "error": f"You've reached your monthly limit of {user.backlink_rows_limit} backlink rows. Resets on: {user.backlink_usage_reset_at.strftime('%Y-%m-%d')}"
+                "error": f"You've reached your monthly limit of {user.backlink_rows_limit} backlink analyses. Resets on: {user.backlink_usage_reset_at.strftime('%Y-%m-%d')}"
             }
         else:
             action = backlink_intent.get("action")
             
             if action == "compare":
-                # Comparison request
+                # Comparison request (counts as 2 requests)
                 domain1 = backlink_intent.get("domain1")
                 domain2 = backlink_intent.get("domain2")
-                if domain1 and domain2:
+                
+                if user.backlink_rows_used + 2 > user.backlink_rows_limit:
+                    backlink_data = {
+                        "error": f"Comparison requires 2 requests (you have {user.backlink_rows_limit - user.backlink_rows_used} remaining). Try a single domain analysis instead."
+                    }
+                elif domain1 and domain2:
                     logger.info(f"Comparing backlinks: {domain1} vs {domain2}")
-                    backlink_data = await moz_service.compare_backlinks(domain1, domain2, limit_per_domain=25)
+                    backlink_data = await backlink_service.compare_backlinks(domain1, domain2, limit_per_domain=50)
+                    
+                    # Track usage: comparison = 2 requests
+                    if backlink_data and not backlink_data.get("error"):
+                        user.backlink_rows_used += 2
+                        db.commit()
+                        logger.info(f"User {user.id} used 2 backlink requests for comparison (total: {user.backlink_rows_used}/{user.backlink_rows_limit})")
                 else:
                     logger.warning("Comparison requested but missing domains")
                     backlink_data = {"needs_domain": True}
                     
             elif action == "analyze":
-                # Single domain analysis
+                # Single domain analysis (counts as 1 request)
                 domain = backlink_intent.get("domain")
                 if domain:
                     logger.info(f"Analyzing backlinks for: {domain}")
-                    backlink_data = await moz_service.get_backlinks(domain, limit=50)
+                    backlink_data = await backlink_service.get_backlinks(domain, limit=50)
+                    
+                    # Track usage: single analysis = 1 request
+                    if backlink_data and not backlink_data.get("error"):
+                        user.backlink_rows_used += 1
+                        db.commit()
+                        logger.info(f"User {user.id} used 1 backlink request (total: {user.backlink_rows_used}/{user.backlink_rows_limit})")
                 else:
                     logger.warning("Analysis requested but no domain provided")
                     backlink_data = {"needs_domain": True}
-            
-            # Update usage tracking
-            if backlink_data and not backlink_data.get("error") and not backlink_data.get("needs_domain"):
-                rows_used = backlink_data.get("rows_used", 0)
-                user.backlink_rows_used += rows_used
-                db.commit()
-                logger.info(f"User {user.id} used {rows_used} backlink rows (total: {user.backlink_rows_used}/{user.backlink_rows_limit})")
     else:
         logger.info("LLM determined no backlink analysis needed")
     
