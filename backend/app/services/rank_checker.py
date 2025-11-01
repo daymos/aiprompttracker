@@ -116,6 +116,104 @@ class RankCheckerService:
                 results[keyword] = result
         
         return results
+    
+    async def get_serp_analysis(self, keyword: str) -> Optional[Dict[str, Any]]:
+        """
+        Get top 10 SERP results and analyze competitiveness
+        
+        Returns:
+            {
+                'top_domains': ['example.com', 'another.com', ...],
+                'analysis': 'Weak opportunity' | 'Mixed competition' | 'Dominated by brands',
+                'insight': 'Human-readable insight for LLM'
+            }
+        """
+        
+        if not settings.RAPIDAPI_KEY:
+            return None
+        
+        try:
+            params = {
+                "query": keyword,
+                "limit": "10",
+                "related_keywords": "false"
+            }
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    self.base_url,
+                    headers=self.headers,
+                    params=params,
+                    timeout=15.0
+                )
+                response.raise_for_status()
+                data = response.json()
+                
+                results = data.get('results', []) or data.get('organic_results', [])
+                
+                if not results:
+                    return None
+                
+                # Extract domains from top 10
+                top_domains = []
+                for result in results[:10]:
+                    url = result.get('url', result.get('link', ''))
+                    if url:
+                        parsed = urlparse(url if url.startswith('http') else f'https://{url}')
+                        domain = (parsed.netloc or parsed.path).replace('www.', '').lower()
+                        if domain:
+                            top_domains.append(domain)
+                
+                # Analyze competitiveness
+                analysis = self._analyze_serp_competitiveness(top_domains)
+                
+                return {
+                    'top_domains': top_domains[:10],
+                    'analysis': analysis['level'],
+                    'insight': analysis['insight']
+                }
+                
+        except Exception as e:
+            logger.error(f"Error getting SERP analysis for '{keyword}': {e}")
+            return None
+    
+    def _analyze_serp_competitiveness(self, domains: list) -> Dict[str, str]:
+        """Analyze SERP competitiveness based on domains"""
+        
+        # Known strong/authority domains
+        major_brands = {
+            'amazon.com', 'google.com', 'facebook.com', 'youtube.com', 'wikipedia.org',
+            'forbes.com', 'nytimes.com', 'techcrunch.com', 'hubspot.com', 'salesforce.com',
+            'microsoft.com', 'apple.com', 'linkedin.com', 'twitter.com', 'reddit.com',
+            'medium.com', 'wired.com', 'theverge.com', 'cnet.com', 'zdnet.com',
+            'businessinsider.com', 'wsj.com', 'bloomberg.com', 'cnbc.com', 'bbc.com',
+            'shopify.com', 'zapier.com', 'slack.com', 'atlassian.com', 'adobe.com'
+        }
+        
+        # Count brand domains in top 10
+        brand_count = sum(1 for domain in domains if any(brand in domain for brand in major_brands))
+        
+        # Analysis based on brand presence
+        if brand_count >= 7:
+            return {
+                'level': 'Very Hard',
+                'insight': f'Top 10 dominated by {brand_count} major brands - very competitive'
+            }
+        elif brand_count >= 4:
+            return {
+                'level': 'Hard',
+                'insight': f'{brand_count} major brands in top 10 - competitive but possible'
+            }
+        elif brand_count >= 2:
+            return {
+                'level': 'Medium',
+                'insight': f'Mix of {brand_count} brands and smaller sites - moderate opportunity'
+            }
+        else:
+            return {
+                'level': 'Good Opportunity',
+                'insight': 'Mostly small/medium sites - good ranking opportunity'
+            }
 
 
 

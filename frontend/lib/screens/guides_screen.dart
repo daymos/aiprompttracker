@@ -42,8 +42,8 @@ class GuidesScreen extends StatelessWidget {
               _buildFeatureSection(
                 context,
                 Icons.search,
-                'Keyword Research',
-                'Tell the AI about your niche or website, and it will research relevant keywords with real search volume data, competition levels, and CPC information.',
+                'Keyword Research with SERP Intelligence',
+                'Get keyword suggestions with real search volume, competition data, and SERP analysis. See who\'s actually ranking - major brands or smaller sites you can compete with.',
               ),
               
               _buildFeatureSection(

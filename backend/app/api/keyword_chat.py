@@ -11,12 +11,14 @@ from ..models.conversation import Conversation, Message
 from ..models.project import Project, TrackedKeyword
 from ..services.keyword_service import KeywordService
 from ..services.llm_service import LLMService
+from ..services.rank_checker import RankCheckerService
 from .auth import get_current_user
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 keyword_service = KeywordService()
 llm_service = LLMService()
+rank_checker = RankCheckerService()
 
 class ChatRequest(BaseModel):
     message: str
@@ -105,6 +107,20 @@ async def send_message(
     if keyword_to_research:
         logger.info(f"LLM extracted keyword to research: {keyword_to_research}")
         keyword_data = await keyword_service.analyze_keywords(keyword_to_research, limit=10)
+        
+        # Enrich top 5 keywords with SERP analysis
+        if keyword_data:
+            logger.info(f"Enriching top {min(5, len(keyword_data))} keywords with SERP analysis")
+            for keyword_item in keyword_data[:5]:  # Only analyze top 5 to avoid rate limits
+                keyword = keyword_item.get('keyword')
+                if keyword:
+                    serp_analysis = await rank_checker.get_serp_analysis(keyword)
+                    if serp_analysis:
+                        keyword_item['serp_analysis'] = serp_analysis['analysis']
+                        keyword_item['serp_insight'] = serp_analysis['insight']
+                        logger.info(f"SERP analysis for '{keyword}': {serp_analysis['analysis']}")
+                    else:
+                        logger.info(f"No SERP analysis available for '{keyword}'")
     else:
         logger.info("LLM determined no specific keyword research needed")
     
