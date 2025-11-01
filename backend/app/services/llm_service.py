@@ -39,15 +39,16 @@ class LLMService:
         system_prompt = """You are a keyword extraction assistant. Your job is to determine if the user wants keyword research and extract the specific keyword/topic.
 
 Guidelines:
-1. If user requests keyword research but provides NO specific topic/niche → Return NULL
-2. If user says "find keywords for X" or mentions a specific topic/niche → Extract and return that topic
-3. If user is asking about something unrelated to keyword research → Return NULL
-4. If the topic is too vague or generic to research meaningfully → Return NULL
+1. If user requests keyword research and provides a topic/niche/website → Extract and return that topic
+2. If user mentions their website/product in the conversation history → Use that as the topic
+3. If user says "keyword analysis for my site" → Look at conversation history for their site/product
+4. Only return NULL if user is asking about something completely unrelated to keyword research
 
 Your response MUST be ONLY:
-- The specific keyword/topic to research (e.g., "AI chatbots")
-- OR the word "NULL" if no specific topic was provided
+- The specific keyword/topic to research (e.g., "AI chatbots", "SEO chatbot", "keywords.chat")
+- OR the word "NULL" if completely unrelated to keyword research
 
+Be proactive. Infer the topic from context if the user has mentioned their website/product.
 Do not explain or add any other text. Just the keyword or NULL."""
 
         messages = [{"role": "system", "content": system_prompt}]
@@ -142,23 +143,13 @@ Do not explain or add any other text. Just the keyword or NULL."""
         """System prompt for ASK mode - user-driven commands"""
         return """You are an expert SEO assistant with powerful research tools at your disposal.
 
-**IMPORTANT: On first interaction only**, introduce yourself and your capabilities:
+**IMPORTANT: On first interaction only**, introduce yourself:
 
-"I'm your SEO helper, I have access to the following tools:
+"I'm your SEO helper. What do you want me to do?"
 
-• **Keyword Research** - Find high-volume, low-competition keywords for your niche
-• **Website Analysis** - Analyze any website's SEO (titles, headings, content, meta tags)
-• **SERP Analysis** - Check where your site ranks for specific keywords
-• **Competitor Research** - Analyze competitor websites and their keyword strategies
-• **Backlink Analysis** - Coming soon
+That's it. Don't list features unless asked.
 
-IF the user has existing projects, ADD this line:
-"Or we can go over your existing [X] project(s)."
-
-ALWAYS end with:
-"What do you want me to do?"
-
-After the introduction, respond naturally to user commands and questions.
+After the introduction, respond naturally to user commands.
 
 **YOUR TOOLS & CAPABILITIES:**
 
@@ -212,36 +203,36 @@ After the introduction, respond naturally to user commands and questions.
    - Don't repeat yourself or ask same questions twice
 
 5. **USE USER'S PROJECT CONTEXT**
-   - If user asks about "my project", "my keywords", "my site" - reference their tracked projects
-   - Provide insights based on what they're already tracking
-   - Examples:
-     * "show me my keywords" → list their tracked keywords with current data
-     * "how's my project doing?" → reference their tracked project(s)
-     * "should I add X keyword?" → compare to what they're already tracking
-   - Don't mention projects if user is asking about something completely unrelated
+   - User's existing projects are listed in context for reference
+   - If user mentions a SPECIFIC website/URL → focus ONLY on that, ignore other projects
+   - If that website matches an existing project → note it's already tracked
+   - If that website is NEW (not in projects) → treat as new, don't discuss other projects
+   - If user asks "my projects" or "what am I tracking" → discuss ALL their projects
+   - Default: Focus on what user explicitly asked about, not unrelated projects
 
 **PROVIDING RESULTS:**
 
 WITH REAL KEYWORD DATA:
-| Keyword | Avg. Monthly Searches | Competition | Why it's a good target |
-|---------|---------------------|-------------|----------------------|
-| keyword name | volume number | LOW/MEDIUM/HIGH | brief reason |
+| Keyword | Searches/mo | Competition |
+|---------|-------------|-------------|
+| keyword | volume | LOW/MED/HIGH |
+
+Then: "Want me to track these?"
 
 WITH WEBSITE DATA:
-- Summarize key findings: business model, SEO state, keyword focus
-- Suggest keyword themes based on content
-- Offer to fetch real search data for those themes
+1-2 sentences about what the site does.
+List 3-5 specific keyword suggestions (actual phrases, not "themes").
+Then: "Should I research '[keyword]' for you?"
 
-WITHOUT DATA (but user requested keyword research):
-- User wants keyword research but didn't specify what topic/niche
-- You need a specific topic to research before you can fetch data
-- Ask naturally what they want you to research
+WITHOUT DATA:
+"What topic should I research?"
 
-**TONE:**
-- Helpful and responsive
-- Execute commands clearly
-- Provide specific, actionable information
-- Don't be pushy - follow the user's lead"""
+**CRITICAL RULES:**
+- Keep responses under 5 sentences unless showing data tables
+- Execute actions, don't list what you CAN do
+- Respond ONLY to what user asked, nothing else
+- Stay on topic, don't mention unrelated projects/websites
+- Be direct and concise"""
     
     def _get_agent_mode_prompt(self) -> str:
         """System prompt for AGENT mode - AI-guided workflow"""
@@ -318,26 +309,15 @@ You're guiding a journey from "here's my website" to "here's your complete keywo
         """Build user content with all available data"""
         user_content = user_message
         
-        # Add user's existing projects and tracked keywords context
         if user_projects:
-            user_content += f"\n\n[USER'S EXISTING PROJECTS]\n"
-            user_content += f"The user is currently tracking {len(user_projects)} project(s):\n\n"
+            user_content += f"\n\n[USER'S EXISTING PROJECTS - CONTEXT ONLY]\n"
+            user_content += f"The user has {len(user_projects)} project(s):\n\n"
             
             for project in user_projects:
-                user_content += f"Project: {project['name'] or 'Unnamed'}\n"
-                user_content += f"  - URL: {project['target_url']}\n"
-                
+                user_content += f"- {project['name'] or 'Unnamed'} ({project['target_url']})\n"
                 if project['tracked_keywords']:
-                    user_content += f"  - Tracking {len(project['tracked_keywords'])} keywords:\n"
-                    for kw in project['tracked_keywords'][:10]:  # Limit to 10 keywords per project
-                        volume = kw['search_volume'] or 'Unknown'
-                        comp = kw['competition'] or 'Unknown'
-                        user_content += f"    * {kw['keyword']} (Volume: {volume}, Competition: {comp})\n"
-                else:
-                    user_content += f"  - No keywords tracked yet\n"
+                    user_content += f"  Tracking: {', '.join([kw['keyword'] for kw in project['tracked_keywords'][:3]])}\n"
                 user_content += "\n"
-            
-            user_content += "Use this information to provide contextual advice. If the user asks about 'my project' or 'my keywords', reference these.\n\n"
         
         if website_data:
             if 'error' in website_data:
