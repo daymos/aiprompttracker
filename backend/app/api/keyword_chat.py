@@ -8,6 +8,7 @@ import re
 from ..database import get_db
 from ..models.user import User
 from ..models.conversation import Conversation, Message
+from ..models.project import Project, TrackedKeyword
 from ..services.keyword_service import KeywordService
 from ..services.llm_service import LLMService
 from .auth import get_current_user
@@ -101,12 +102,37 @@ async def send_message(
             # Fetch keyword data from DataForSEO
             keyword_data = await keyword_service.analyze_keywords(keywords[0], limit=10)
     
+    # Get user's projects and tracked keywords for context
+    user_projects = db.query(Project).filter(Project.user_id == user.id).all()
+    user_projects_data = []
+    
+    for project in user_projects:
+        tracked_keywords = db.query(TrackedKeyword).filter(
+            TrackedKeyword.project_id == project.id
+        ).all()
+        
+        user_projects_data.append({
+            'id': project.id,
+            'name': project.name,
+            'target_url': project.target_url,
+            'tracked_keywords': [
+                {
+                    'keyword': kw.keyword,
+                    'search_volume': kw.search_volume,
+                    'competition': kw.competition,
+                    'target_position': kw.target_position
+                }
+                for kw in tracked_keywords
+            ]
+        })
+    
     # Generate response with LLM
     assistant_response = await llm_service.generate_keyword_advice(
         user_message=request.message,
         keyword_data=keyword_data,
         conversation_history=conversation_history,
-        mode=request.mode or "ask"
+        mode=request.mode or "ask",
+        user_projects=user_projects_data if user_projects_data else None
     )
     
     # Save assistant message

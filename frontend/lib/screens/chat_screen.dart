@@ -17,6 +17,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   bool _hasShownWelcomeModal = false;
   String _selectedMode = 'ask'; // 'ask' or 'agent'
+  bool _shouldCancelRequest = false;
 
   @override
   void initState() {
@@ -126,8 +127,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _stopGeneration() {
     final chatProvider = context.read<ChatProvider>();
+    setState(() {
+      _shouldCancelRequest = true;
+    });
     chatProvider.setLoading(false);
-    // Cancel any ongoing request would go here if we implement it
   }
 
   Future<void> _sendMessage() async {
@@ -155,6 +158,9 @@ class _ChatScreenState extends State<ChatScreen> {
     _messageController.clear();
     _scrollToBottom();
 
+    setState(() {
+      _shouldCancelRequest = false;
+    });
     chatProvider.setLoading(true);
 
     try {
@@ -163,6 +169,11 @@ class _ChatScreenState extends State<ChatScreen> {
         chatProvider.currentConversationId,
         mode: _selectedMode,
       );
+
+      // Check if request was cancelled while waiting
+      if (_shouldCancelRequest) {
+        return;
+      }
 
       chatProvider.setCurrentConversation(response['conversation_id']);
       chatProvider.addMessage(Message(
@@ -174,13 +185,15 @@ class _ChatScreenState extends State<ChatScreen> {
 
       _scrollToBottom();
     } catch (e) {
-      if (mounted) {
+      if (mounted && !_shouldCancelRequest) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),
         );
       }
     } finally {
-      chatProvider.setLoading(false);
+      if (!_shouldCancelRequest) {
+        chatProvider.setLoading(false);
+      }
     }
   }
 
