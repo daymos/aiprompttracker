@@ -1,8 +1,9 @@
 import httpx
 import logging
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from bs4 import BeautifulSoup
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
+import xml.etree.ElementTree as ET
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +13,7 @@ class WebScraperService:
     def __init__(self):
         self.timeout = 10.0
         self.max_content_length = 500000  # 500KB max
+        self.max_pages_to_crawl = 5  # Limit crawling to avoid abuse
     
     async def fetch_website(self, url: str) -> Optional[Dict[str, Any]]:
         """
@@ -124,5 +126,169 @@ class WebScraperService:
             return text[:2000] + ('...' if len(text) > 2000 else '')
         
         return ''
+    
+    async def fetch_sitemap(self, base_url: str) -> List[str]:
+        """
+        Fetch sitemap.xml and return list of URLs
+        Returns empty list if sitemap not found
+        """
+        if not base_url.startswith(('http://', 'https://')):
+            base_url = f'https://{base_url}'
+        
+        parsed = urlparse(base_url)
+        sitemap_urls = [
+            f"{parsed.scheme}://{parsed.netloc}/sitemap.xml",
+            f"{parsed.scheme}://{parsed.netloc}/sitemap_index.xml",
+            f"{parsed.scheme}://{parsed.netloc}/sitemap-index.xml",
+        ]
+        
+        for sitemap_url in sitemap_urls:
+            try:
+                async with httpx.AsyncClient(follow_redirects=True) as client:
+                    response = await client.get(sitemap_url, timeout=self.timeout)
+                    response.raise_for_status()
+                    
+                    # Parse XML
+                    root = ET.fromstring(response.content)
+                    
+                    # Handle both sitemap and sitemap index
+                    urls = []
+                    
+                    # Standard sitemap namespace
+                    ns = {'ns': 'http://www.sitemaps.org/schemas/sitemap/0.9'}
+                    
+                    # Try to find URLs
+                    for loc in root.findall('.//ns:loc', ns):
+                        url = loc.text
+                        if url:
+                            urls.append(url)
+                    
+                    # Also try without namespace (some sites don't use it)
+                    if not urls:
+                        for loc in root.findall('.//loc'):
+                            url = loc.text
+                            if url:
+                                urls.append(url)
+                    
+                    if urls:
+                        logger.info(f"Found sitemap at {sitemap_url} with {len(urls)} URLs")
+                        return urls[:self.max_pages_to_crawl * 2]  # Return more URLs for filtering
+                    
+            except Exception as e:
+                logger.debug(f"No sitemap at {sitemap_url}: {e}")
+                continue
+        
+        logger.info(f"No sitemap found for {base_url}")
+        return []
+    
+    async def analyze_full_site(self, url: str) -> Dict[str, Any]:
+        """
+        Comprehensive site analysis: main page + sitemap + key pages
+        Returns aggregated data for SEO keyword analysis
+        """
+        if not url.startswith(('http://', 'https://')):
+            url = f'https://{url}'
+        
+        parsed = urlparse(url)
+        base_url = f"{parsed.scheme}://{parsed.netloc}"
+        
+        logger.info(f"Starting full site analysis for {url}")
+        
+        # Fetch main page
+        main_page = await self.fetch_website(url)
+        
+        if main_page and 'error' in main_page:
+            # If main page fails, return error
+            return main_page
+        
+        # Try to get sitemap
+        sitemap_urls = await self.fetch_sitemap(base_url)
+        
+        # Determine which pages to crawl
+        pages_to_crawl = []
+        
+        if sitemap_urls:
+            # Prioritize important pages from sitemap
+            priority_paths = ['about', 'features', 'pricing', 'product', 'service', 'how-it-works', 'solutions']
+            
+            # Add homepage if not already in sitemap
+            if url not in sitemap_urls and base_url not in sitemap_urls:
+                pages_to_crawl.append(url)
+            
+            # Find priority pages
+            for sitemap_url in sitemap_urls:
+                if any(path in sitemap_url.lower() for path in priority_paths):
+                    pages_to_crawl.append(sitemap_url)
+                    if len(pages_to_crawl) >= self.max_pages_to_crawl:
+                        break
+            
+            # Fill remaining slots with other pages
+            if len(pages_to_crawl) < self.max_pages_to_crawl:
+                for sitemap_url in sitemap_urls:
+                    if sitemap_url not in pages_to_crawl:
+                        pages_to_crawl.append(sitemap_url)
+                        if len(pages_to_crawl) >= self.max_pages_to_crawl:
+                            break
+        else:
+            # No sitemap - just analyze main page
+            pages_to_crawl = [url]
+        
+        logger.info(f"Crawling {len(pages_to_crawl)} pages: {pages_to_crawl}")
+        
+        # Fetch all pages
+        pages_data = []
+        for page_url in pages_to_crawl:
+            page_data = await self.fetch_website(page_url)
+            if page_data and 'error' not in page_data:
+                pages_data.append(page_data)
+        
+        # Aggregate data from all pages
+        return self._aggregate_site_data(main_page, pages_data, sitemap_urls)
+    
+    def _aggregate_site_data(self, main_page: Dict[str, Any], pages_data: List[Dict[str, Any]], sitemap_urls: List[str]) -> Dict[str, Any]:
+        """
+        Combine data from multiple pages into a comprehensive analysis
+        """
+        # Start with main page data
+        result = {
+            'url': main_page['url'],
+            'title': main_page.get('title'),
+            'meta_description': main_page.get('meta_description'),
+            'meta_keywords': main_page.get('meta_keywords'),
+            'main_page_h1s': main_page.get('headings', {}).get('h1', []),
+            'main_page_h2s': main_page.get('headings', {}).get('h2', []),
+            'main_content_preview': main_page.get('main_content', '')[:500],
+            'pages_analyzed': len(pages_data),
+            'sitemap_found': len(sitemap_urls) > 0,
+            'total_sitemap_urls': len(sitemap_urls),
+        }
+        
+        # Aggregate all H1s and H2s from all pages
+        all_h1s = list(main_page.get('headings', {}).get('h1', []))
+        all_h2s = list(main_page.get('headings', {}).get('h2', []))
+        all_titles = [main_page.get('title')] if main_page.get('title') else []
+        
+        for page in pages_data:
+            page_title = page.get('title')
+            if page_title and page_title not in all_titles:
+                all_titles.append(page_title)
+            
+            for h1 in page.get('headings', {}).get('h1', []):
+                if h1 not in all_h1s:
+                    all_h1s.append(h1)
+            
+            for h2 in page.get('headings', {}).get('h2', []):
+                if h2 not in all_h2s and len(all_h2s) < 20:  # Limit to avoid overwhelming
+                    all_h2s.append(h2)
+        
+        result['all_page_titles'] = all_titles
+        result['all_h1_headings'] = all_h1s
+        result['all_h2_headings'] = all_h2s[:15]  # Top 15 H2s
+        
+        # Extract common themes/keywords from content
+        result['analysis_type'] = 'full_site'
+        
+        return result
+
 
 

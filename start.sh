@@ -48,3 +48,4 @@ trap "echo '🛑 Stopping services...'; kill $BACKEND_PID $FRONTEND_PID; docker-
 wait
 
 
+

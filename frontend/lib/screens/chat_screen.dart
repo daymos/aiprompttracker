@@ -16,6 +16,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _hasShownWelcomeModal = false;
+  String _selectedMode = 'ask'; // 'ask' or 'agent'
 
   @override
   void initState() {
@@ -123,12 +124,25 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  void _stopGeneration() {
+    final chatProvider = context.read<ChatProvider>();
+    chatProvider.setLoading(false);
+    // Cancel any ongoing request would go here if we implement it
+  }
+
   Future<void> _sendMessage() async {
+    final chatProvider = context.read<ChatProvider>();
+    
+    // If currently loading, stop the generation
+    if (chatProvider.isLoading) {
+      _stopGeneration();
+      return;
+    }
+    
     final message = _messageController.text.trim();
     if (message.isEmpty) return;
 
     final authProvider = context.read<AuthProvider>();
-    final chatProvider = context.read<ChatProvider>();
 
     // Add user message immediately
     chatProvider.addMessage(Message(
@@ -147,6 +161,7 @@ class _ChatScreenState extends State<ChatScreen> {
       final response = await authProvider.apiService.sendMessage(
         message,
         chatProvider.currentConversationId,
+        mode: _selectedMode,
       );
 
       chatProvider.setCurrentConversation(response['conversation_id']);
@@ -368,67 +383,149 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
               const SizedBox(height: 64),
               
-              // Centered input
-              TextField(
-                controller: _messageController,
-                decoration: InputDecoration(
-                  hintText: 'Let\'s talk about SEO for your website...',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
+              // Centered input with mode selector
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 16,
-                  ),
-                  suffixIcon: Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 8, 12, 8),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Download CSV button
-                        Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: chatProvider.messages.isEmpty
-                                ? Theme.of(context).colorScheme.surfaceVariant
-                                : Theme.of(context).colorScheme.secondaryContainer,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: IconButton(
-                            onPressed: chatProvider.messages.isEmpty ? null : _downloadConversationAsCSV,
-                            icon: const Icon(Icons.download),
-                            iconSize: 16,
-                            padding: EdgeInsets.zero,
-                            color: chatProvider.messages.isEmpty
-                                ? Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.4)
-                                : Theme.of(context).colorScheme.onSecondaryContainer,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        // Submit button
-                        Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: IconButton(
-                            onPressed: _sendMessage,
-                            icon: const Icon(Icons.arrow_upward),
-                            iconSize: 16,
-                            padding: EdgeInsets.zero,
-                            color: Theme.of(context).colorScheme.onPrimary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                maxLines: null,
-                textInputAction: TextInputAction.send,
-                onSubmitted: (_) => _sendMessage(),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: _messageController,
+                      decoration: InputDecoration(
+                        hintText: _selectedMode == 'agent'
+                            ? 'Share your website and I\'ll guide you through SEO strategy...'
+                            : 'Let\'s talk about SEO for your website...',
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      ),
+                      maxLines: null,
+                      textInputAction: TextInputAction.send,
+                      onSubmitted: (_) => _sendMessage(),
+                    ),
+                    
+                    // Bottom toolbar with mode selector and buttons
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          top: BorderSide(
+                            color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          // Mode selector dropdown
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: DropdownButton<String>(
+                              value: _selectedMode,
+                              underline: const SizedBox(),
+                              isDense: true,
+                              icon: Icon(
+                                Icons.keyboard_arrow_down,
+                                size: 14,
+                                color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.5),
+                              ),
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
+                                fontSize: 12,
+                              ),
+                              items: [
+                                DropdownMenuItem(
+                                  value: 'ask',
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.chat_bubble_outline,
+                                        size: 12,
+                                        color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      const Text('Ask'),
+                                    ],
+                                  ),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'agent',
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.auto_awesome,
+                                        size: 12,
+                                        color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      const Text('Agent'),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                              onChanged: (value) {
+                                if (value != null) {
+                                  setState(() {
+                                    _selectedMode = value;
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                          const Spacer(),
+                          // Download CSV button
+                          Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: chatProvider.messages.isEmpty
+                                  ? Theme.of(context).colorScheme.surfaceVariant
+                                  : Theme.of(context).colorScheme.secondaryContainer,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: IconButton(
+                              onPressed: chatProvider.messages.isEmpty ? null : _downloadConversationAsCSV,
+                              icon: const Icon(Icons.download),
+                              iconSize: 16,
+                              padding: EdgeInsets.zero,
+                              color: chatProvider.messages.isEmpty
+                                  ? Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.4)
+                                  : Theme.of(context).colorScheme.onSecondaryContainer,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Submit/Stop button
+                          Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: chatProvider.isLoading
+                                  ? Theme.of(context).colorScheme.error
+                                  : Theme.of(context).colorScheme.primary,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: IconButton(
+                              onPressed: _sendMessage,
+                              icon: Icon(
+                                chatProvider.isLoading ? Icons.stop : Icons.arrow_upward,
+                              ),
+                              iconSize: 16,
+                              padding: EdgeInsets.zero,
+                              color: Theme.of(context).colorScheme.onPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -455,66 +552,149 @@ class _ChatScreenState extends State<ChatScreen> {
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 700),
-          child: TextField(
-            controller: _messageController,
-            decoration: InputDecoration(
-              hintText: 'Let\'s talk about SEO for your website...',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
               ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 16,
-              ),
-              suffixIcon: Padding(
-                padding: const EdgeInsets.fromLTRB(8, 8, 12, 8),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Download CSV button
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: chatProvider.messages.isEmpty
-                            ? Theme.of(context).colorScheme.surfaceVariant
-                            : Theme.of(context).colorScheme.secondaryContainer,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: IconButton(
-                        onPressed: chatProvider.messages.isEmpty ? null : _downloadConversationAsCSV,
-                        icon: const Icon(Icons.download),
-                        iconSize: 16,
-                        padding: EdgeInsets.zero,
-                        color: chatProvider.messages.isEmpty
-                            ? Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.4)
-                            : Theme.of(context).colorScheme.onSecondaryContainer,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Submit button
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: IconButton(
-                        onPressed: _sendMessage,
-                        icon: const Icon(Icons.arrow_upward),
-                        iconSize: 16,
-                        padding: EdgeInsets.zero,
-                        color: Theme.of(context).colorScheme.onPrimary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              borderRadius: BorderRadius.circular(16),
             ),
-            maxLines: null,
-            textInputAction: TextInputAction.send,
-            onSubmitted: (_) => _sendMessage(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Text input area
+                TextField(
+                  controller: _messageController,
+                  decoration: InputDecoration(
+                    hintText: _selectedMode == 'agent'
+                        ? 'Share your website and I\'ll guide you through SEO strategy...'
+                        : 'Let\'s talk about SEO for your website...',
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  ),
+                  maxLines: null,
+                  textInputAction: TextInputAction.send,
+                  onSubmitted: (_) => _sendMessage(),
+                ),
+                
+                // Bottom toolbar with mode selector and buttons
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      top: BorderSide(
+                        color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      // Mode selector dropdown
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: DropdownButton<String>(
+                          value: _selectedMode,
+                          underline: const SizedBox(),
+                          isDense: true,
+                          icon: Icon(
+                            Icons.keyboard_arrow_down,
+                            size: 14,
+                            color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.5),
+                          ),
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
+                            fontSize: 12,
+                          ),
+                          items: [
+                            DropdownMenuItem(
+                              value: 'ask',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.chat_bubble_outline,
+                                    size: 12,
+                                    color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  const Text('Ask'),
+                                ],
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: 'agent',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.auto_awesome,
+                                    size: 12,
+                                    color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  const Text('Agent'),
+                                ],
+                              ),
+                            ),
+                          ],
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedMode = value;
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                      const Spacer(),
+                      // Download CSV button
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: chatProvider.messages.isEmpty
+                              ? Theme.of(context).colorScheme.surfaceVariant
+                              : Theme.of(context).colorScheme.secondaryContainer,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: IconButton(
+                          onPressed: chatProvider.messages.isEmpty ? null : _downloadConversationAsCSV,
+                          icon: const Icon(Icons.download),
+                          iconSize: 16,
+                          padding: EdgeInsets.zero,
+                          color: chatProvider.messages.isEmpty
+                              ? Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.4)
+                              : Theme.of(context).colorScheme.onSecondaryContainer,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Submit/Stop button
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: chatProvider.isLoading
+                              ? Theme.of(context).colorScheme.error
+                              : Theme.of(context).colorScheme.primary,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: IconButton(
+                          onPressed: _sendMessage,
+                          icon: Icon(
+                            chatProvider.isLoading ? Icons.stop : Icons.arrow_upward,
+                          ),
+                          iconSize: 16,
+                          padding: EdgeInsets.zero,
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

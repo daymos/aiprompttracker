@@ -20,6 +20,7 @@ llm_service = LLMService()
 class ChatRequest(BaseModel):
     message: str
     conversation_id: Optional[str] = None
+    mode: Optional[str] = "ask"  # "ask" or "agent"
 
 class ChatResponse(BaseModel):
     message: str
@@ -104,7 +105,8 @@ async def send_message(
     assistant_response = await llm_service.generate_keyword_advice(
         user_message=request.message,
         keyword_data=keyword_data,
-        conversation_history=conversation_history
+        conversation_history=conversation_history,
+        mode=request.mode or "ask"
     )
     
     # Save assistant message

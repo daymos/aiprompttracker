@@ -23,13 +23,14 @@ class ApiService {
     return headers;
   }
   
-  Future<Map<String, dynamic>> sendMessage(String message, String? conversationId) async {
+  Future<Map<String, dynamic>> sendMessage(String message, String? conversationId, {String mode = 'ask'}) async {
     final response = await http.post(
       Uri.parse('$baseUrl/chat/message'),
       headers: _headers(),
       body: jsonEncode({
         'message': message,
         'conversation_id': conversationId,
+        'mode': mode,
       }),
     );
     
