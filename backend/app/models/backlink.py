@@ -44,6 +44,7 @@ class BacklinkSubmission(Base):
     submission_url = Column(String)  # Direct link to submit to this directory
     submitted_at = Column(DateTime)
     indexed_at = Column(DateTime)
+    notes = Column(Text, nullable=True)  # Track approval emails, rejection reasons, etc.
     
     # Relationships
     campaign = relationship("BacklinkCampaign", back_populates="submissions")

@@ -1429,7 +1429,7 @@ class _ChatScreenState extends State<ChatScreen> {
         
         return Column(
           children: [
-            // Status summary
+            // Status summary and verify button
             Container(
               padding: const EdgeInsets.all(16),
               margin: const EdgeInsets.all(16),
@@ -1437,12 +1437,47 @@ class _ChatScreenState extends State<ChatScreen> {
                 color: Theme.of(context).colorScheme.surfaceVariant,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
+              child: Column(
                 children: [
-                  _buildStatusChip('Submitted', statusBreakdown?['submitted'] ?? 0, Colors.green),
-                  _buildStatusChip('Pending', statusBreakdown?['pending'] ?? 0, Colors.orange),
-                  _buildStatusChip('Indexed', statusBreakdown?['indexed'] ?? 0, Colors.blue),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildStatusChip('Submitted', statusBreakdown?['submitted'] ?? 0, Colors.green),
+                      _buildStatusChip('Pending', statusBreakdown?['pending'] ?? 0, Colors.orange),
+                      _buildStatusChip('Indexed', statusBreakdown?['indexed'] ?? 0, Colors.blue),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      try {
+                        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                        final result = await authProvider.apiService.verifyAllBacklinks(project.id);
+                        if (mounted) {
+                          final found = result['found'] ?? 0;
+                          final total = result['total'] ?? 0;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Verified $total submissions: $found backlinks found'),
+                              duration: const Duration(seconds: 3),
+                            ),
+                          );
+                          setState(() {}); // Refresh to show updated statuses
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Error: $e')),
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.check_circle_outline),
+                    label: const Text('Verify All Backlinks'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue[700],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1453,13 +1488,15 @@ class _ChatScreenState extends State<ChatScreen> {
                 itemCount: submissions.length,
                 itemBuilder: (context, index) {
                   final submission = submissions[index];
+                  final submissionId = submission['id'] as String;
                   final directory = submission['directory'] as Map<String, dynamic>?;
                   final status = submission['status'] as String? ?? 'pending';
                   final submissionUrl = submission['submission_url'] as String?;
+                  final notes = submission['notes'] as String?;
                   
                   return Card(
                     margin: const EdgeInsets.only(bottom: 12),
-                    child: ListTile(
+                    child: ExpansionTile(
                       leading: _buildStatusIcon(status),
                       title: Text(
                         directory?['name'] ?? 'Unknown',
@@ -1473,15 +1510,179 @@ class _ChatScreenState extends State<ChatScreen> {
                             Text('Tier: ${directory!['tier']} • DA: ${directory['domain_authority'] ?? 'N/A'}'),
                         ],
                       ),
-                      trailing: submissionUrl != null
-                          ? IconButton(
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (submissionUrl != null)
+                            IconButton(
                               icon: const Icon(Icons.open_in_new),
                               onPressed: () {
-                                // TODO: Open URL
+                                // Open URL in browser
+                                // In real app: url_launcher package
                                 print('Open: $submissionUrl');
                               },
-                            )
-                          : null,
+                            ),
+                          const Icon(Icons.expand_more),
+                        ],
+                      ),
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Status dropdown
+                              Row(
+                                children: [
+                                  const Text('Status: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  const SizedBox(width: 8),
+                                  DropdownButton<String>(
+                                    value: status,
+                                    items: const [
+                                      DropdownMenuItem(value: 'pending', child: Text('Pending')),
+                                      DropdownMenuItem(value: 'submitted', child: Text('Submitted')),
+                                      DropdownMenuItem(value: 'approved', child: Text('Approved')),
+                                      DropdownMenuItem(value: 'rejected', child: Text('Rejected')),
+                                      DropdownMenuItem(value: 'indexed', child: Text('Indexed')),
+                                    ],
+                                    onChanged: (newStatus) async {
+                                      if (newStatus != null && newStatus != status) {
+                                        try {
+                                          final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                                          await authProvider.apiService.updateBacklinkSubmission(submissionId, newStatus);
+                                          if (mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text('Status updated to $newStatus')),
+                                            );
+                                            // Refresh the backlinks tab
+                                            setState(() {});
+                                          }
+                                        } catch (e) {
+                                          if (mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text('Error: $e')),
+                                            );
+                                          }
+                                        }
+                                      }
+                                    },
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              // Notes section
+                              if (notes != null && notes.isNotEmpty) ...[
+                                const Text('Notes:', style: TextStyle(fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 4),
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[800],
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(notes, style: const TextStyle(fontSize: 12)),
+                                ),
+                                const SizedBox(height: 8),
+                              ],
+                              // Action buttons
+                              Row(
+                                children: [
+                                  // Verify button
+                                  TextButton.icon(
+                                    onPressed: () async {
+                                      try {
+                                        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                                        final result = await authProvider.apiService.verifyBacklinkSubmission(submissionId);
+                                        if (mounted) {
+                                          final found = result['verification']?['found'] ?? false;
+                                          final newStatus = result['new_status'] ?? status;
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                found 
+                                                  ? 'Backlink verified! Status updated to $newStatus'
+                                                  : 'Backlink not found on directory page yet'
+                                              ),
+                                              duration: const Duration(seconds: 3),
+                                            ),
+                                          );
+                                          setState(() {}); // Refresh
+                                        }
+                                      } catch (e) {
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text('Error: $e')),
+                                          );
+                                        }
+                                      }
+                                    },
+                                    icon: const Icon(Icons.check_circle_outline),
+                                    label: const Text('Verify'),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.blue,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  // Add note button
+                                  TextButton.icon(
+                                    onPressed: () async {
+                                      final controller = TextEditingController();
+                                      final newNote = await showDialog<String>(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title: const Text('Add Note'),
+                                          content: TextField(
+                                            controller: controller,
+                                            decoration: const InputDecoration(
+                                              hintText: 'e.g., Got approval email, backlink is live',
+                                            ),
+                                            maxLines: 3,
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(context),
+                                              child: const Text('Cancel'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(context, controller.text),
+                                              child: const Text('Add'),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                      
+                                      if (newNote != null && newNote.isNotEmpty) {
+                                        try {
+                                          final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                                          await authProvider.apiService.updateBacklinkSubmission(
+                                            submissionId,
+                                            status,
+                                            notes: newNote,
+                                          );
+                                          if (mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(content: Text('Note added')),
+                                            );
+                                            setState(() {});
+                                          }
+                                        } catch (e) {
+                                          if (mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text('Error: $e')),
+                                            );
+                                          }
+                                        }
+                                      }
+                                    },
+                                    icon: const Icon(Icons.add_comment),
+                                    label: const Text('Add Note'),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   );
                 },

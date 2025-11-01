@@ -210,5 +210,46 @@ class ApiService {
       throw Exception('Failed to delete project');
     }
   }
+
+  Future<void> updateBacklinkSubmission(String submissionId, String status, {String? notes}) async {
+    final response = await http.patch(
+      Uri.parse('$baseUrl/backlinks/submission/$submissionId'),
+      headers: _headers(),
+      body: jsonEncode({
+        'status': status,
+        if (notes != null && notes.isNotEmpty) 'notes': notes,
+      }),
+    );
+    
+    if (response.statusCode != 200) {
+      throw Exception('Failed to update submission');
+    }
+  }
+
+  Future<Map<String, dynamic>> verifyBacklinkSubmission(String submissionId) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/backlinks/submission/$submissionId/verify'),
+      headers: _headers(),
+    );
+    
+    if (response.statusCode != 200) {
+      throw Exception('Failed to verify submission');
+    }
+    
+    return json.decode(response.body);
+  }
+
+  Future<Map<String, dynamic>> verifyAllBacklinks(String projectId) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/backlinks/project/$projectId/verify-all'),
+      headers: _headers(),
+    );
+    
+    if (response.statusCode != 200) {
+      throw Exception('Failed to verify backlinks');
+    }
+    
+    return json.decode(response.body);
+  }
 }
 

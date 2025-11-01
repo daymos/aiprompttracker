@@ -357,7 +357,8 @@ class BacklinkService:
                 "status": sub.status,
                 "submission_url": sub.submission_url,
                 "submitted_at": sub.submitted_at,
-                "indexed_at": sub.indexed_at
+                "indexed_at": sub.indexed_at,
+                "notes": sub.notes
             })
         
         return results
