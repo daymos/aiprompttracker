@@ -16,7 +16,6 @@ class ChatScreen extends StatefulWidget {
 
 enum ViewState { chat, conversations, projects }
 enum ProjectViewState { list, detail }
-enum ProjectDetailTab { keywords, backlinks }
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
@@ -26,7 +25,6 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _shouldCancelRequest = false;
   ViewState _currentView = ViewState.chat;
   ProjectViewState _projectViewState = ProjectViewState.list;
-  ProjectDetailTab _selectedProjectTab = ProjectDetailTab.keywords;
 
   @override
   void initState() {
@@ -532,6 +530,92 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                     ),
                   ],
+                ),
+              ),
+              
+              // Suggestion buttons
+              const SizedBox(height: 12),
+              _buildSuggestionButtons(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildSuggestionButtons() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _buildSuggestionButton(
+          icon: Icons.search,
+          label: 'Keywords',
+          message: 'I want to research keywords',
+        ),
+        const SizedBox(width: 8),
+        _buildSuggestionButton(
+          icon: Icons.bar_chart,
+          label: 'SERP',
+          message: 'Analyze SERP results for a keyword',
+        ),
+        const SizedBox(width: 8),
+        _buildSuggestionButton(
+          icon: Icons.trending_up,
+          label: 'Rankings',
+          message: 'Check my rankings',
+        ),
+        const SizedBox(width: 8),
+        _buildSuggestionButton(
+          icon: Icons.language,
+          label: 'Website',
+          message: 'Analyze my website',
+        ),
+        // DISABLED: Backlinks button (waiting for better API provider)
+        // const SizedBox(width: 8),
+        // _buildSuggestionButton(
+        //   icon: Icons.link,
+        //   label: 'Backlinks',
+        //   message: 'Show me backlinks for my website',
+        // ),
+      ],
+    );
+  }
+  
+  Widget _buildSuggestionButton({
+    required IconData icon,
+    required String label,
+    required String message,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          _messageController.text = message;
+          _sendMessage();
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 14,
+                color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.6),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
+                  fontSize: 13,
                 ),
               ),
             ],
@@ -1120,7 +1204,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                   builder: (context) => AlertDialog(
                                     title: const Text('Delete Project'),
                                     content: Text(
-                                      'Are you sure you want to delete "${project.name}"?\n\nThis will permanently delete:\n• All tracked keywords\n• Ranking history\n• Backlink submissions\n\nThis action cannot be undone.',
+                                      'Are you sure you want to delete "${project.name}"?\n\nThis will permanently delete:\n• All tracked keywords\n• Ranking history\n\nThis action cannot be undone.',
                                     ),
                                     actions: [
                                       TextButton(
@@ -1168,47 +1252,21 @@ class _ChatScreenState extends State<ChatScreen> {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  // Tabs
-                  Row(
-                    children: [
-                      TextButton(
-                        onPressed: () {
-                          setState(() {
-                            _selectedProjectTab = ProjectDetailTab.keywords;
-                          });
-                        },
-                        style: TextButton.styleFrom(
-                          backgroundColor: _selectedProjectTab == ProjectDetailTab.keywords
-                              ? Theme.of(context).colorScheme.primaryContainer
-                              : null,
-                        ),
-                        child: Text('Keywords (${keywords.length})'),
-                      ),
-                      const SizedBox(width: 8),
-                      TextButton(
-                        onPressed: () {
-                          setState(() {
-                            _selectedProjectTab = ProjectDetailTab.backlinks;
-                          });
-                        },
-                        style: TextButton.styleFrom(
-                          backgroundColor: _selectedProjectTab == ProjectDetailTab.backlinks
-                              ? Theme.of(context).colorScheme.primaryContainer
-                              : null,
-                        ),
-                        child: const Text('Backlinks'),
-                      ),
-                    ],
+                  // Keywords title
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      'Keywords (${keywords.length})',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
                   ),
                 ],
               ),
             ),
             
-            // Content based on selected tab
+            // Keywords content
             Expanded(
-              child: _selectedProjectTab == ProjectDetailTab.keywords
-                  ? _buildKeywordsTab(projectProvider, keywords)
-                  : _buildBacklinksTab(project),
+              child: _buildKeywordsTab(projectProvider, keywords),
             ),
           ],
         ),

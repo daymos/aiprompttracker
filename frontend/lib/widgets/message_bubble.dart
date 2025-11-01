@@ -52,6 +52,16 @@ class _MessageBubbleState extends State<MessageBubble> {
       return;
     }
     
+    // Don't animate historical messages (older than 5 seconds)
+    final messageAge = DateTime.now().difference(widget.message.createdAt);
+    if (messageAge.inSeconds > 5) {
+      setState(() {
+        _displayedText = widget.message.content;
+        _isAnimating = false;
+      });
+      return;
+    }
+    
     // Mark this message as animated
     _animatedMessages.add(widget.message.id);
     
@@ -206,41 +216,34 @@ class _MessageBubbleState extends State<MessageBubble> {
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Avatar on the left for both user and AI
-          CircleAvatar(
-            backgroundColor: isUser ? Colors.blue : Colors.deepPurple,
-            radius: 18,
-            child: isUser
-                ? Text(
-                    (authProvider.name?.substring(0, 1) ?? authProvider.email?.substring(0, 1) ?? 'U').toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  )
-                : const Text(
-                    'K',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-          ),
-          const SizedBox(width: 12),
+          // Avatar on the left ONLY for user messages (Claude style)
+          if (isUser) ...[
+            CircleAvatar(
+              backgroundColor: Colors.grey[800],
+              radius: 18,
+              child: Text(
+                (authProvider.name?.substring(0, 1) ?? authProvider.email?.substring(0, 1) ?? 'U').toUpperCase(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+          ],
           Flexible(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: isUser
-                        ? Colors.grey[800]
-                        : Theme.of(context).cardColor,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  padding: isUser ? const EdgeInsets.all(12) : EdgeInsets.zero,
+                  decoration: isUser
+                      ? BoxDecoration(
+                          color: Colors.grey[800],
+                          borderRadius: BorderRadius.circular(12),
+                        )
+                      : null,
                   child: isUser
                       ? Text(
                           widget.message.content,

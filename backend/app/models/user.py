@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, Boolean
+from sqlalchemy import Column, String, DateTime, Boolean, Integer
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from ..database import Base
@@ -11,6 +11,12 @@ class User(Base):
     name = Column(String, nullable=True)
     provider = Column(String, nullable=False)  # 'google' or 'apple'
     is_subscribed = Column(Boolean, default=False)
+    
+    # Backlink usage tracking (resets monthly)
+    backlink_rows_used = Column(Integer, default=0)
+    backlink_rows_limit = Column(Integer, default=100)  # Free beta tier
+    backlink_usage_reset_at = Column(DateTime(timezone=True), server_default=func.now())
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     

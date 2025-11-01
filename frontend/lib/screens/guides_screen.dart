@@ -60,12 +60,13 @@ class GuidesScreen extends StatelessWidget {
                 'Create projects to track your website\'s rankings for specific keywords. Monitor your position on Google and get updates when rankings change.',
               ),
               
-              _buildFeatureSection(
-                context,
-                Icons.link,
-                'Backlink Building',
-                'Submit your project to 100+ curated directories with a single chat command. Get submission URLs for Product Hunt, AI tool directories, SaaS lists, and startup directories.',
-              ),
+              // DISABLED: Backlink Analysis (waiting for better API provider)
+              // _buildFeatureSection(
+              //   context,
+              //   Icons.link,
+              //   'Backlink Analysis',
+              //   'Analyze backlinks for any domain using Moz Links API. See who links to you, compare your backlink profile to competitors, get Domain Authority scores, and discover link gap opportunities. 100 backlink rows/month for free beta users.',
+              // ),
               
               _buildFeatureSection(
                 context,

@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 import uuid
 import re
+import logging
 
 from ..database import get_db
 from ..models.user import User
@@ -12,7 +13,7 @@ from ..models.project import Project, TrackedKeyword
 from ..services.keyword_service import KeywordService
 from ..services.llm_service import LLMService
 from ..services.rank_checker import RankCheckerService
-from ..services.backlink_service import BacklinkService
+from ..services.moz_service import MozBacklinkService
 from .auth import get_current_user
 
 router = APIRouter(prefix="/chat", tags=["chat"])
@@ -20,7 +21,7 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 keyword_service = KeywordService()
 llm_service = LLMService()
 rank_checker = RankCheckerService()
-backlink_service = BacklinkService()
+moz_service = MozBacklinkService()
 
 class ChatRequest(BaseModel):
     message: str
@@ -87,10 +88,18 @@ async def send_message(
         Message.conversation_id == conversation.id
     ).order_by(Message.created_at).all()
     
-    conversation_history = [
-        {"role": msg.role, "content": msg.content}
-        for msg in messages[:-1]  # Exclude the message we just added
-    ]
+    # Build conversation history with reasoning included for assistant messages
+    conversation_history = []
+    for msg in messages[:-1]:  # Exclude the message we just added
+        content = msg.content
+        
+        # For assistant messages, prepend reasoning if available
+        if msg.role == "assistant" and msg.message_metadata and msg.message_metadata.get("reasoning"):
+            reasoning = msg.message_metadata["reasoning"]
+            # Include reasoning in context for LLM (but was hidden from user)
+            content = f"<reasoning>{reasoning}</reasoning>\n\n{content}"
+        
+        conversation_history.append({"role": msg.role, "content": content})
     
     # Debug logging
     import logging
@@ -126,85 +135,64 @@ async def send_message(
     else:
         logger.info("LLM determined no specific keyword research needed")
     
+    # DISABLED: Backlink analysis (Moz API - need better provider)
+    # Use LLM to detect backlink intent and extract domain(s)
+    backlink_data = None
+    
+    # TODO: Re-enable when we have a better backlink API provider
+    if False:  # Disabled for now
+        backlink_intent = await llm_service.extract_backlink_intent(
+            user_message=request.message,
+            conversation_history=conversation_history
+        )
+    else:
+        backlink_intent = None
+    
+    if backlink_intent and False:  # Double-check it's disabled
+        logger.info(f"LLM detected backlink intent: {backlink_intent}")
+        
+        # Check user's backlink quota
+        if user.backlink_rows_used >= user.backlink_rows_limit:
+            logger.warning(f"User {user.id} has exceeded backlink quota")
+            backlink_data = {
+                "error": f"You've reached your monthly limit of {user.backlink_rows_limit} backlink rows. Resets on: {user.backlink_usage_reset_at.strftime('%Y-%m-%d')}"
+            }
+        else:
+            action = backlink_intent.get("action")
+            
+            if action == "compare":
+                # Comparison request
+                domain1 = backlink_intent.get("domain1")
+                domain2 = backlink_intent.get("domain2")
+                if domain1 and domain2:
+                    logger.info(f"Comparing backlinks: {domain1} vs {domain2}")
+                    backlink_data = await moz_service.compare_backlinks(domain1, domain2, limit_per_domain=25)
+                else:
+                    logger.warning("Comparison requested but missing domains")
+                    backlink_data = {"needs_domain": True}
+                    
+            elif action == "analyze":
+                # Single domain analysis
+                domain = backlink_intent.get("domain")
+                if domain:
+                    logger.info(f"Analyzing backlinks for: {domain}")
+                    backlink_data = await moz_service.get_backlinks(domain, limit=50)
+                else:
+                    logger.warning("Analysis requested but no domain provided")
+                    backlink_data = {"needs_domain": True}
+            
+            # Update usage tracking
+            if backlink_data and not backlink_data.get("error") and not backlink_data.get("needs_domain"):
+                rows_used = backlink_data.get("rows_used", 0)
+                user.backlink_rows_used += rows_used
+                db.commit()
+                logger.info(f"User {user.id} used {rows_used} backlink rows (total: {user.backlink_rows_used}/{user.backlink_rows_limit})")
+    else:
+        logger.info("LLM determined no backlink analysis needed")
+    
     # Get user's projects and tracked keywords for context
     user_projects = db.query(Project).filter(Project.user_id == user.id).all()
     
-    # Check if user wants backlink submissions
-    backlink_campaign_data = None
-    message_lower = request.message.lower()
-    wants_backlinks = any(phrase in message_lower for phrase in [
-        'submit', 'backlink', 'directory', 'directories', 'listing', 'list my',
-        'get backlinks', 'build backlinks'
-    ])
-    
-    if wants_backlinks:
-        logger.info("User requested backlink submission")
-        
-        # Determine category filter
-        category_filter = None
-        if 'ai' in message_lower or 'artificial intelligence' in message_lower:
-            category_filter = 'AI'
-        elif 'saas' in message_lower:
-            category_filter = 'SaaS'
-        elif 'startup' in message_lower:
-            category_filter = 'Startup'
-        
-        # Try to find which project they're referring to
-        target_project = None
-        if user_projects:
-            # For now, use first project or try to match URL in message
-            for project in user_projects:
-                if project.target_url in request.message:
-                    target_project = project
-                    break
-            
-            if not target_project:
-                # Use first project
-                target_project = user_projects[0]
-        
-        if target_project:
-            # Seed directories if not already done
-            backlink_service.seed_directories(db)
-            
-            # Build product description from conversation history + project info
-            product_description = f"{target_project.name or ''} {target_project.target_url}"
-            
-            # Extract description from recent conversation messages
-            if conversation_history:
-                for msg in conversation_history[-3:]:  # Last 3 messages
-                    if msg.get('role') == 'user':
-                        product_description += " " + msg.get('content', '')
-            
-            # Create campaign with smart recommendations
-            try:
-                campaign = await backlink_service.create_submission_campaign(
-                    db=db,
-                    project_id=target_project.id,
-                    user_id=user.id,
-                    category_filter=category_filter,
-                    project_description=product_description
-                )
-                
-                # Get submission details for this campaign
-                submissions = backlink_service.get_project_submissions(db, target_project.id, campaign.id)
-                
-                # Count submissions by tier
-                manual_count = sum(1 for s in submissions if s['directory'].get('tier') == 'top')
-                auto_count = len(submissions) - manual_count
-                
-                backlink_campaign_data = {
-                    'campaign_id': campaign.id,
-                    'project_name': target_project.name or target_project.target_url,
-                    'total_directories': campaign.total_directories,
-                    'category_filter': category_filter,
-                    'submissions': submissions  # Pass all submissions
-                }
-                
-                logger.info(f"Created backlink campaign {campaign.id} with {campaign.total_directories} directories ({auto_count} auto, {manual_count} manual)")
-            except Exception as e:
-                logger.error(f"Error creating backlink campaign: {e}")
-        else:
-            logger.info("No project found for backlink submission")
     user_projects_data = []
     
     for project in user_projects:
@@ -228,14 +216,22 @@ async def send_message(
         })
     
     # Generate response with LLM
-    assistant_response = await llm_service.generate_keyword_advice(
+    # Generate response (returns tuple: content, reasoning)
+    assistant_response, reasoning = await llm_service.generate_keyword_advice(
         user_message=request.message,
         keyword_data=keyword_data,
+        backlink_data=backlink_data,
         conversation_history=conversation_history,
         mode=request.mode or "ask",
-        user_projects=user_projects_data if user_projects_data else None,
-        backlink_data=backlink_campaign_data
+        user_projects=user_projects_data if user_projects_data else None
     )
+    
+    # Build metadata with keyword data and reasoning
+    metadata = {}
+    if keyword_data:
+        metadata["keyword_data"] = keyword_data
+    if reasoning:
+        metadata["reasoning"] = reasoning
     
     # Save assistant message
     assistant_message = Message(
@@ -243,7 +239,7 @@ async def send_message(
         conversation_id=conversation.id,
         role="assistant",
         content=assistant_response,
-        message_metadata={"keyword_data": keyword_data} if keyword_data else None
+        message_metadata=metadata if metadata else None
     )
     db.add(assistant_message)
     db.commit()

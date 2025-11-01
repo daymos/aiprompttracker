@@ -40,21 +40,24 @@ class LLMService:
 
 Guidelines:
 1. If user requests keyword research and provides a topic/niche/website → Extract and return that topic
-2. If user mentions their website/product in the conversation history → Use that as the topic
-3. If user says "keyword analysis for my site" → Look at conversation history for their site/product
-4. Only return NULL if user is asking about something completely unrelated to keyword research
+2. If user says "yes", "all of them", "continue", "go ahead" in response to a keyword research offer → Extract the keywords that were offered
+3. If assistant previously suggested keywords and user wants data on them → Return those exact keywords as a comma-separated list
+4. If user mentions their website/product in the conversation history → Use that as the topic
+5. Only return NULL if user is asking about something completely unrelated to keyword research
 
 Your response MUST be ONLY:
 - The specific keyword/topic to research (e.g., "AI chatbots", "SEO chatbot", "keywords.chat")
+- For multiple keywords: return them comma-separated (e.g., "AI voice chatbot mobile, multilingual AI assistant")
 - OR the word "NULL" if completely unrelated to keyword research
 
-Be proactive. Infer the topic from context if the user has mentioned their website/product.
-Do not explain or add any other text. Just the keyword or NULL."""
+CRITICAL: If assistant offered to research keywords and user said "yes"/"all of them" → extract those keywords from the conversation history.
+
+Do not explain or add any other text. Just the keyword(s) or NULL."""
 
         messages = [{"role": "system", "content": system_prompt}]
         
         if conversation_history:
-            messages.extend(conversation_history[-3:])  # Last 3 for context
+            messages.extend(conversation_history[-10:])  # Last 10 for full context
         
         messages.append({"role": "user", "content": user_message})
         
@@ -77,15 +80,76 @@ Do not explain or add any other text. Just the keyword or NULL."""
             logger.error(f"Error extracting keyword intent: {e}")
             return None
     
+    async def extract_backlink_intent(
+        self,
+        user_message: str,
+        conversation_history: List[Dict[str, str]] = None
+    ) -> Optional[Dict[str, Any]]:
+        """Use LLM to determine if user wants backlink analysis and extract domain(s)"""
+        
+        system_prompt = """You are a backlink analysis intent detector. Determine if the user wants backlink analysis and extract domain(s).
+
+Guidelines:
+1. If user requests backlinks/links/DA/PA for a domain → Extract that domain
+2. If user says "yes", "go ahead", "sure" after being asked for a domain → Extract domain from the conversation
+3. If user provides a domain after being asked which domain to analyze → Extract that domain
+4. If user wants to compare backlinks between two domains → Extract both domains
+5. Only return NULL if completely unrelated to backlink analysis
+
+Your response MUST be valid JSON in one of these formats:
+
+For single domain analysis:
+{"action": "analyze", "domain": "example.com"}
+
+For comparison:
+{"action": "compare", "domain1": "mysite.com", "domain2": "competitor.com"}
+
+If no backlink intent:
+NULL
+
+CRITICAL: Extract domain without http://, https://, or www. prefixes. Just the domain (e.g., "outloud.tech", "keywords.chat")"""
+
+        messages = [{"role": "system", "content": system_prompt}]
+        
+        if conversation_history:
+            messages.extend(conversation_history[-10:])  # Last 10 for context
+        
+        messages.append({"role": "user", "content": user_message})
+        
+        try:
+            response = await self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                temperature=0.1,
+                max_tokens=100
+            )
+            
+            result = response.choices[0].message.content.strip()
+            
+            if result.upper() == "NULL" or not result:
+                return None
+            
+            # Parse JSON response
+            import json
+            intent = json.loads(result)
+            return intent
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"Error parsing backlink intent JSON: {e}, response: {result}")
+            return None
+        except Exception as e:
+            logger.error(f"Error extracting backlink intent: {e}")
+            return None
+    
     async def generate_keyword_advice(
         self, 
         user_message: str,
         keyword_data: List[Dict[str, Any]] = None,
+        backlink_data: Dict[str, Any] = None,
         conversation_history: List[Dict[str, str]] = None,
         mode: str = "ask",
-        user_projects: List[Dict[str, Any]] = None,
-        backlink_data: Optional[Dict[str, Any]] = None
-    ) -> str:
+        user_projects: List[Dict[str, Any]] = None
+    ) -> tuple[str, Optional[str]]:
         """Generate conversational keyword research advice"""
         
         # Select system prompt based on mode
@@ -120,7 +184,7 @@ Do not explain or add any other text. Just the keyword or NULL."""
                 logger.info(f"Successfully analyzed {url}: {pages_analyzed} pages, sitemap: {sitemap_found}")
         
         # Build user content with all available data
-        user_content = self._build_user_content(user_message, website_data, keyword_data, user_projects, backlink_data)
+        user_content = self._build_user_content(user_message, website_data, keyword_data, backlink_data, user_projects)
         
         messages.append({"role": "user", "content": user_content})
         
@@ -134,11 +198,36 @@ Do not explain or add any other text. Just the keyword or NULL."""
                 max_tokens=1000
             )
             
-            return response.choices[0].message.content
+            full_response = response.choices[0].message.content
+            
+            # Extract reasoning and content
+            reasoning, content = self._extract_reasoning(full_response)
+            
+            # Return tuple: (user_facing_content, reasoning)
+            return (content, reasoning)
             
         except Exception as e:
             logger.error(f"Error generating LLM response: {e}")
-            return "Sorry, I encountered an error. Please try again."
+            return ("Sorry, I encountered an error. Please try again.", None)
+    
+    def _extract_reasoning(self, full_response: str) -> tuple[str, Optional[str]]:
+        """Extract reasoning from response and return (reasoning, content)"""
+        import re
+        
+        # Look for <reasoning>...</reasoning> tags
+        reasoning_pattern = r'<reasoning>(.*?)</reasoning>'
+        match = re.search(reasoning_pattern, full_response, re.DOTALL | re.IGNORECASE)
+        
+        if match:
+            reasoning = match.group(1).strip()
+            # Remove the reasoning section from the content
+            content = re.sub(reasoning_pattern, '', full_response, flags=re.DOTALL | re.IGNORECASE).strip()
+            logger.info(f"Extracted reasoning ({len(reasoning)} chars) from response")
+            return (reasoning, content)
+        else:
+            # No reasoning found, return full response as content
+            logger.warning("No reasoning section found in LLM response")
+            return (None, full_response)
     
     def _get_ask_mode_prompt(self) -> str:
         """System prompt for ASK mode - user-driven commands"""
@@ -165,22 +254,32 @@ After the introduction, respond naturally to user commands.
    - SERP analysis for top keywords: Who's ranking? Major brands or weak sites?
    - Shows actual ranking difficulty based on current top 10 results
 
-3. **Backlink Building** (two-tier system)
-   - AUTO-SUBMITS to 50+ automated directories for fast indexation (72hr goal)
-   - Returns top 5-8 premium directories for manual submission (Product Hunt, G2, Capterra)
-   - Strategy: Volume first (get indexed), then authority (build rankings)
-   - Smart filtering based on product type (AI, SaaS, Startup, etc.)
+# DISABLED: Backlink analysis (waiting for better API provider)
+# 3. **Backlink Analysis** (currently unavailable)
+#    - Feature temporarily disabled while we find a better data provider
 
-4. **Competitor Analysis** (automatic with URL)
+3. **Competitor Analysis** (automatic with URL)
    - Full site crawl of competitor sites
    - Identify their keyword focus
    - Analyze content strategy
 
-5. **User Project Context** (always available)
+4. **User Project Context** (always available)
    - Access to user's existing projects and tracked keywords
    - See what domains they're monitoring
    - View keywords they're already tracking with volumes and competition
    - Provide contextual advice based on their existing work
+
+**RESPONSE FORMAT:**
+
+Start EVERY response with your internal reasoning in a <reasoning> tag:
+<reasoning>
+- What is the user asking for?
+- What data/context do I have available?
+- What action should I take?
+- How should I present the information?
+</reasoning>
+
+Then provide your response to the user (the reasoning tag will be hidden from them automatically).
 
 **CRITICAL RULES:**
 
@@ -250,6 +349,18 @@ WITHOUT DATA:
 **YOUR ROLE:**
 Guide the user through a complete SEO keyword strategy, taking initiative and using all available tools.
 
+**RESPONSE FORMAT:**
+
+Start EVERY response with your internal reasoning in a <reasoning> tag:
+<reasoning>
+- Where are we in the workflow?
+- What data do I have?
+- What's the next logical step?
+- How should I guide the user forward?
+</reasoning>
+
+Then provide your response to the user (the reasoning tag will be hidden from them automatically).
+
 **AGENT WORKFLOW (follow these steps):**
 
 1. **WEBSITE ANALYSIS PHASE**
@@ -318,9 +429,9 @@ You're guiding a journey from "here's my website" to "here's your complete keywo
         self, 
         user_message: str, 
         website_data: Optional[Dict[str, Any]], 
-        keyword_data: Optional[List[Dict[str, Any]]], 
-        user_projects: Optional[List[Dict[str, Any]]] = None,
-        backlink_data: Optional[Dict[str, Any]] = None
+        keyword_data: Optional[List[Dict[str, Any]]],
+        backlink_data: Optional[Dict[str, Any]] = None,
+        user_projects: Optional[List[Dict[str, Any]]] = None
     ) -> str:
         """Build user content with all available data"""
         user_content = user_message
@@ -430,34 +541,54 @@ You're guiding a journey from "here's my website" to "here's your complete keywo
             
             user_content += f"\nDo NOT make up search volumes or competition levels. You can suggest keywords to research.\n"
         
-        # Add backlink campaign data if available
+        # Add backlink data if available
         if backlink_data:
-            logger.info(f"Adding backlink data to LLM context: {len(backlink_data.get('submissions', []))} submissions")
-            user_content += f"\n\n[BACKLINK CAMPAIGN RESULTS]\n"
-            user_content += f"Project: {backlink_data['project_name']}\n"
-            
-            # Split by tier
-            manual_dirs = [s for s in backlink_data['submissions'] if s['directory'].get('tier') == 'top']
-            auto_dirs = [s for s in backlink_data['submissions'] if s['directory'].get('tier') in ['mid', 'volume']]
-            
-            logger.info(f"Backlink breakdown: {len(auto_dirs)} automated, {len(manual_dirs)} manual")
-            
-            if auto_dirs:
-                user_content += f"\n✓ AUTO-SUBMITTED to {len(auto_dirs)} directories\n"
-                user_content += f"These submissions help with fast indexation (72hr crawl goal).\n"
-                user_content += f"Examples: {', '.join([d['directory']['name'] for d in auto_dirs[:3]])}\n"
-            
-            if manual_dirs:
-                user_content += f"\n⚠ MANUAL SUBMISSION REQUIRED - Top-tier directories:\n"
-                for sub in manual_dirs:
-                    dir_info = sub['directory']
-                    user_content += f"  • {dir_info['name']} - {dir_info['category']} (DA: {dir_info.get('domain_authority', 'N/A')})\n"
-                    user_content += f"    Submit: {sub['submission_url']}\n"
-                    if dir_info.get('notes'):
-                        user_content += f"    Note: {dir_info['notes']}\n"
-                user_content += f"\nThese are premium directories requiring human input (Product Hunt = launch process, G2 = vendor registration, etc.)\n"
-            
-            user_content += f"\nStrategy: Auto-submissions get you indexed fast. Manual top-tier submissions build authority.\n"
+            if backlink_data.get('error'):
+                user_content += f"\n\n[BACKLINK ANALYSIS ERROR]\n"
+                user_content += f"Error: {backlink_data['error']}\n"
+                user_content += f"Inform the user about the limitation and suggest they can try again later.\n"
+            elif backlink_data.get('needs_domain'):
+                user_content += f"\n\n[BACKLINK ANALYSIS REQUESTED]\n"
+                user_content += f"User wants backlink analysis but didn't specify a domain.\n"
+                user_content += f"Ask them which domain they want to analyze (e.g., 'keywords.chat' or 'example.com').\n"
+            elif backlink_data.get('link_gaps'):
+                # This is a comparison result
+                user_content += f"\n\n[BACKLINK COMPARISON COMPLETED]\n"
+                user_content += f"Comparing: {backlink_data.get('my_domain')} vs {backlink_data.get('competitor_domain')}\n"
+                user_content += f"Your backlinks: {backlink_data.get('my_backlinks_count', 0)}\n"
+                user_content += f"Competitor backlinks: {backlink_data.get('competitor_backlinks_count', 0)}\n"
+                user_content += f"Link gaps found: {backlink_data.get('gap_count', 0)}\n\n"
+                
+                if backlink_data.get('link_gaps'):
+                    user_content += f"Top opportunities (sites linking to competitor but not you):\n"
+                    for gap in backlink_data['link_gaps'][:10]:
+                        user_content += f"- {gap.get('source_url')} (DA: {gap.get('domain_authority', 'N/A')}, "
+                        user_content += f"PA: {gap.get('page_authority', 'N/A')}, Spam: {gap.get('spam_score', 'N/A')})\n"
+                        user_content += f"  Anchor: \"{gap.get('anchor_text', 'N/A')}\"\n"
+                
+                user_content += f"\nProvide actionable insights about:\n"
+                user_content += f"1. Which link opportunities are most valuable (high DA, low spam)\n"
+                user_content += f"2. How the user can approach these sites for links\n"
+                user_content += f"3. Overall backlink strategy recommendations\n"
+            else:
+                # Regular backlink analysis
+                user_content += f"\n\n[BACKLINK ANALYSIS COMPLETED]\n"
+                user_content += f"Domain: {backlink_data.get('target')}\n"
+                user_content += f"Total backlinks: {backlink_data.get('total_backlinks', 0)}\n"
+                user_content += f"Referring domains: {backlink_data.get('referring_domains', 0)}\n\n"
+                
+                if backlink_data.get('backlinks'):
+                    user_content += f"Top backlinks:\n"
+                    for link in backlink_data['backlinks'][:10]:
+                        user_content += f"- {link.get('source_url')} → {link.get('target_url')}\n"
+                        user_content += f"  DA: {link.get('domain_authority', 'N/A')}, PA: {link.get('page_authority', 'N/A')}, "
+                        user_content += f"Spam: {link.get('spam_score', 'N/A')}\n"
+                        user_content += f"  Anchor: \"{link.get('anchor_text', 'N/A')}\"\n"
+                
+                user_content += f"\nProvide insights about:\n"
+                user_content += f"1. Quality of backlink profile (DA/PA distribution, spam scores)\n"
+                user_content += f"2. Anchor text diversity\n"
+                user_content += f"3. Recommendations for improving backlink strategy\n"
         
         return user_content
 
