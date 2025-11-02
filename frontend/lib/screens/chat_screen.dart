@@ -240,14 +240,14 @@ class _ChatScreenState extends State<ChatScreen> {
               children: [
                 const SizedBox(height: 16),
                 // Logo
-                const Padding(
-                  padding: EdgeInsets.all(8.0),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
                   child: Text(
                     'K',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                 ),
@@ -262,9 +262,6 @@ class _ChatScreenState extends State<ChatScreen> {
                     });
                   },
                   icon: const Icon(Icons.add),
-                  style: IconButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                  ),
                   tooltip: 'New conversation',
                 ),
                 const SizedBox(height: 12),
@@ -384,10 +381,25 @@ class _ChatScreenState extends State<ChatScreen> {
               // Title
               Column(
                 children: [
-                  Text(
-                    'Welcome to Keywords.chat',
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+                  // Title with colored "Keywords"
+                  RichText(
+                    text: TextSpan(
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                      children: [
+                        const TextSpan(text: 'Welcome to '),
+                        // Colored "Keywords"
+                        TextSpan(
+                          text: 'Keywords',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: Theme.of(context).textTheme.headlineMedium?.fontSize,
+                          ),
+                        ),
+                        const TextSpan(text: '.chat'),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 4),

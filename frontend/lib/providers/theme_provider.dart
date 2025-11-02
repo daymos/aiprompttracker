@@ -8,7 +8,7 @@ enum AppTheme {
 }
 
 class ThemeProvider with ChangeNotifier {
-  AppTheme _currentTheme = AppTheme.deepPurple;
+  AppTheme _currentTheme = AppTheme.ayuMirage;
   
   AppTheme get currentTheme => _currentTheme;
   
@@ -58,6 +58,8 @@ class ThemeProvider with ChangeNotifier {
       colorScheme: ColorScheme.fromSeed(
         seedColor: Colors.deepPurple,
         brightness: Brightness.dark,
+      ).copyWith(
+        primary: const Color(0xFFBB86FC), // Vibrant purple (Material Design purple-200)
       ),
       useMaterial3: true,
     );

@@ -21,6 +21,21 @@ tasks:
       - echo "🎨 Building Flutter web app..."
       - flutter build web
 
+  dev-frontend:
+    desc: Start frontend dev server with hot reload on port 8080
+    dir: "{{.FRONTEND_DIR}}"
+    cmds:
+      - echo "🎨 Starting Flutter dev server on http://localhost:8080"
+      - echo "💡 Frontend hot-reloads on Dart changes (press 'r' to reload, 'R' to restart)"
+      - flutter run -d web-server --web-port 8080 --web-hostname 0.0.0.0
+
+  dev-watch:
+    desc: Auto-rebuild frontend on changes (requires watchexec)
+    dir: "{{.FRONTEND_DIR}}"
+    cmds:
+      - echo "👀 Watching for changes and auto-rebuilding..."
+      - watchexec -w lib -w pubspec.yaml -e dart,yaml -- flutter build web
+
   setup:
     desc: First time setup - install dependencies and setup database
     cmds:
