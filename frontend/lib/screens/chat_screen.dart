@@ -46,11 +46,17 @@ class _ChatScreenState extends State<ChatScreen> {
         projectProvider.loadAllProjects(authProvider.apiService);
         _hasLoadedProjects = true;
       }
+
+      // Listen for chat updates and auto-scroll
+      final chatProvider = context.read<ChatProvider>();
+      chatProvider.addListener(_scrollToBottom);
     });
   }
 
   @override
   void dispose() {
+    final chatProvider = context.read<ChatProvider>();
+    chatProvider.removeListener(_scrollToBottom);
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -134,13 +140,16 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _scrollToBottom() {
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-    }
+    // Scroll to bottom after a short delay to allow content to render
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   void _stopGeneration() {

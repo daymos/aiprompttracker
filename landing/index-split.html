@@ -839,9 +839,11 @@
             // Check if current slide has a video
             const currentVideo = slides[currentSlide].querySelector('video[data-video-slide]');
             if (currentVideo) {
-                // Speed up second video by 30%
-                if (currentSlide === 1) {
-                    currentVideo.playbackRate = 1.3;
+                // Speed up videos
+                if (currentSlide === 0) {
+                    currentVideo.playbackRate = 1.5; // First video 50% faster
+                } else if (currentSlide === 1) {
+                    currentVideo.playbackRate = 1.3; // Second video 30% faster
                 } else {
                     currentVideo.playbackRate = 1.0;
                 }
