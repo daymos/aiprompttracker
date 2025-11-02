@@ -59,7 +59,7 @@ jobs:
             --platform managed \
             --region $REGION \
             --allow-unauthenticated \
-            --set-env-vars="ENVIRONMENT=production" \
+            --set-env-vars="ENVIRONMENT=production,WAITLIST_MODE=true" \
             --set-secrets="DATABASE_URL=keywordschat-db-url:latest,DATAFORSEO_LOGIN=dataforseo-login:latest,DATAFORSEO_PASSWORD=dataforseo-password:latest,GROQ_API_KEY=groq-api-key:latest,JWT_SECRET_KEY=jwt-secret:latest,GOOGLE_CLIENT_ID=google-client-id:latest,GOOGLE_CLIENT_SECRET=google-client-secret:latest,RAPIDAPI_KEY=rapidapi-key:latest"
 
 

@@ -260,7 +260,7 @@
         .carousel-slides {
             position: relative;
             width: 100%;
-            min-height: 500px;
+            height: 500px;
             overflow: hidden;
             border-radius: 16px;
             background: #1f2430;
@@ -276,11 +276,13 @@
             height: 100%;
             opacity: 0;
             transition: opacity 0.5s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .carousel-slide.active {
             opacity: 1;
-            position: relative;
         }
         
         .carousel-slide img {
@@ -689,25 +691,23 @@
         <div class="hero-right">
             <div class="carousel-container">
                 <div class="carousel-slides">
-                    <!-- Screenshot 1: Welcome Screen -->
-                    <div class="carousel-slide active" style="background: #1f2430; display: flex; align-items: center; justify-content: center; padding: 2rem;">
-                        <div style="text-align: center; color: #6b7280;">
-                            <p style="font-size: 3rem; margin-bottom: 1rem;">📸</p>
-                            <p>Screenshot 1: Welcome Screen</p>
-                            <p style="font-size: 0.85rem; margin-top: 0.5rem;">Add: <code>landing/images/screenshot-welcome.png</code></p>
-                        </div>
+                    <!-- Slide 1: Demo Video -->
+                    <div class="carousel-slide active">
+                        <video muted playsinline style="max-width: 100%; max-height: 100%; object-fit: contain;" data-video-slide>
+                            <source src="videos/demo.mp4" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
                     </div>
                     
-                    <!-- Screenshot 2: Keyword Research -->
-                    <div class="carousel-slide" style="background: #1f2430; display: flex; align-items: center; justify-content: center; padding: 2rem;">
-                        <div style="text-align: center; color: #6b7280;">
-                            <p style="font-size: 3rem; margin-bottom: 1rem;">📸</p>
-                            <p>Screenshot 2: Keyword Research</p>
-                            <p style="font-size: 0.85rem; margin-top: 0.5rem;">Add: <code>landing/images/screenshot-keywords.png</code></p>
-                        </div>
+                    <!-- Slide 2: Demo Video Part 2 -->
+                    <div class="carousel-slide">
+                        <video muted playsinline style="max-width: 100%; max-height: 100%; object-fit: contain;" data-video-slide>
+                            <source src="videos/demo2.mp4" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
                     </div>
                     
-                    <!-- Screenshot 3: SERP Analysis -->
+                    <!-- Slide 3: Screenshot placeholder -->
                     <div class="carousel-slide" style="background: #1f2430; display: flex; align-items: center; justify-content: center; padding: 2rem;">
                         <div style="text-align: center; color: #6b7280;">
                             <p style="font-size: 3rem; margin-bottom: 1rem;">📸</p>
@@ -716,7 +716,7 @@
                         </div>
                     </div>
                     
-                    <!-- Screenshot 4: Backlinks -->
+                    <!-- Slide 4: Screenshot placeholder -->
                     <div class="carousel-slide" style="background: #1f2430; display: flex; align-items: center; justify-content: center; padding: 2rem;">
                         <div style="text-align: center; color: #6b7280;">
                             <p style="font-size: 3rem; margin-bottom: 1rem;">📸</p>
@@ -804,12 +804,25 @@
 
     <script>
         let currentSlide = 0;
+        let carouselTimer = null;
         const slides = document.querySelectorAll('.carousel-slide');
         const dots = document.querySelectorAll('.dot');
+        const defaultSlideTime = 10000; // 10 seconds for non-video slides
         
         function showSlide(n) {
+            // Clear any existing timer
+            if (carouselTimer) {
+                clearTimeout(carouselTimer);
+            }
+            
+            // Pause and reset all videos
             slides.forEach(slide => {
                 slide.classList.remove('active');
+                const video = slide.querySelector('video[data-video-slide]');
+                if (video) {
+                    video.pause();
+                    video.currentTime = 0;
+                }
                 // Reset animations
                 const typingText = slide.querySelector('.typing-text');
                 if (typingText) {
@@ -823,13 +836,32 @@
             slides[currentSlide].classList.add('active');
             dots[currentSlide].classList.add('active');
             
-            // Trigger typing animation
-            setTimeout(() => {
-                const typingText = slides[currentSlide].querySelector('.typing-text');
-                if (typingText) {
-                    typingText.classList.add('visible');
+            // Check if current slide has a video
+            const currentVideo = slides[currentSlide].querySelector('video[data-video-slide]');
+            if (currentVideo) {
+                // Speed up second video by 30%
+                if (currentSlide === 1) {
+                    currentVideo.playbackRate = 1.3;
+                } else {
+                    currentVideo.playbackRate = 1.0;
                 }
-            }, 100);
+                // Play video and wait for it to end
+                currentVideo.play();
+                currentVideo.onended = () => {
+                    nextSlide();
+                };
+            } else {
+                // No video, use default timer
+                carouselTimer = setTimeout(nextSlide, defaultSlideTime);
+                
+                // Trigger typing animation
+                setTimeout(() => {
+                    const typingText = slides[currentSlide].querySelector('.typing-text');
+                    if (typingText) {
+                        typingText.classList.add('visible');
+                    }
+                }, 100);
+            }
         }
         
         function goToSlide(n) {
@@ -840,8 +872,8 @@
             showSlide(currentSlide + 1);
         }
         
-        // Auto-advance carousel every 5 seconds
-        setInterval(nextSlide, 5000);
+        // Start the carousel
+        showSlide(0);
     </script>
 
 </body>

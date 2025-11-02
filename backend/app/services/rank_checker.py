@@ -57,7 +57,7 @@ class RankCheckerService:
             
             async with httpx.AsyncClient() as client:
                 response = await client.get(
-                    f"{self.base_url}/search",
+                    self.base_url,  # Root endpoint, not /search
                     headers=self.headers,
                     params=params,
                     timeout=15.0
@@ -145,7 +145,7 @@ class RankCheckerService:
             
             async with httpx.AsyncClient() as client:
                 response = await client.get(
-                    f"{self.base_url}/search",
+                    self.base_url,  # Root endpoint, not /search
                     headers=self.headers,
                     params=params,
                     timeout=15.0

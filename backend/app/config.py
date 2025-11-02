@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     API_V1_PREFIX: str = "/api/v1"
     
+    # Feature Flags
+    WAITLIST_MODE: bool = False  # Set to True to disable app and show waitlist only
+    
     class Config:
         env_file = ".env"
         case_sensitive = True
