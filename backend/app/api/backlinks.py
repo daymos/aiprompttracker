@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
 import logging
-import jwt
+from jose import jwt
 from datetime import datetime
 
 from app.database import get_db
