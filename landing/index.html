@@ -127,6 +127,25 @@
             overflow-x: hidden;
         }
         
+        /* Decorative Background Pattern */
+        .bg-pattern {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            opacity: 0.03;
+            background-image: 
+                linear-gradient(30deg, #ffd580 12%, transparent 12.5%, transparent 87%, #ffd580 87.5%, #ffd580),
+                linear-gradient(150deg, #ffd580 12%, transparent 12.5%, transparent 87%, #ffd580 87.5%, #ffd580),
+                linear-gradient(30deg, #ffd580 12%, transparent 12.5%, transparent 87%, #ffd580 87.5%, #ffd580),
+                linear-gradient(150deg, #ffd580 12%, transparent 12.5%, transparent 87%, #ffd580 87.5%, #ffd580);
+            background-size: 80px 140px;
+            background-position: 0 0, 0 0, 40px 70px, 40px 70px;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
         /* Header */
         header {
             position: fixed;
@@ -202,10 +221,14 @@
             justify-content: center;
             padding: 4rem 3rem 4rem 4rem;
             background: #1f2430;
+            position: relative;
+            overflow: hidden;
         }
         
         .hero-content {
             max-width: 550px;
+            position: relative;
+            z-index: 1;
         }
         
         .hero-badge {
@@ -814,6 +837,7 @@
     <div class="hero-split">
         <!-- Left Side - Marketing -->
         <div class="hero-left">
+            <div class="bg-pattern"></div>
             <div class="hero-content">
                 <span class="hero-badge">✨ Chat-Based SEO Tool</span>
                 
