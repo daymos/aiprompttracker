@@ -4,7 +4,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
-  static const String baseUrl = 'http://localhost:8000/api/v1';
+  // Use relative URL since backend serves frontend
+  static const String baseUrl = '/api/v1';
   
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     clientId: '149794489949-n76062u9scrnki2sbp22aaivat2eccri.apps.googleusercontent.com',

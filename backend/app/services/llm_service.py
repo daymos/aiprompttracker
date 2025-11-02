@@ -36,23 +36,41 @@ class LLMService:
         Returns the keyword/topic to research, or None if no research needed.
         """
         
-        system_prompt = """You are a keyword extraction assistant. Your job is to determine if the user wants keyword research and extract the specific keyword/topic.
+        system_prompt = """You extract keywords that the user wants to research.
 
-Guidelines:
-1. If user requests keyword research and provides a topic/niche/website → Extract and return that topic
-2. If user says "yes", "all of them", "continue", "go ahead" in response to a keyword research offer → Extract the keywords that were offered
-3. If assistant previously suggested keywords and user wants data on them → Return those exact keywords as a comma-separated list
-4. If user mentions their website/product in the conversation history → Use that as the topic
-5. Only return NULL if user is asking about something completely unrelated to keyword research
+RULES:
+1. Read the FULL conversation history carefully
+2. If user says "yes", "sure", "okay", "all of them", "go ahead" → Extract what was offered/mentioned in previous messages
+3. If assistant listed keywords and user confirms → Return ALL those keywords comma-separated
+4. If user provides a direct topic → Return that topic
+5. Return "NULL" ONLY if completely unrelated to keywords/SEO
 
-Your response MUST be ONLY:
-- The specific keyword/topic to research (e.g., "AI chatbots", "SEO chatbot", "keywords.chat")
-- For multiple keywords: return them comma-separated (e.g., "AI voice chatbot mobile, multilingual AI assistant")
-- OR the word "NULL" if completely unrelated to keyword research
+OUTPUT FORMAT (CRITICAL):
+- Just the keyword(s), nothing else
+- Multiple keywords: comma-separated
+- No explanations, no extra words, no quotes around your answer
 
-CRITICAL: If assistant offered to research keywords and user said "yes"/"all of them" → extract those keywords from the conversation history.
+EXAMPLES:
 
-Do not explain or add any other text. Just the keyword(s) or NULL."""
+Conversation:
+Assistant: "Would you like keyword data for: AI chat SEO assistant, chatbot SEO tool?"
+User: "yes"
+YOUR RESPONSE: AI chat SEO assistant, chatbot SEO tool
+
+Conversation:
+User: "research keywords for my SEO toolkit"
+YOUR RESPONSE: SEO toolkit
+
+Conversation:
+Assistant: "Should I pull data for 'marketing automation'?"
+User: "sure"
+YOUR RESPONSE: marketing automation
+
+Conversation:
+User: "what's the weather"
+YOUR RESPONSE: NULL
+
+NOW EXTRACT FROM THE CONVERSATION BELOW:"""
 
         messages = [{"role": "system", "content": system_prompt}]
         
@@ -62,18 +80,26 @@ Do not explain or add any other text. Just the keyword(s) or NULL."""
         messages.append({"role": "user", "content": user_message})
         
         try:
+            logger.info(f"🔍 Asking LLM: Does user want keyword research?")
+            logger.debug(f"User message: {user_message}")
+            logger.debug(f"Conversation context: {len(conversation_history) if conversation_history else 0} messages")
+            
             response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
-                temperature=0.1,  # Low temperature for consistent extraction
-                max_tokens=50
+                temperature=0.3,  # Slightly higher for better context understanding
+                max_tokens=150  # Allow for multiple keywords
             )
             
             result = response.choices[0].message.content.strip()
             
+            logger.info(f"📋 LLM intent response: '{result}'")
+            
             if result.upper() == "NULL" or not result:
+                logger.info("❌ LLM says: No keyword research needed")
                 return None
             
+            logger.info(f"✅ LLM detected keyword research intent for: '{result}'")
             return result
             
         except Exception as e:
@@ -117,6 +143,9 @@ CRITICAL: Extract domain without http://, https://, or www. prefixes. Just the d
         messages.append({"role": "user", "content": user_message})
         
         try:
+            logger.info(f"🔗 Asking LLM: Does user want backlink analysis?")
+            logger.debug(f"User message: {user_message}")
+            
             response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
@@ -126,12 +155,16 @@ CRITICAL: Extract domain without http://, https://, or www. prefixes. Just the d
             
             result = response.choices[0].message.content.strip()
             
+            logger.info(f"📋 LLM backlink intent response: '{result}'")
+            
             if result.upper() == "NULL" or not result:
+                logger.info("❌ LLM says: No backlink analysis needed")
                 return None
             
             # Parse JSON response
             import json
             intent = json.loads(result)
+            logger.info(f"✅ LLM detected backlink intent: {intent.get('action')} for domain(s)")
             return intent
             
         except json.JSONDecodeError as e:
@@ -141,6 +174,95 @@ CRITICAL: Extract domain without http://, https://, or www. prefixes. Just the d
             logger.error(f"Error extracting backlink intent: {e}")
             return None
     
+    async def chat_with_tools(
+        self,
+        user_message: str,
+        conversation_history: List[Dict[str, str]] = None,
+        available_tools: List[Dict[str, Any]] = None,
+        user_projects: List[Dict[str, Any]] = None,
+        mode: str = "ask"
+    ) -> tuple[str, Optional[str], Optional[List[Dict]]]:
+        """
+        Chat with function calling support.
+        
+        Returns:
+            (response_text, reasoning, tool_calls)
+        """
+        
+        # Select system prompt based on mode
+        if mode == "agent":
+            system_prompt = self._get_agent_mode_prompt()
+        else:
+            system_prompt = self._get_ask_mode_prompt()
+
+        messages = [{"role": "system", "content": system_prompt}]
+        
+        # Add conversation history
+        if conversation_history:
+            history_to_add = conversation_history[-5:]
+            logger.info(f"Adding {len(history_to_add)} messages from conversation history to LLM context")
+            messages.extend(history_to_add)
+        else:
+            logger.info("No conversation history available (new conversation)")
+        
+        # Add user projects context if available
+        if user_projects:
+            projects_context = f"\n\n[USER'S EXISTING PROJECTS]\n"
+            projects_context += f"The user has {len(user_projects)} project(s):\n"
+            for project in user_projects:
+                projects_context += f"- {project['name']} ({project['target_url']})\n"
+                if project['tracked_keywords']:
+                    projects_context += f"  Tracking: {', '.join([kw['keyword'] for kw in project['tracked_keywords'][:3]])}\n"
+            
+            user_message = user_message + projects_context
+        
+        messages.append({"role": "user", "content": user_message})
+        
+        logger.info(f"🤖 Sending chat request to LLM (mode: {mode}, tools available: {len(available_tools) if available_tools else 0})")
+        
+        try:
+            # Make request with tools if available
+            request_params = {
+                "model": self.model,
+                "messages": messages,
+                "temperature": 0.7,
+                "max_tokens": 1000
+            }
+            
+            if available_tools:
+                request_params["tools"] = available_tools
+                request_params["tool_choice"] = "auto"  # Let LLM decide when to use tools
+            
+            response = await self.client.chat.completions.create(**request_params)
+            
+            message = response.choices[0].message
+            
+            # Check if LLM wants to call functions
+            if hasattr(message, 'tool_calls') and message.tool_calls:
+                logger.info(f"🛠️  LLM requested {len(message.tool_calls)} tool calls")
+                tool_calls = []
+                for tool_call in message.tool_calls:
+                    import json
+                    tool_calls.append({
+                        "id": tool_call.id,
+                        "name": tool_call.function.name,
+                        "arguments": json.loads(tool_call.function.arguments)
+                    })
+                    logger.info(f"  - {tool_call.function.name}({tool_call.function.arguments})")
+                
+                return (None, None, tool_calls)  # Return tool calls to execute
+            
+            # Normal response without tool calls
+            full_response = message.content
+            reasoning, content = self._extract_reasoning(full_response)
+            
+            logger.info(f"✅ LLM response generated ({len(content)} chars)")
+            return (content, reasoning, None)
+            
+        except Exception as e:
+            logger.error(f"Error in chat with tools: {e}", exc_info=True)
+            return ("Sorry, I encountered an error. Please try again.", None, None)
+    
     async def generate_keyword_advice(
         self, 
         user_message: str,
@@ -148,9 +270,10 @@ CRITICAL: Extract domain without http://, https://, or www. prefixes. Just the d
         backlink_data: Dict[str, Any] = None,
         conversation_history: List[Dict[str, str]] = None,
         mode: str = "ask",
-        user_projects: List[Dict[str, Any]] = None
+        user_projects: List[Dict[str, Any]] = None,
+        keyword_error: Optional[str] = None
     ) -> tuple[str, Optional[str]]:
-        """Generate conversational keyword research advice"""
+        """Generate conversational keyword research advice (DEPRECATED - use chat_with_tools)"""
         
         # Select system prompt based on mode
         if mode == "agent":
@@ -184,7 +307,7 @@ CRITICAL: Extract domain without http://, https://, or www. prefixes. Just the d
                 logger.info(f"Successfully analyzed {url}: {pages_analyzed} pages, sitemap: {sitemap_found}")
         
         # Build user content with all available data
-        user_content = self._build_user_content(user_message, website_data, keyword_data, backlink_data, user_projects)
+        user_content = self._build_user_content(user_message, website_data, keyword_data, backlink_data, user_projects, keyword_error)
         
         messages.append({"role": "user", "content": user_content})
         
@@ -214,7 +337,7 @@ CRITICAL: Extract domain without http://, https://, or www. prefixes. Just the d
         """Extract reasoning from response and return (reasoning, content)"""
         import re
         
-        # Look for <reasoning>...</reasoning> tags
+        # Look for <reasoning>...</reasoning> tags (properly closed)
         reasoning_pattern = r'<reasoning>(.*?)</reasoning>'
         match = re.search(reasoning_pattern, full_response, re.DOTALL | re.IGNORECASE)
         
@@ -222,10 +345,30 @@ CRITICAL: Extract domain without http://, https://, or www. prefixes. Just the d
             reasoning = match.group(1).strip()
             # Remove the reasoning section from the content
             content = re.sub(reasoning_pattern, '', full_response, flags=re.DOTALL | re.IGNORECASE).strip()
+            
+            # If content is empty after extraction, the LLM only provided reasoning
+            if not content:
+                logger.warning("LLM provided reasoning but no user-facing content - using fallback")
+                return (reasoning, "Let me help you with that. Could you provide more details?")
+            
             logger.info(f"Extracted reasoning ({len(reasoning)} chars) from response")
             return (reasoning, content)
         else:
-            # No reasoning found, return full response as content
+            # Check for unclosed reasoning tag
+            unclosed_pattern = r'<reasoning>(.*)'
+            unclosed_match = re.search(unclosed_pattern, full_response, re.DOTALL | re.IGNORECASE)
+            
+            if unclosed_match:
+                logger.warning("Found unclosed <reasoning> tag - extracting and removing it")
+                reasoning = unclosed_match.group(1).strip()
+                # Remove the unclosed reasoning tag and its content
+                content = re.sub(unclosed_pattern, '', full_response, flags=re.DOTALL | re.IGNORECASE).strip()
+                
+                if not content:
+                    return (reasoning, "Let me help you with that. Could you provide more details?")
+                return (reasoning, content)
+            
+            # No reasoning found at all, return full response as content
             logger.warning("No reasoning section found in LLM response")
             return (None, full_response)
     
@@ -436,7 +579,8 @@ You're guiding a journey from "here's my website" to "here's your complete keywo
         website_data: Optional[Dict[str, Any]], 
         keyword_data: Optional[List[Dict[str, Any]]],
         backlink_data: Optional[Dict[str, Any]] = None,
-        user_projects: Optional[List[Dict[str, Any]]] = None
+        user_projects: Optional[List[Dict[str, Any]]] = None,
+        keyword_error: Optional[str] = None
     ) -> str:
         """Build user content with all available data"""
         user_content = user_message
@@ -518,11 +662,20 @@ You're guiding a journey from "here's my website" to "here's your complete keywo
                     
                     user_content += f"Content Preview: {website_data.get('main_content', '')[:500]}\n"
         
-        if keyword_data:
+        # Handle keyword API errors
+        if keyword_error:
+            user_content += f"\n\n[KEYWORD RESEARCH API ERROR]\n"
+            user_content += f"Error: {keyword_error}\n"
+            user_content += f"The keyword research API failed. Inform the user about this issue clearly.\n"
+            user_content += f"Do NOT make up any keyword data. Apologize and explain the API is currently unavailable.\n"
+            user_content += f"Suggest they try again later or contact support if the issue persists.\n"
+        elif keyword_data:
             user_content += f"\n\n[REAL KEYWORD DATA AVAILABLE]\n"
             user_content += f"Source: RapidAPI keyword research\n"
             user_content += f"Data: {keyword_data}\n"
-            user_content += f"\nProvide specific keyword recommendations using this REAL data.\n"
+            user_content += f"\nYou have the actual keyword data RIGHT NOW. DISPLAY it in a table format immediately.\n"
+            user_content += f"DO NOT say 'I'm pulling data' or 'I'll share when ready' - the data is already here.\n"
+            user_content += f"Format as a markdown table with columns: Keyword | Searches/mo | Competition | SERP Reality (if available)\n"
         else:
             user_content += f"\n\n[NO KEYWORD DATA AVAILABLE]\n"
             

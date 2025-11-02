@@ -11,10 +11,10 @@ class RankCheckerService:
     """Service for checking Google rankings for keywords"""
     
     def __init__(self):
-        self.base_url = "https://google-search74.p.rapidapi.com"
+        self.base_url = "https://google-search116.p.rapidapi.com"
         self.headers = {
-            "X-RapidAPI-Key": settings.RAPIDAPI_KEY,
-            "X-RapidAPI-Host": "google-search74.p.rapidapi.com"
+            "x-rapidapi-key": settings.RAPIDAPI_KEY,
+            "x-rapidapi-host": "google-search116.p.rapidapi.com"
         }
     
     async def check_ranking(self, keyword: str, target_domain: str, location: str = "us") -> Optional[Dict[str, Any]]:
@@ -34,7 +34,7 @@ class RankCheckerService:
         # Remove www. prefix for more flexible matching
         domain = domain.replace('www.', '')
         
-        logger.info(f"Checking ranking for keyword '{keyword}' and domain '{domain}'")
+        logger.info(f"🔍 Checking ranking for keyword '{keyword}' and domain '{domain}' (google-search116)")
         
         # Check if API key is configured
         if not settings.RAPIDAPI_KEY:
@@ -45,16 +45,19 @@ class RankCheckerService:
             }
         
         try:
-            # Search Google via RapidAPI (google-search74)
+            # Search Google via RapidAPI (google-search116)
             params = {
                 "query": keyword,
-                "limit": "100",  # Get top 100 results
-                "related_keywords": "false"
+                "limit": 100,  # Get top 100 results (max allowed)
             }
+            
+            # Add location if specified
+            if location and location.lower() != "us":
+                params["country"] = location.upper()
             
             async with httpx.AsyncClient() as client:
                 response = await client.get(
-                    self.base_url,
+                    f"{self.base_url}/search",
                     headers=self.headers,
                     params=params,
                     timeout=15.0
@@ -132,16 +135,17 @@ class RankCheckerService:
         if not settings.RAPIDAPI_KEY:
             return None
         
+        logger.info(f"🔍 Getting SERP analysis for '{keyword}' (google-search116)")
+        
         try:
             params = {
                 "query": keyword,
-                "limit": "10",
-                "related_keywords": "false"
+                "limit": 10,  # Top 10 results
             }
             
             async with httpx.AsyncClient() as client:
                 response = await client.get(
-                    self.base_url,
+                    f"{self.base_url}/search",
                     headers=self.headers,
                     params=params,
                     timeout=15.0

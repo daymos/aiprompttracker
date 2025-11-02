@@ -6,29 +6,20 @@ vars:
 
 tasks:
   dev:
-    desc: Start everything (backend + frontend + database)
-    cmds:
-      - echo "🚀 Starting KeywordsChat..."
-      - task: db-start
-      - echo "🔧 Starting backend on http://localhost:8000"
-      - cd {{.BACKEND_DIR}} && uvicorn app.main:app --reload --reload-delay 0.5 &
-      - echo "🎨 Starting frontend on http://localhost:8080..."
-      - echo "💡 Hot reload enabled - Press 'r' to reload, 'R' to restart"
-      - cd {{.FRONTEND_DIR}} && flutter run -d chrome --web-port=8080
-
-  dev-backend:
-    desc: Start backend only with hot reload
+    desc: Start backend with hot reload on port 8000
     cmds:
       - task: db-start
-      - echo "🔧 Starting backend on http://localhost:8000 with hot reload..."
-      - cd {{.BACKEND_DIR}} && uvicorn app.main:app --reload --reload-delay 0.5
+      - lsof -ti:8000 | xargs kill -9 2>/dev/null || true
+      - echo "🚀 Starting backend on http://localhost:8000"
+      - echo "💡 Backend hot-reloads on Python changes"
+      - cd {{.BACKEND_DIR}} && uvicorn app.main:app --reload --reload-delay 0.5 --port 8000
 
-  dev-frontend:
-    desc: Start frontend only with hot reload
+  build:
+    desc: Build frontend (run this after frontend changes)
+    dir: "{{.FRONTEND_DIR}}"
     cmds:
-      - echo "🎨 Starting frontend on http://localhost:8080 with hot reload..."
-      - echo "💡 Press 'r' to hot reload or 'R' to hot restart"
-      - cd {{.FRONTEND_DIR}} && flutter run -d chrome --web-port=8080
+      - echo "🎨 Building Flutter web app..."
+      - flutter build web
 
   setup:
     desc: First time setup - install dependencies and setup database

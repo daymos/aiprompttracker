@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  // Change this to your backend URL
-  static const String baseUrl = 'http://localhost:8000/api/v1';
+  // Use relative URL since backend serves frontend
+  static const String baseUrl = '/api/v1';
   
   String? _accessToken;
   

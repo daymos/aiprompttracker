@@ -59,10 +59,21 @@ class RapidAPIBacklinkService:
                 "error": None
             }
         """
+        # Check if API key is configured
+        if not self.rapidapi_key:
+            logger.error("RAPIDAPI_KEY not configured - backlink analysis will not work")
+            return {"error": "API key not configured"}
+        
         try:
             # Clean domain (remove protocol if provided)
             if domain.startswith(('http://', 'https://')):
                 domain = domain.replace('https://', '').replace('http://', '').split('/')[0]
+            
+            # Log request details
+            masked_key = self.rapidapi_key[:8] + "..." if self.rapidapi_key else "MISSING"
+            logger.info(f"🔗 Fetching backlinks for: '{domain}'")
+            logger.info(f"📡 API Endpoint: {self.base_url}/backlinks.php")
+            logger.info(f"🔑 API Key (masked): {masked_key}")
             
             async with httpx.AsyncClient(timeout=30.0) as client:
                 url = f"{self.base_url}/backlinks.php"
@@ -71,7 +82,7 @@ class RapidAPIBacklinkService:
                     "domain": domain
                 }
                 
-                logger.info(f"Fetching backlinks for {domain} from RapidAPI")
+                logger.info(f"📋 Request params: {params}")
                 
                 response = await client.get(
                     url,
@@ -79,7 +90,7 @@ class RapidAPIBacklinkService:
                     headers=self._get_headers()
                 )
                 
-                logger.info(f"RapidAPI response status: {response.status_code}")
+                logger.info(f"📥 Response status: {response.status_code}")
                 
                 if response.status_code != 200:
                     error_body = response.text
@@ -102,17 +113,21 @@ class RapidAPIBacklinkService:
                 
                 # Check for API-level errors
                 if "message" in data and "not subscribed" in data["message"].lower():
+                    logger.error("❌ API subscription issue detected")
                     return {
                         "error": "API subscription required. Please check your RapidAPI plan.",
                     }
                 
-                logger.info(f"Successfully fetched backlinks for {domain}")
+                logger.info(f"✅ Successfully fetched backlink data for {domain}")
+                logger.debug(f"Response data keys: {list(data.keys())}")
                 
                 # Extract backlinks
                 backlinks = data.get("backlinks", [])
+                logger.info(f"📊 Found {len(backlinks)} backlinks in response")
                 
                 # Apply client-side limit if specified
                 if limit and limit > 0:
+                    logger.info(f"📉 Applying client-side limit: {limit} backlinks")
                     backlinks = backlinks[:limit]
                 
                 # Get domain authority from overtime data (most recent)
@@ -120,6 +135,13 @@ class RapidAPIBacklinkService:
                 domain_authority = overtime[0].get("da", 0) if overtime else 0
                 referring_domains = overtime[0].get("refdomains", 0) if overtime else 0
                 total_backlinks = overtime[0].get("backlinks", len(backlinks)) if overtime else len(backlinks)
+                
+                logger.info(f"✅ Backlink Summary for {domain}:")
+                logger.info(f"   - Total backlinks: {total_backlinks}")
+                logger.info(f"   - Referring domains: {referring_domains}")
+                logger.info(f"   - Domain Authority: {domain_authority}")
+                logger.info(f"   - Historical data points: {len(overtime)}")
+                logger.info(f"   - Anchor texts tracked: {len(data.get('anchors', []))}")
                 
                 return {
                     "target": domain,
@@ -155,15 +177,27 @@ class RapidAPIBacklinkService:
         
         Returns backlinks that competitor has but you don't (link gap analysis)
         """
+        logger.info(f"🔍 Comparing backlinks: {my_domain} vs {competitor_domain}")
+        
         try:
             # Fetch both backlink profiles
+            logger.info(f"📡 Fetching backlinks for YOUR domain: {my_domain}")
             my_backlinks = await self.get_backlinks(my_domain, limit=limit_per_domain)
+            
+            logger.info(f"📡 Fetching backlinks for COMPETITOR domain: {competitor_domain}")
             competitor_backlinks = await self.get_backlinks(competitor_domain, limit=limit_per_domain)
             
             if my_backlinks.get("error") or competitor_backlinks.get("error"):
+                logger.error(f"❌ Failed to fetch one or both backlink profiles")
+                if my_backlinks.get("error"):
+                    logger.error(f"   Your domain error: {my_backlinks.get('error')}")
+                if competitor_backlinks.get("error"):
+                    logger.error(f"   Competitor error: {competitor_backlinks.get('error')}")
                 return {
                     "error": "Failed to fetch backlinks for comparison",
                 }
+            
+            logger.info(f"📊 Analyzing link gaps...")
             
             # Extract source domains from backlinks
             my_sources = set()
@@ -174,6 +208,8 @@ class RapidAPIBacklinkService:
                     domain = url_from.replace('https://', '').replace('http://', '').split('/')[0]
                     my_sources.add(domain)
             
+            logger.info(f"   Your domain has backlinks from {len(my_sources)} unique sources")
+            
             # Find link gaps (sites linking to competitor but not you)
             link_gaps = []
             for bl in competitor_backlinks.get("backlinks", []):
@@ -182,6 +218,9 @@ class RapidAPIBacklinkService:
                     domain = url_from.replace('https://', '').replace('http://', '').split('/')[0]
                     if domain not in my_sources:
                         link_gaps.append(bl)
+            
+            logger.info(f"✅ Found {len(link_gaps)} link gap opportunities")
+            logger.info(f"   (sites linking to competitor but not you)")
             
             return {
                 "my_domain": my_domain,

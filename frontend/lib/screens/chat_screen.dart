@@ -22,6 +22,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _hasShownWelcomeModal = false;
+  bool _hasLoadedProjects = false;
   String _selectedMode = 'ask'; // 'ask' or 'agent'
   bool _shouldCancelRequest = false;
   ViewState _currentView = ViewState.chat;
@@ -30,11 +31,19 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    // Show welcome modal after first frame
+    // Show welcome modal and load projects after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_hasShownWelcomeModal) {
         _showWelcomeModal();
         _hasShownWelcomeModal = true;
+      }
+      
+      // Load projects once
+      if (!_hasLoadedProjects) {
+        final authProvider = context.read<AuthProvider>();
+        final projectProvider = context.read<ProjectProvider>();
+        projectProvider.loadAllProjects(authProvider.apiService);
+        _hasLoadedProjects = true;
       }
     });
   }
@@ -933,13 +942,6 @@ class _ChatScreenState extends State<ChatScreen> {
     final projectProvider = context.watch<ProjectProvider>();
     final authProvider = context.watch<AuthProvider>();
     final projects = projectProvider.allProjects;
-    
-    // Load projects if not loaded
-    if (projects.isEmpty && !projectProvider.isLoading) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        projectProvider.loadAllProjects(authProvider.apiService);
-      });
-    }
     
     return Center(
       child: ConstrainedBox(

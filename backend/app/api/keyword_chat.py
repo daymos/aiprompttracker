@@ -5,6 +5,7 @@ from typing import List, Optional
 import uuid
 import re
 import logging
+import httpx
 
 from ..database import get_db
 from ..models.user import User
@@ -14,6 +15,7 @@ from ..services.keyword_service import KeywordService
 from ..services.llm_service import LLMService
 from ..services.rank_checker import RankCheckerService
 from ..services.rapidapi_backlinks_service import RapidAPIBacklinkService
+from ..services.web_scraper import WebScraperService
 from .auth import get_current_user
 
 router = APIRouter(prefix="/chat", tags=["chat"])
@@ -22,6 +24,7 @@ keyword_service = KeywordService()
 llm_service = LLMService()
 rank_checker = RankCheckerService()
 backlink_service = RapidAPIBacklinkService()
+web_scraper = WebScraperService()
 
 class ChatRequest(BaseModel):
     message: str
@@ -106,139 +109,372 @@ async def send_message(
     logger = logging.getLogger(__name__)
     logger.info(f"Conversation has {len(messages)} total messages, passing {len(conversation_history)} as history")
     
-    # Use LLM to intelligently extract keywords to research
-    keyword_data = None
-    
-    # Ask LLM if user wants keyword research and what topic
-    keyword_to_research = await llm_service.extract_keyword_intent(
-        user_message=request.message,
-        conversation_history=conversation_history
-    )
-    
-    if keyword_to_research:
-        logger.info(f"LLM extracted keyword to research: {keyword_to_research}")
-        keyword_data = await keyword_service.analyze_keywords(keyword_to_research, limit=10)
-        
-        # Enrich top 5 keywords with SERP analysis
-        if keyword_data:
-            logger.info(f"Enriching top {min(5, len(keyword_data))} keywords with SERP analysis")
-            for keyword_item in keyword_data[:5]:  # Only analyze top 5 to avoid rate limits
-                keyword = keyword_item.get('keyword')
-                if keyword:
-                    serp_analysis = await rank_checker.get_serp_analysis(keyword)
-                    if serp_analysis:
-                        keyword_item['serp_analysis'] = serp_analysis['analysis']
-                        keyword_item['serp_insight'] = serp_analysis['insight']
-                        logger.info(f"SERP analysis for '{keyword}': {serp_analysis['analysis']}")
-                    else:
-                        logger.info(f"No SERP analysis available for '{keyword}'")
-    else:
-        logger.info("LLM determined no specific keyword research needed")
-    
-    # Use LLM to detect backlink intent and extract domain(s)
-    backlink_data = None
-    
-    backlink_intent = await llm_service.extract_backlink_intent(
-        user_message=request.message,
-        conversation_history=conversation_history
-    )
-    
-    if backlink_intent:
-        logger.info(f"LLM detected backlink intent: {backlink_intent}")
-        
-        # Check user's backlink quota (free beta: 5 requests/month)
-        if user.backlink_rows_used >= user.backlink_rows_limit:
-            logger.warning(f"User {user.id} has exceeded backlink quota ({user.backlink_rows_used}/{user.backlink_rows_limit})")
-            backlink_data = {
-                "error": f"You've reached your monthly limit of {user.backlink_rows_limit} backlink analyses. Resets on: {user.backlink_usage_reset_at.strftime('%Y-%m-%d')}"
-            }
-        else:
-            action = backlink_intent.get("action")
-            
-            if action == "compare":
-                # Comparison request (counts as 2 requests)
-                domain1 = backlink_intent.get("domain1")
-                domain2 = backlink_intent.get("domain2")
-                
-                if user.backlink_rows_used + 2 > user.backlink_rows_limit:
-                    backlink_data = {
-                        "error": f"Comparison requires 2 requests (you have {user.backlink_rows_limit - user.backlink_rows_used} remaining). Try a single domain analysis instead."
-                    }
-                elif domain1 and domain2:
-                    logger.info(f"Comparing backlinks: {domain1} vs {domain2}")
-                    backlink_data = await backlink_service.compare_backlinks(domain1, domain2, limit_per_domain=50)
-                    
-                    # Track usage: comparison = 2 requests
-                    if backlink_data and not backlink_data.get("error"):
-                        user.backlink_rows_used += 2
-                        db.commit()
-                        logger.info(f"User {user.id} used 2 backlink requests for comparison (total: {user.backlink_rows_used}/{user.backlink_rows_limit})")
-                else:
-                    logger.warning("Comparison requested but missing domains")
-                    backlink_data = {"needs_domain": True}
-                    
-            elif action == "analyze":
-                # Single domain analysis (counts as 1 request)
-                domain = backlink_intent.get("domain")
-                if domain:
-                    logger.info(f"Analyzing backlinks for: {domain}")
-                    backlink_data = await backlink_service.get_backlinks(domain, limit=50)
-                    
-                    # Track usage: single analysis = 1 request
-                    if backlink_data and not backlink_data.get("error"):
-                        user.backlink_rows_used += 1
-                        db.commit()
-                        logger.info(f"User {user.id} used 1 backlink request (total: {user.backlink_rows_used}/{user.backlink_rows_limit})")
-                else:
-                    logger.warning("Analysis requested but no domain provided")
-                    backlink_data = {"needs_domain": True}
-    else:
-        logger.info("LLM determined no backlink analysis needed")
-    
-    # Get user's projects and tracked keywords for context
+    # Get user's projects for context
     user_projects = db.query(Project).filter(Project.user_id == user.id).all()
-    
     user_projects_data = []
-    
     for project in user_projects:
         tracked_keywords = db.query(TrackedKeyword).filter(
             TrackedKeyword.project_id == project.id
         ).all()
-        
         user_projects_data.append({
             'id': project.id,
             'name': project.name,
             'target_url': project.target_url,
             'tracked_keywords': [
-                {
-                    'keyword': kw.keyword,
-                    'search_volume': kw.search_volume,
-                    'competition': kw.competition,
-                    'target_position': kw.target_position
-                }
+                {'keyword': kw.keyword, 'search_volume': kw.search_volume, 
+                 'competition': kw.competition, 'target_position': kw.target_position}
                 for kw in tracked_keywords
             ]
         })
     
-    # Generate response with LLM
-    # Generate response (returns tuple: content, reasoning)
-    assistant_response, reasoning = await llm_service.generate_keyword_advice(
+    # Define available tools for the LLM
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "research_keywords",
+                "description": "Research keywords with search volume, competition level, and SERP analysis. Use when user wants keyword data for a topic/niche. Supports both topic keywords and URL analysis (automatically detects URLs). Can search globally or for specific locations.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "keyword_or_topic": {
+                            "type": "string",
+                            "description": "The keyword/topic to research (e.g., 'AI chatbots', 'SEO software') OR a URL (e.g., 'example.com', 'https://example.com')"
+                        },
+                        "location": {
+                            "type": "string",
+                            "description": "Search scope: 'global' for worldwide data, or country code like 'US', 'UK', 'CA', 'AU' for location-specific data. Default is 'US'.",
+                            "default": "US"
+                        },
+                        "limit": {
+                            "type": "integer",
+                            "description": "Number of keywords to return (default 10)",
+                            "default": 10
+                        }
+                    },
+                    "required": ["keyword_or_topic"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "find_opportunity_keywords",
+                "description": "Find opportunity keywords (high-potential, low-competition keywords that are easier to rank for). Use when user asks for 'easy to rank', 'low competition', 'opportunity', or 'quick wins' keywords. Note: Only supports location-specific searches (not global).",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "keyword": {
+                            "type": "string",
+                            "description": "The seed keyword to find opportunities for"
+                        },
+                        "location": {
+                            "type": "string",
+                            "description": "Country code like 'US', 'UK', 'CA', 'AU' for location-specific data. Default is 'US'. (Global not supported for opportunity keywords)",
+                            "default": "US"
+                        },
+                        "limit": {
+                            "type": "integer",
+                            "description": "Number of opportunity keywords to return (default 10)",
+                            "default": 10
+                        }
+                    },
+                    "required": ["keyword"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "check_ranking",
+                "description": "Check where a specific domain ranks in Google for a keyword. Returns position (1-100) or None if not ranking.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "keyword": {
+                            "type": "string",
+                            "description": "The keyword to check rankings for"
+                        },
+                        "domain": {
+                            "type": "string",
+                            "description": "Domain to check (e.g., 'example.com')"
+                        }
+                    },
+                    "required": ["keyword", "domain"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "analyze_website",
+                "description": "Crawl and analyze a website's SEO. Extracts title, meta description, headings, content, and provides SEO recommendations.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "url": {
+                            "type": "string",
+                            "description": "Full URL of the website to analyze (e.g., 'https://example.com')"
+                        }
+                    },
+                    "required": ["url"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "analyze_backlinks",
+                "description": "Analyze backlink profile for a domain. Returns total backlinks, referring domains, domain authority, and top backlinks.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "domain": {
+                            "type": "string",
+                            "description": "Domain to analyze without http:// (e.g., 'example.com')"
+                        }
+                    },
+                    "required": ["domain"]
+                }
+            }
+        }
+    ]
+    
+    # First LLM call - may return tool calls
+    response_text, reasoning, tool_calls = await llm_service.chat_with_tools(
         user_message=request.message,
-        keyword_data=keyword_data,
-        backlink_data=backlink_data,
         conversation_history=conversation_history,
-        mode=request.mode or "ask",
-        user_projects=user_projects_data if user_projects_data else None
+        available_tools=tools,
+        user_projects=user_projects_data if user_projects_data else None,
+        mode=request.mode or "ask"
     )
     
-    # Build metadata with keyword data and reasoning
+    # If LLM wants to use tools, execute them
+    if tool_calls:
+        logger.info(f"🛠️  Executing {len(tool_calls)} tool calls")
+        tool_results = []
+        
+        for tool_call in tool_calls:
+            tool_name = tool_call["name"]
+            args = tool_call["arguments"]
+            
+            try:
+                if tool_name == "research_keywords":
+                    keyword_or_topic = args.get("keyword_or_topic")
+                    location = args.get("location", "US")
+                    limit = args.get("limit", 10)
+                    
+                    scope = "🌍 global" if location.lower() == "global" else f"📍 {location.upper()}"
+                    logger.info(f"  📊 Researching keywords for: {keyword_or_topic} ({scope})")
+                    keyword_data = await keyword_service.analyze_keywords(keyword_or_topic, location=location, limit=limit)
+                    
+                    # Enrich with SERP analysis and track rate limits
+                    serp_rate_limited = False
+                    serp_success_count = 0
+                    if keyword_data:
+                        for keyword_item in keyword_data[:5]:  # Top 5 only
+                            keyword = keyword_item.get('keyword')
+                            if keyword:
+                                try:
+                                    serp_analysis = await rank_checker.get_serp_analysis(keyword)
+                                    if serp_analysis:
+                                        keyword_item['serp_analysis'] = serp_analysis['analysis']
+                                        keyword_item['serp_insight'] = serp_analysis['insight']
+                                        serp_success_count += 1
+                                except httpx.HTTPStatusError as e:
+                                    if e.response.status_code == 429:
+                                        serp_rate_limited = True
+                                        logger.warning(f"  ⚠️  SERP analysis rate limited for '{keyword}'")
+                                    # Continue to next keyword
+                    
+                    # Build response with rate limit info
+                    response_data = {
+                        "keywords": keyword_data,
+                        "total_found": len(keyword_data) if keyword_data else 0,
+                        "serp_analysis_available": serp_success_count > 0,
+                        "serp_analysis_count": serp_success_count
+                    }
+                    
+                    if serp_rate_limited:
+                        response_data["warning"] = "SERP analysis unavailable: API rate limit reached. Keyword data is still accurate, but ranking difficulty analysis is limited. Rate limits reset daily."
+                    
+                    tool_results.append({
+                        "tool_call_id": tool_call["id"],
+                        "role": "tool",
+                        "name": tool_name,
+                        "content": str(response_data)
+                    })
+                    
+                    if serp_rate_limited:
+                        logger.warning(f"  ⚠️  Found {len(keyword_data) if keyword_data else 0} keywords (SERP analysis rate limited)")
+                    else:
+                        logger.info(f"  ✅ Found {len(keyword_data) if keyword_data else 0} keywords")
+                
+                elif tool_name == "find_opportunity_keywords":
+                    keyword = args.get("keyword")
+                    location = args.get("location", "US")
+                    limit = args.get("limit", 10)
+                    
+                    logger.info(f"  🎯 Finding opportunity keywords for: {keyword} (location: {location.upper()})")
+                    opportunity_data = await keyword_service.get_opportunity_keywords(keyword, location=location, num=limit)
+                    
+                    # Process the data to match our format
+                    if opportunity_data:
+                        processed_data = []
+                        for item in opportunity_data:
+                            volume = item.get("volume", 0)
+                            competition = item.get("competition_level", "UNKNOWN")
+                            avg_cpc = (item.get("low_bid", 0) + item.get("high_bid", 0)) / 2 if item.get("high_bid") else 0
+                            
+                            processed_data.append({
+                                "keyword": item.get("text", ""),
+                                "search_volume": volume,
+                                "competition": competition,
+                                "competition_index": item.get("competition_index", 0),
+                                "cpc": round(avg_cpc, 2),
+                                "trend": item.get("trend", 0),
+                                "intent": item.get("intent", "unknown"),
+                                "opportunity_score": "HIGH"  # These are pre-filtered opportunity keywords
+                            })
+                        
+                        tool_results.append({
+                            "tool_call_id": tool_call["id"],
+                            "role": "tool",
+                            "name": tool_name,
+                            "content": str(processed_data)
+                        })
+                        logger.info(f"  ✅ Found {len(processed_data)} opportunity keywords")
+                    else:
+                        tool_results.append({
+                            "tool_call_id": tool_call["id"],
+                            "role": "tool",
+                            "name": tool_name,
+                            "content": "[]"
+                        })
+                        logger.info(f"  ℹ️  No opportunity keywords found")
+                    
+                elif tool_name == "check_ranking":
+                    keyword = args.get("keyword")
+                    domain = args.get("domain")
+                    
+                    logger.info(f"  📍 Checking ranking for '{keyword}' on {domain}")
+                    ranking_data = await rank_checker.check_ranking(keyword, domain)
+                    
+                    tool_results.append({
+                        "tool_call_id": tool_call["id"],
+                        "role": "tool",
+                        "name": tool_name,
+                        "content": str(ranking_data)
+                    })
+                    
+                    if ranking_data and ranking_data.get('position'):
+                        logger.info(f"  ✅ {domain} ranks at position {ranking_data['position']} for '{keyword}'")
+                    else:
+                        logger.info(f"  ℹ️  {domain} not ranking in top 100 for '{keyword}'")
+                
+                elif tool_name == "analyze_website":
+                    url = args.get("url")
+                    
+                    logger.info(f"  🌐 Crawling and analyzing website: {url}")
+                    website_data = await web_scraper.analyze_full_site(url)
+                    
+                    tool_results.append({
+                        "tool_call_id": tool_call["id"],
+                        "role": "tool",
+                        "name": tool_name,
+                        "content": str(website_data)
+                    })
+                    
+                    if website_data and not website_data.get('error'):
+                        pages = website_data.get('pages_analyzed', 1)
+                        logger.info(f"  ✅ Analyzed {pages} page(s) from {url}")
+                    else:
+                        logger.warning(f"  ⚠️  Error analyzing {url}: {website_data.get('error')}")
+                    
+                elif tool_name == "analyze_backlinks":
+                    domain = args.get("domain")
+                    
+                    # Check backlink quota
+                    if user.backlink_rows_used >= user.backlink_rows_limit:
+                        error_msg = f"Backlink limit reached ({user.backlink_rows_limit}/month)"
+                        tool_results.append({
+                            "tool_call_id": tool_call["id"],
+                            "role": "tool",
+                            "name": tool_name,
+                            "content": f"ERROR: {error_msg}"
+                        })
+                        logger.warning(f"  ❌ {error_msg}")
+                    else:
+                        logger.info(f"  🔗 Analyzing backlinks for: {domain}")
+                        backlink_data = await backlink_service.get_backlinks(domain, limit=50)
+                        
+                        if backlink_data and not backlink_data.get("error"):
+                            user.backlink_rows_used += 1
+                            db.commit()
+                            logger.info(f"  ✅ Found {backlink_data.get('total_backlinks', 0)} backlinks")
+                        
+                        tool_results.append({
+                            "tool_call_id": tool_call["id"],
+                            "role": "tool",
+                            "name": tool_name,
+                            "content": str(backlink_data)
+                        })
+                        
+            except Exception as e:
+                logger.error(f"  ❌ Error executing {tool_name}: {e}")
+                tool_results.append({
+                    "tool_call_id": tool_call["id"],
+                    "role": "tool",
+                    "name": tool_name,
+                    "content": f"ERROR: {str(e)}"
+                })
+        
+        # Make second LLM call with tool results to get final response
+        logger.info("🤖 Sending tool results back to LLM for final response (tools still available)")
+        
+        # Add tool call messages to history
+        conversation_history.append({
+            "role": "assistant",
+            "content": None,
+            "tool_calls": [
+                {
+                    "id": tc["id"],
+                    "type": "function",  # Required by OpenAI API spec
+                    "function": {
+                        "name": tc["name"],
+                        "arguments": str(tc["arguments"])
+                    }
+                }
+                for tc in tool_calls
+            ]
+        })
+        
+        for result in tool_results:
+            conversation_history.append(result)
+        
+        # Get final response from LLM (allow tools in case user wants follow-up)
+        assistant_response, reasoning, follow_up_tools = await llm_service.chat_with_tools(
+            user_message="",  # Empty since we're providing tool results
+            conversation_history=conversation_history,
+            available_tools=tools,  # Keep tools available for follow-up
+            user_projects=user_projects_data if user_projects_data else None,
+            mode=request.mode or "ask"
+        )
+        
+        # If LLM wants more tool calls, we should handle recursively, but for now just log
+        if follow_up_tools:
+            logger.warning(f"⚠️  LLM requested {len(follow_up_tools)} follow-up tool calls after getting results. This is not yet supported.")
+            assistant_response = "I got the data, but I'm having trouble processing it. Please try rephrasing your request."
+    else:
+        # No tool calls - direct response
+        assistant_response = response_text
+        reasoning = reasoning
+    
+    # Save assistant message
     metadata = {}
-    if keyword_data:
-        metadata["keyword_data"] = keyword_data
     if reasoning:
         metadata["reasoning"] = reasoning
     
-    # Save assistant message
     assistant_message = Message(
         id=str(uuid.uuid4()),
         conversation_id=conversation.id,
