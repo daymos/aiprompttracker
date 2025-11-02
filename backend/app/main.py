@@ -83,6 +83,18 @@ async def og_image():
         return FileResponse(og_image_file, media_type="image/png")
     return {"error": "OG image not found"}
 
+@app.get("/blog/{blog_post}")
+async def serve_blog_post(blog_post: str):
+    """Serve blog posts from landing/blog directory"""
+    # Sanitize filename - only allow alphanumeric, hyphens, and .html
+    if not blog_post.endswith('.html'):
+        blog_post = f"{blog_post}.html"
+    
+    blog_file = landing_dir / "blog" / blog_post
+    if blog_file.exists() and blog_file.suffix == '.html':
+        return FileResponse(blog_file, media_type="text/html")
+    return {"error": "Blog post not found"}
+
 # Serve Flutter app or waitlist message based on WAITLIST_MODE
 if settings.WAITLIST_MODE:
     # Waitlist mode - show coming soon message
