@@ -39,8 +39,8 @@ class KeywordService:
             logger.info(f"🌍 Using global keyword endpoint (worldwide data)")
         else:
             url = f"{self.base_url}/keysuggest/"
-            params = {
-                "keyword": seed_keyword,
+        params = {
+            "keyword": seed_keyword,
                 "location": location.upper(),  # e.g., "US", "UK"
                 "lang": "en",
                 "return_intent": "true"  # Include search intent
