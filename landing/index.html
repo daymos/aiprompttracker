@@ -770,10 +770,28 @@
         /* Footer */
         footer {
             border-top: 1px solid #2d3544;
-            padding: 2rem;
+            padding: 3rem 2rem 2rem;
             text-align: center;
             color: #6b7280;
             margin-top: 4rem;
+        }
+        
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .footer-links a {
+            color: #95e1d3;
+            text-decoration: none;
+            font-size: 0.95rem;
+        }
+        
+        .footer-links a:hover {
+            color: #ffd580;
         }
         
         /* Responsive */
@@ -1083,7 +1101,12 @@
 
     <!-- Footer -->
     <footer>
-        <p>&copy; 2025 Keywords.chat - AI-Powered SEO Assistant. All rights reserved.</p>
+        <div class="footer-links">
+            <a href="/blog/simplest-seo-tool-for-indie-hackers">Simple SEO Tool Guide</a>
+            <a href="/blog/why-we-built-an-ahrefs-alternative">Why We Built This</a>
+            <a href="/blog/ahrefs-vs-semrush-vs-keywordschat">Compare SEO Tools</a>
+        </div>
+        <p>&copy; 2025 Keywords.chat - The Simplest SEO Tool. All rights reserved.</p>
     </footer>
 
     <script>
