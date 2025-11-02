@@ -179,7 +179,23 @@ class _ChatScreenState extends State<ChatScreen> {
     setState(() {
       _shouldCancelRequest = false;
     });
-    chatProvider.setLoading(true);
+    
+    // Determine loading status based on message content
+    String loadingStatus = 'Thinking...';
+    final messageLower = message.toLowerCase();
+    if (messageLower.contains('keyword') || messageLower.contains('research')) {
+      loadingStatus = 'Researching keywords...';
+    } else if (messageLower.contains('rank') || messageLower.contains('position')) {
+      loadingStatus = 'Checking rankings...';
+    } else if (messageLower.contains('website') || messageLower.contains('analyze') || messageLower.contains('seo')) {
+      loadingStatus = 'Analyzing website...';
+    } else if (messageLower.contains('backlink') || messageLower.contains('link')) {
+      loadingStatus = 'Analyzing backlinks...';
+    } else if (messageLower.contains('serp')) {
+      loadingStatus = 'Analyzing SERP...';
+    }
+    
+    chatProvider.setLoading(true, status: loadingStatus);
 
     try {
       final response = await authProvider.apiService.sendMessage(
@@ -623,39 +639,42 @@ class _ChatScreenState extends State<ChatScreen> {
     required String label,
     required String message,
   }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          _messageController.text = message;
-          _sendMessage();
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+    return Tooltip(
+      message: message,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            _messageController.text = message;
+            _sendMessage();
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+              ),
+              borderRadius: BorderRadius.circular(12),
             ),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                size: 14,
-                color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.6),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
-                  fontSize: 13,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  icon,
+                  size: 14,
+                  color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.6),
                 ),
-              ),
-            ],
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -665,18 +684,8 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildInputArea() {
     final chatProvider = context.watch<ChatProvider>();
     
-    return Container(
+    return Padding(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 700),
@@ -852,8 +861,53 @@ class _ChatScreenState extends State<ChatScreen> {
                 child: ListView.builder(
                   controller: _scrollController,
                   padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-                  itemCount: chatProvider.messages.length,
+                  itemCount: chatProvider.messages.length + (chatProvider.isLoading ? 1 : 0),
                   itemBuilder: (context, index) {
+                    // Show typing indicator as last item when loading
+                    if (index == chatProvider.messages.length && chatProvider.isLoading) {
+                      return Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 900),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      SizedBox(
+                                        width: 14,
+                                        height: 14,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation<Color>(
+                                            Theme.of(context).colorScheme.primary,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Text(
+                                        chatProvider.loadingStatus,
+                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                          color: Theme.of(context).textTheme.bodySmall?.color,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                    
                     return Center(
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 900),
@@ -865,13 +919,6 @@ class _ChatScreenState extends State<ChatScreen> {
                   },
                 ),
               ),
-              
-              // Loading indicator
-              if (chatProvider.isLoading)
-                const Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: LinearProgressIndicator(),
-                ),
               
               // Input area (bottom)
               _buildInputArea(),

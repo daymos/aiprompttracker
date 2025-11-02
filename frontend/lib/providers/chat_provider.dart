@@ -35,11 +35,13 @@ class ChatProvider with ChangeNotifier {
   List<Conversation> _conversations = [];
   String? _currentConversationId;
   bool _isLoading = false;
+  String _loadingStatus = 'Thinking...';
   
   List<Message> get messages => _messages;
   List<Conversation> get conversations => _conversations;
   String? get currentConversationId => _currentConversationId;
   bool get isLoading => _isLoading;
+  String get loadingStatus => _loadingStatus;
   
   void addMessage(Message message) {
     _messages.add(message);
@@ -64,8 +66,9 @@ class ChatProvider with ChangeNotifier {
     notifyListeners();
   }
   
-  void setLoading(bool loading) {
+  void setLoading(bool loading, {String status = 'Thinking...'}) {
     _isLoading = loading;
+    _loadingStatus = status;
     notifyListeners();
   }
   
