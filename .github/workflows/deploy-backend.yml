@@ -13,7 +13,7 @@ on:
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   SERVICE_NAME: keywordschat-api
-  REGION: europe-west2
+  REGION: europe-west1
 
 jobs:
   deploy:
