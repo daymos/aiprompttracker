@@ -10,15 +10,17 @@ class ProjectScreen extends StatefulWidget {
   State<ProjectScreen> createState() => _ProjectScreenState();
 }
 
-class _ProjectScreenState extends State<ProjectScreen> {
+class _ProjectScreenState extends State<ProjectScreen> with SingleTickerProviderStateMixin {
   final TextEditingController _urlController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   bool _isCreatingProject = false;
   bool _showCreateForm = false;
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     // Load projects after build completes to avoid setState during build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadProjects();
@@ -257,6 +259,7 @@ class _ProjectScreenState extends State<ProjectScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Project Header Card
                         Card(
                           child: Padding(
                             padding: const EdgeInsets.all(16.0),
@@ -285,75 +288,35 @@ class _ProjectScreenState extends State<ProjectScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        Text(
-                          'Tracked Keywords',
-                          style: Theme.of(context).textTheme.titleLarge,
+                        
+                        // Tab Bar
+                        TabBar(
+                          controller: _tabController,
+                          tabs: const [
+                            Tab(
+                              icon: Icon(Icons.push_pin),
+                              text: 'Pinboard',
+                            ),
+                            Tab(
+                              icon: Icon(Icons.key),
+                              text: 'Keywords',
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 16),
+                        
+                        // Tab Bar View
                         Expanded(
-                          child: projectProvider.isLoading
-                              ? const Center(child: CircularProgressIndicator())
-                              : keywords.isEmpty
-                                  ? const Center(
-                                      child: Text('No keywords tracked yet. Add some from the chat!'),
-                                    )
-                                  : ListView.builder(
-                                      itemCount: keywords.length,
-                                      itemBuilder: (context, index) {
-                                        final keyword = keywords[index];
-                                        return Card(
-                                          margin: const EdgeInsets.only(bottom: 12),
-                                          child: ListTile(
-                                            onTap: () {
-                                              Navigator.pushNamed(
-                                                context,
-                                                '/keyword-detail',
-                                                arguments: {
-                                                  'keywordId': keyword.id,
-                                                  'keyword': keyword.keyword,
-                                                  'currentPosition': keyword.currentPosition,
-                                                },
-                                              );
-                                            },
-                                            leading: CircleAvatar(
-                                              backgroundColor: _getPositionColor(keyword.currentPosition),
-                                              child: Text(
-                                                keyword.currentPosition?.toString() ?? '--',
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ),
-                                            title: Text(
-                                              keyword.keyword,
-                                              style: const TextStyle(fontWeight: FontWeight.bold),
-                                            ),
-                                            subtitle: Text(
-                                              '${keyword.searchVolume ?? '--'} searches/mo • ${keyword.competition ?? 'UNKNOWN'} competition',
-                                            ),
-                                            trailing: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                if (keyword.currentPosition != null)
-                                                  Chip(
-                                                    label: Text('Position ${keyword.currentPosition}'),
-                                                    backgroundColor: _getPositionColor(keyword.currentPosition)
-                                                        .withOpacity(0.2),
-                                                  )
-                                                else
-                                                  const Chip(
-                                                    label: Text('Not ranked'),
-                                                    backgroundColor: Colors.grey,
-                                                  ),
-                                                const SizedBox(width: 8),
-                                                const Icon(Icons.chevron_right),
-                                              ],
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
+                          child: TabBarView(
+                            controller: _tabController,
+                            children: [
+                              // Pinboard Tab
+                              _buildPinboardTab(),
+                              
+                              // Keywords Tab
+                              _buildKeywordsTab(projectProvider, keywords),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -363,6 +326,119 @@ class _ProjectScreenState extends State<ProjectScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildPinboardTab() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.push_pin_outlined,
+            size: 64,
+            color: Colors.grey[600],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Pinboard',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Save and organize important insights, data, and findings',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[500],
+            ),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () {
+              // TODO: Implement add pin functionality
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Coming soon!')),
+              );
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('Add Pin'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildKeywordsTab(ProjectProvider projectProvider, List<dynamic> keywords) {
+    if (projectProvider.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    
+    if (keywords.isEmpty) {
+      return const Center(
+        child: Text('No keywords tracked yet. Add some from the chat!'),
+      );
+    }
+    
+    return ListView.builder(
+      itemCount: keywords.length,
+      itemBuilder: (context, index) {
+        final keyword = keywords[index];
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: ListTile(
+            onTap: () {
+              Navigator.pushNamed(
+                context,
+                '/keyword-detail',
+                arguments: {
+                  'keywordId': keyword.id,
+                  'keyword': keyword.keyword,
+                  'currentPosition': keyword.currentPosition,
+                },
+              );
+            },
+            leading: CircleAvatar(
+              backgroundColor: _getPositionColor(keyword.currentPosition),
+              child: Text(
+                keyword.currentPosition?.toString() ?? '--',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            title: Text(
+              keyword.keyword,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle: Text(
+              '${keyword.searchVolume ?? '--'} searches/mo • ${keyword.competition ?? 'UNKNOWN'} competition',
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (keyword.currentPosition != null)
+                  Chip(
+                    label: Text('Position ${keyword.currentPosition}'),
+                    backgroundColor: _getPositionColor(keyword.currentPosition).withOpacity(0.2),
+                  )
+                else
+                  const Chip(
+                    label: Text('Not ranked'),
+                    backgroundColor: Colors.grey,
+                  ),
+                const SizedBox(width: 8),
+                const Icon(Icons.chevron_right),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -377,6 +453,7 @@ class _ProjectScreenState extends State<ProjectScreen> {
   void dispose() {
     _urlController.dispose();
     _nameController.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 }
