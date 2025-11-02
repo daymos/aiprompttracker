@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keywords.chat - AI-Powered SEO Assistant | Keyword Research & Analysis</title>
+    <meta name="description" content="Keywords.chat is your AI-powered SEO assistant. Research keywords, analyze SERP, check rankings, audit websites, and analyze backlinks - all in one conversational interface.">
+    <meta name="keywords" content="keyword research, seo tools, serp analysis, backlink checker, rank tracker, seo assistant, ai seo tool">
+    <meta property="og:title" content="Keywords.chat - AI-Powered SEO Assistant">
+    <meta property="og:description" content="Research keywords, analyze SERP, check rankings, and more with our AI-powered SEO assistant.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://keywords.chat">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Keywords.chat - AI-Powered SEO Assistant">
+    <meta name="twitter:description" content="Research keywords, analyze SERP, check rankings, and more with our AI-powered SEO assistant.">
+    <link rel="canonical" href="https://keywords.chat">
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-11PY1QFBK5"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-11PY1QFBK5');
+    </script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #1f2430;
+            color: #cbccc6;
+            line-height: 1.6;
+        }
+        
+        /* Header */
+        header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #2d3544;
+        }
+        
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+        
+        .logo-k {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #ffd580;
+        }
+        
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #cbccc6;
+        }
+        
+        .logo-text .highlight {
+            color: #ffd580;
+        }
+        
+        .cta-button {
+            background: linear-gradient(135deg, #ffd580 0%, #ffb347 100%);
+            color: #1f2430;
+            padding: 0.75rem 2rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 12px rgba(255, 213, 128, 0.2);
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 213, 128, 0.3);
+        }
+        
+        /* Hero Section */
+        .hero {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 6rem 2rem;
+            text-align: center;
+        }
+        
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
+        }
+        
+        .hero h1 .gradient-text {
+            background: linear-gradient(135deg, #ffd580 0%, #5ccfe6 50%, #d4bfff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .hero p {
+            font-size: 1.25rem;
+            color: #8a9ba8;
+            margin-bottom: 3rem;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .primary-button {
+            background: linear-gradient(135deg, #ffd580 0%, #ffb347 100%);
+            color: #1f2430;
+            padding: 1rem 2.5rem;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 12px rgba(255, 213, 128, 0.2);
+        }
+        
+        .primary-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(255, 213, 128, 0.3);
+        }
+        
+        .secondary-button {
+            background: transparent;
+            color: #cbccc6;
+            padding: 1rem 2.5rem;
+            border: 2px solid #5ccfe6;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.2s;
+        }
+        
+        .secondary-button:hover {
+            background: rgba(92, 207, 230, 0.1);
+            border-color: #7ddff0;
+        }
+        
+        /* Features Section */
+        .features {
+            max-width: 1200px;
+            margin: 6rem auto;
+            padding: 0 2rem;
+        }
+        
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        
+        .section-subtitle {
+            text-align: center;
+            font-size: 1.1rem;
+            color: #8a9ba8;
+            margin-bottom: 4rem;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+        
+        .feature-card {
+            background: #242936;
+            padding: 2rem;
+            border-radius: 16px;
+            border: 1px solid #2d3544;
+            transition: all 0.3s;
+        }
+        
+        .feature-card:hover {
+            border-color: #ffd580;
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+        
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .feature-card h3 {
+            font-size: 1.5rem;
+            color: #ffd580;
+            margin-bottom: 1rem;
+        }
+        
+        .feature-card p {
+            color: #8a9ba8;
+            line-height: 1.7;
+        }
+        
+        /* How It Works Section */
+        .how-it-works {
+            max-width: 1200px;
+            margin: 6rem auto;
+            padding: 4rem 2rem;
+            background: #242936;
+            border-radius: 24px;
+        }
+        
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 3rem;
+            margin-top: 3rem;
+        }
+        
+        .step {
+            text-align: center;
+        }
+        
+        .step-number {
+            display: inline-block;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #ffd580 0%, #ffb347 100%);
+            color: #1f2430;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            font-weight: 700;
+            line-height: 60px;
+            margin-bottom: 1.5rem;
+        }
+        
+        .step h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.75rem;
+            color: #cbccc6;
+        }
+        
+        .step p {
+            color: #8a9ba8;
+        }
+        
+        /* CTA Section */
+        .cta-section {
+            max-width: 1200px;
+            margin: 6rem auto 4rem;
+            padding: 4rem 2rem;
+            text-align: center;
+            background: linear-gradient(135deg, rgba(255, 213, 128, 0.1) 0%, rgba(92, 207, 230, 0.1) 100%);
+            border-radius: 24px;
+        }
+        
+        .cta-section h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .cta-section p {
+            font-size: 1.2rem;
+            color: #8a9ba8;
+            margin-bottom: 2rem;
+        }
+        
+        /* Waitlist Form */
+        .waitlist-form {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .form-group {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .email-input {
+            flex: 1;
+            min-width: 300px;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            border: 2px solid #2d3544;
+            background: #242936;
+            color: #cbccc6;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+        
+        .email-input:focus {
+            outline: none;
+            border-color: #ffd580;
+            box-shadow: 0 0 0 3px rgba(255, 213, 128, 0.1);
+        }
+        
+        .email-input::placeholder {
+            color: #5c6773;
+        }
+        
+        .submit-button {
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, #ffd580 0%, #ffb347 100%);
+            color: #1f2430;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(255, 213, 128, 0.2);
+        }
+        
+        .submit-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 213, 128, 0.3);
+        }
+        
+        .form-note {
+            font-size: 0.9rem !important;
+            color: #5c6773 !important;
+            margin: 0 !important;
+        }
+        
+        /* Footer */
+        footer {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+            border-top: 1px solid #2d3544;
+            text-align: center;
+            color: #5c6773;
+        }
+        
+        footer a {
+            color: #5ccfe6;
+            text-decoration: none;
+        }
+        
+        footer a:hover {
+            color: #7ddff0;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .hero p {
+                font-size: 1.1rem;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .steps {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="header-content">
+            <a href="/" class="logo">
+                <span class="logo-k">K</span>
+                <span class="logo-text"><span class="highlight">Keywords</span>.chat</span>
+            </a>
+            <a href="#waitlist" class="cta-button">Join Waitlist</a>
+        </div>
+    </header>
+    
+    <!-- Hero Section -->
+    <section class="hero">
+        <h1>
+            Your AI-Powered<br>
+            <span class="gradient-text">SEO Assistant</span>
+        </h1>
+        <p>
+            Research keywords, analyze SERP, check rankings, audit websites, and analyze backlinks - 
+            all through a simple conversational interface powered by AI.
+        </p>
+        <div class="hero-buttons">
+            <a href="#waitlist" class="primary-button" onclick="gtag('event', 'click', {'event_category': 'cta', 'event_label': 'hero_waitlist_button'});">Join the Waitlist →</a>
+            <a href="#features" class="secondary-button" onclick="gtag('event', 'click', {'event_category': 'navigation', 'event_label': 'see_features_button'});">See Features</a>
+        </div>
+    </section>
+    
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <h2 class="section-title">Powerful SEO Tools at Your Command</h2>
+        <p class="section-subtitle">Just ask - no complex interfaces, no learning curve</p>
+        
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🔍</div>
+                <h3>Keyword Research</h3>
+                <p>
+                    Get instant keyword suggestions with search volume, competition levels, and CPC data. 
+                    Supports both topic-based and URL analysis for any location worldwide.
+                </p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <h3>SERP Analysis</h3>
+                <p>
+                    Understand ranking difficulty by analyzing who's currently ranking. 
+                    See if major brands dominate or if there's opportunity for smaller sites.
+                </p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">📈</div>
+                <h3>Rank Tracking</h3>
+                <p>
+                    Check where any domain ranks for specific keywords. 
+                    Track your position and monitor competitors in real-time.
+                </p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">🌐</div>
+                <h3>Website Analysis</h3>
+                <p>
+                    Get comprehensive SEO audits of any website. 
+                    Analyze titles, meta descriptions, headings, content, and receive actionable recommendations.
+                </p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">🔗</div>
+                <h3>Backlink Analysis</h3>
+                <p>
+                    Discover backlink profiles, referring domains, and domain authority. 
+                    Find link opportunities and analyze competitor backlinks.
+                </p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">🎯</div>
+                <h3>Opportunity Keywords</h3>
+                <p>
+                    Find low-competition, high-potential keywords that are easier to rank for. 
+                    Perfect for quick wins and efficient SEO strategies.
+                </p>
+            </div>
+        </div>
+    </section>
+    
+    <!-- How It Works -->
+    <section class="how-it-works">
+        <h2 class="section-title">How It Works</h2>
+        <p class="section-subtitle">SEO research as simple as having a conversation</p>
+        
+        <div class="steps">
+            <div class="step">
+                <div class="step-number">1</div>
+                <h3>Ask Your Question</h3>
+                <p>Type your SEO question in plain English. "Find keywords for AI chatbots" or "Analyze example.com"</p>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">2</div>
+                <h3>AI Analyzes</h3>
+                <p>Our AI understands your intent and automatically calls the right SEO tools to gather data</p>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">3</div>
+                <h3>Get Insights</h3>
+                <p>Receive actionable insights and recommendations in seconds, presented in an easy-to-understand format</p>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Waitlist Section -->
+    <section class="cta-section" id="waitlist">
+        <h2>Join the Waitlist</h2>
+        <p>Be among the first to experience AI-powered SEO research</p>
+        
+        <form class="waitlist-form" action="https://formspree.io/f/myzblabo" method="POST" onsubmit="gtag('event', 'waitlist_signup', {'event_category': 'engagement', 'event_label': 'landing_page'});">
+            <div class="form-group">
+                <input 
+                    type="email" 
+                    name="email" 
+                    placeholder="Enter your email" 
+                    required
+                    class="email-input"
+                >
+                <button type="submit" class="submit-button">
+                    Get Early Access →
+                </button>
+            </div>
+            <p class="form-note">🚀 Launching soon! No spam, ever.</p>
+        </form>
+    </section>
+    
+    <!-- Footer -->
+    <footer>
+        <p>
+            &copy; 2025 Keywords.chat. All rights reserved. | 
+            <a href="/privacy">Privacy Policy</a> | 
+            <a href="/terms">Terms of Service</a>
+        </p>
+    </footer>
+</body>
+</html>
+
