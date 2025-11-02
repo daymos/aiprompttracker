@@ -33,10 +33,11 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     // Show welcome modal and load projects after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_hasShownWelcomeModal) {
-        _showWelcomeModal();
-        _hasShownWelcomeModal = true;
-      }
+      // Welcome modal disabled
+      // if (!_hasShownWelcomeModal) {
+      //   _showWelcomeModal();
+      //   _hasShownWelcomeModal = true;
+      // }
       
       // Load projects once
       if (!_hasLoadedProjects) {
