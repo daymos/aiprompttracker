@@ -9,6 +9,7 @@ pytest-asyncio>=0.21.1
 
 # Authentication
 google-auth>=2.15.0
+requests>=2.28.0  # Required by google-auth
 python-jose[cryptography]>=3.3.0
 passlib[bcrypt]>=1.7.4
 
