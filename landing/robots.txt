@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://keywords.chat/sitemap.xml
+

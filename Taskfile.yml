@@ -80,3 +80,11 @@ tasks:
       - rm -rf {{.BACKEND_DIR}}/__pycache__
       - rm -rf {{.FRONTEND_DIR}}/build
       - rm -rf {{.FRONTEND_DIR}}/.dart_tool
+
+  preview:
+    desc: Preview the landing page locally
+    cmds:
+      - echo "🌐 Opening landing page..."
+      - open http://localhost:8000 || xdg-open http://localhost:8000
+      - echo "📍 Landing page: http://localhost:8000"
+      - echo "📍 App: http://localhost:8000/app"

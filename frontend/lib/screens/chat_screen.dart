@@ -695,6 +695,13 @@ class _ChatScreenState extends State<ChatScreen> {
                 color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
               ),
               borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,

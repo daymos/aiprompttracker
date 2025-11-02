@@ -62,9 +62,12 @@ flutter run -d chrome
 
 ## Deployment
 
-- Backend: Cloud Run
-- Frontend: Firebase Hosting
+**Unified Cloud Run Deployment:**
+- Backend API + Landing Page + Flutter App → Cloud Run
 - Database: Cloud SQL (PostgreSQL)
+- CI/CD: GitHub Actions (automatic on push to main)
+
+See [`DEPLOYMENT.md`](DEPLOYMENT.md) for detailed deployment guide.
 
 ## Cost Structure
 

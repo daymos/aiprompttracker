@@ -1,9 +1,11 @@
-name: Deploy Frontend to Firebase
+name: Deploy Frontend to Firebase (DEPRECATED)
 
+# DEPRECATED: Frontend is now served by the backend via Cloud Run
+# See deploy-backend.yml for the unified deployment
 on:
   push:
     branches:
-      - main
+      - never-run-this-workflow
     paths:
       - 'frontend/**'
       - '.github/workflows/deploy-frontend.yml'

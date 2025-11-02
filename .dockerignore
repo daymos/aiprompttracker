@@ -1,0 +1,78 @@
+# Git
+.git
+.gitignore
+.github
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+*.pytest_cache
+.coverage
+htmlcov
+.tox
+.venv
+venv
+env
+
+# Flutter
+frontend/.dart_tool
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
+frontend/.packages
+frontend/.pub-cache
+frontend/.pub
+frontend/build/ios
+frontend/build/android
+frontend/build/macos
+frontend/build/linux
+frontend/build/windows
+frontend/ios
+frontend/android
+frontend/macos
+frontend/linux
+frontend/windows
+frontend/test
+
+# IDEs
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Documentation
+README.md
+DEPLOYMENT.md
+landing/README.md
+landing/WAITLIST_SETUP.md
+conversation_*.csv
+
+# Firebase (no longer used)
+frontend/firebase.json
+frontend/.firebaserc
+.firebase
+
+# Task
+Taskfile.yml
+
+# Node modules (if any)
+node_modules
+
+# Logs
+*.log
+logs
+
+# Environment files (secrets should be in Cloud Secret Manager)
+.env
+.env.local
+.env.*.local
+

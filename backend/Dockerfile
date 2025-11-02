@@ -3,11 +3,17 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install dependencies
-COPY requirements.txt .
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application
-COPY . .
+# Copy backend application
+COPY backend/ .
+
+# Copy landing page
+COPY landing/ ../landing/
+
+# Copy Flutter web build (will be built in CI)
+COPY frontend/build/web/ ../frontend/build/web/
 
 # Expose port
 EXPOSE 8000
