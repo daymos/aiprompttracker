@@ -1,11 +1,14 @@
 from fastapi import APIRouter, HTTPException, Depends, Header
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, AsyncIterator
 import uuid
 import re
 import logging
 import httpx
+import json
+import asyncio
 
 from ..database import get_db
 from ..models.user import User
@@ -41,13 +44,451 @@ class ConversationListItem(BaseModel):
     created_at: str
     message_count: int
 
+async def send_sse_event(event_type: str, data: dict) -> str:
+    """Format data as Server-Sent Event"""
+    return f"event: {event_type}\ndata: {json.dumps(data)}\n\n"
+
+@router.post("/message/stream")
+async def send_message_stream(
+    request: ChatRequest,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """Send a message and get streaming status updates via SSE"""
+    
+    async def event_generator() -> AsyncIterator[str]:
+        try:
+            # Extract token from Authorization header
+            token = authorization.replace("Bearer ", "")
+            user = get_current_user(token, db)
+            
+            # Send initial status
+            yield await send_sse_event("status", {"message": "Thinking..."})
+            
+            # Create or get conversation
+            if request.conversation_id:
+                conversation = db.query(Conversation).filter(
+                    Conversation.id == request.conversation_id,
+                    Conversation.user_id == user.id
+                ).first()
+                
+                if not conversation:
+                    yield await send_sse_event("error", {"message": "Conversation not found"})
+                    return
+            else:
+                # Create new conversation
+                conversation = Conversation(
+                    id=str(uuid.uuid4()),
+                    user_id=user.id,
+                    title=request.message[:50]
+                )
+                db.add(conversation)
+                db.commit()
+                db.refresh(conversation)
+            
+            # Save user message
+            user_message = Message(
+                id=str(uuid.uuid4()),
+                conversation_id=conversation.id,
+                role="user",
+                content=request.message
+            )
+            db.add(user_message)
+            db.commit()
+            
+            # Get conversation history
+            messages = db.query(Message).filter(
+                Message.conversation_id == conversation.id
+            ).order_by(Message.created_at).all()
+            
+            conversation_history = []
+            for msg in messages[:-1]:
+                content = msg.content
+                if msg.role == "assistant" and msg.message_metadata and msg.message_metadata.get("reasoning"):
+                    reasoning = msg.message_metadata["reasoning"]
+                    content = f"<reasoning>{reasoning}</reasoning>\n\n{content}"
+                conversation_history.append({"role": msg.role, "content": content})
+            
+            # Get user's projects for context
+            user_projects = db.query(Project).filter(Project.user_id == user.id).all()
+            user_projects_data = []
+            for project in user_projects:
+                tracked_keywords = db.query(TrackedKeyword).filter(
+                    TrackedKeyword.project_id == project.id
+                ).all()
+                user_projects_data.append({
+                    'id': project.id,
+                    'name': project.name,
+                    'target_url': project.target_url,
+                    'tracked_keywords': [
+                        {'keyword': kw.keyword, 'search_volume': kw.search_volume, 
+                         'competition': kw.competition, 'target_position': kw.target_position}
+                        for kw in tracked_keywords
+                    ]
+                })
+            
+            # Define available tools
+            tools = [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "research_keywords",
+                        "description": "Research keywords with search volume, competition level, and SERP analysis. Use when user wants keyword data for a topic/niche. Supports both topic keywords and URL analysis (automatically detects URLs). Can search globally or for specific locations.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "keyword_or_topic": {
+                                    "type": "string",
+                                    "description": "The keyword/topic to research (e.g., 'AI chatbots', 'SEO software') OR a URL (e.g., 'example.com', 'https://example.com')"
+                                },
+                                "location": {
+                                    "type": "string",
+                                    "description": "Search scope: 'global' for worldwide data, or country code like 'US', 'UK', 'CA', 'AU' for location-specific data. Default is 'US'.",
+                                    "default": "US"
+                                },
+                                "limit": {
+                                    "type": "integer",
+                                    "description": "Number of keywords to return (default 10)",
+                                    "default": 10
+                                }
+                            },
+                            "required": ["keyword_or_topic"]
+                        }
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "find_opportunity_keywords",
+                        "description": "Find opportunity keywords (high-potential, low-competition keywords that are easier to rank for). Use when user asks for 'easy to rank', 'low competition', 'opportunity', or 'quick wins' keywords. Note: Only supports location-specific searches (not global).",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "keyword": {
+                                    "type": "string",
+                                    "description": "The seed keyword to find opportunities for"
+                                },
+                                "location": {
+                                    "type": "string",
+                                    "description": "Country code like 'US', 'UK', 'CA', 'AU' for location-specific data. Default is 'US'. (Global not supported for opportunity keywords)",
+                                    "default": "US"
+                                },
+                                "limit": {
+                                    "type": "integer",
+                                    "description": "Number of opportunity keywords to return (default 10)",
+                                    "default": 10
+                                }
+                            },
+                            "required": ["keyword"]
+                        }
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "check_ranking",
+                        "description": "Check where a specific domain ranks in Google for a keyword. Returns position (1-100) or None if not ranking.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "keyword": {
+                                    "type": "string",
+                                    "description": "The keyword to check rankings for"
+                                },
+                                "domain": {
+                                    "type": "string",
+                                    "description": "Domain to check (e.g., 'example.com')"
+                                }
+                            },
+                            "required": ["keyword", "domain"]
+                        }
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "analyze_website",
+                        "description": "Crawl and analyze a website's SEO. Extracts title, meta description, headings, content, and provides SEO recommendations.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "url": {
+                                    "type": "string",
+                                    "description": "Full URL of the website to analyze (e.g., 'https://example.com')"
+                                }
+                            },
+                            "required": ["url"]
+                        }
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "analyze_backlinks",
+                        "description": "Analyze backlink profile for a domain. Returns total backlinks, referring domains, domain authority, and top backlinks.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "domain": {
+                                    "type": "string",
+                                    "description": "Domain to analyze without http:// (e.g., 'example.com')"
+                                }
+                            },
+                            "required": ["domain"]
+                        }
+                    }
+                }
+            ]
+            
+            # First LLM call
+            response_text, reasoning, tool_calls = await llm_service.chat_with_tools(
+                user_message=request.message,
+                conversation_history=conversation_history,
+                available_tools=tools,
+                user_projects=user_projects_data if user_projects_data else None,
+                mode=request.mode or "ask"
+            )
+            
+            # Execute tool calls with status updates
+            if tool_calls:
+                tool_results = []
+                
+                for tool_call in tool_calls:
+                    tool_name = tool_call["name"]
+                    args = tool_call["arguments"]
+                    
+                    # Send status based on tool being called
+                    if tool_name == "research_keywords":
+                        yield await send_sse_event("status", {"message": "Researching keywords..."})
+                    elif tool_name == "find_opportunity_keywords":
+                        yield await send_sse_event("status", {"message": "Finding opportunity keywords..."})
+                    elif tool_name == "check_ranking":
+                        yield await send_sse_event("status", {"message": "Checking rankings..."})
+                    elif tool_name == "analyze_website":
+                        yield await send_sse_event("status", {"message": "Analyzing website..."})
+                    elif tool_name == "analyze_backlinks":
+                        yield await send_sse_event("status", {"message": "Analyzing backlinks..."})
+                    
+                    try:
+                        if tool_name == "research_keywords":
+                            keyword_or_topic = args.get("keyword_or_topic")
+                            location = args.get("location", "US")
+                            limit = args.get("limit", 10)
+                            
+                            keyword_data = await keyword_service.analyze_keywords(keyword_or_topic, location=location, limit=limit)
+                            
+                            # Enrich with SERP analysis
+                            serp_rate_limited = False
+                            serp_success_count = 0
+                            if keyword_data:
+                                for keyword_item in keyword_data[:5]:
+                                    keyword = keyword_item.get('keyword')
+                                    if keyword:
+                                        try:
+                                            serp_analysis = await rank_checker.get_serp_analysis(keyword)
+                                            if serp_analysis:
+                                                keyword_item['serp_analysis'] = serp_analysis['analysis']
+                                                keyword_item['serp_insight'] = serp_analysis['insight']
+                                                serp_success_count += 1
+                                        except httpx.HTTPStatusError as e:
+                                            if e.response.status_code == 429:
+                                                serp_rate_limited = True
+                            
+                            response_data = {
+                                "keywords": keyword_data,
+                                "total_found": len(keyword_data) if keyword_data else 0,
+                                "serp_analysis_available": serp_success_count > 0,
+                                "serp_analysis_count": serp_success_count
+                            }
+                            
+                            if serp_rate_limited:
+                                response_data["warning"] = "SERP analysis unavailable: API rate limit reached. Keyword data is still accurate, but ranking difficulty analysis is limited. Rate limits reset daily."
+                            
+                            tool_results.append({
+                                "tool_call_id": tool_call["id"],
+                                "role": "tool",
+                                "name": tool_name,
+                                "content": str(response_data)
+                            })
+                        
+                        elif tool_name == "find_opportunity_keywords":
+                            keyword = args.get("keyword")
+                            location = args.get("location", "US")
+                            limit = args.get("limit", 10)
+                            
+                            opportunity_data = await keyword_service.get_opportunity_keywords(keyword, location=location, num=limit)
+                            
+                            if opportunity_data:
+                                processed_data = []
+                                for item in opportunity_data:
+                                    volume = item.get("volume", 0)
+                                    competition = item.get("competition_level", "UNKNOWN")
+                                    avg_cpc = (item.get("low_bid", 0) + item.get("high_bid", 0)) / 2 if item.get("high_bid") else 0
+                                    
+                                    processed_data.append({
+                                        "keyword": item.get("text", ""),
+                                        "search_volume": volume,
+                                        "competition": competition,
+                                        "competition_index": item.get("competition_index", 0),
+                                        "cpc": round(avg_cpc, 2),
+                                        "trend": item.get("trend", 0),
+                                        "intent": item.get("intent", "unknown"),
+                                        "opportunity_score": "HIGH"
+                                    })
+                                
+                                tool_results.append({
+                                    "tool_call_id": tool_call["id"],
+                                    "role": "tool",
+                                    "name": tool_name,
+                                    "content": str(processed_data)
+                                })
+                            else:
+                                tool_results.append({
+                                    "tool_call_id": tool_call["id"],
+                                    "role": "tool",
+                                    "name": tool_name,
+                                    "content": "[]"
+                                })
+                        
+                        elif tool_name == "check_ranking":
+                            keyword = args.get("keyword")
+                            domain = args.get("domain")
+                            
+                            ranking_data = await rank_checker.check_ranking(keyword, domain)
+                            
+                            tool_results.append({
+                                "tool_call_id": tool_call["id"],
+                                "role": "tool",
+                                "name": tool_name,
+                                "content": str(ranking_data)
+                            })
+                        
+                        elif tool_name == "analyze_website":
+                            url = args.get("url")
+                            
+                            website_data = await web_scraper.analyze_full_site(url)
+                            
+                            tool_results.append({
+                                "tool_call_id": tool_call["id"],
+                                "role": "tool",
+                                "name": tool_name,
+                                "content": str(website_data)
+                            })
+                        
+                        elif tool_name == "analyze_backlinks":
+                            domain = args.get("domain")
+                            
+                            if user.backlink_rows_used >= user.backlink_rows_limit:
+                                error_msg = f"Backlink limit reached ({user.backlink_rows_limit}/month)"
+                                tool_results.append({
+                                    "tool_call_id": tool_call["id"],
+                                    "role": "tool",
+                                    "name": tool_name,
+                                    "content": f"ERROR: {error_msg}"
+                                })
+                            else:
+                                backlink_data = await backlink_service.get_backlinks(domain, limit=50)
+                                
+                                if backlink_data and not backlink_data.get("error"):
+                                    user.backlink_rows_used += 1
+                                    db.commit()
+                                
+                                tool_results.append({
+                                    "tool_call_id": tool_call["id"],
+                                    "role": "tool",
+                                    "name": tool_name,
+                                    "content": str(backlink_data)
+                                })
+                    
+                    except Exception as e:
+                        tool_results.append({
+                            "tool_call_id": tool_call["id"],
+                            "role": "tool",
+                            "name": tool_name,
+                            "content": f"ERROR: {str(e)}"
+                        })
+                
+                # Send status for final processing
+                yield await send_sse_event("status", {"message": "Analyzing results..."})
+                
+                # Add tool calls to history
+                conversation_history.append({
+                    "role": "assistant",
+                    "content": None,
+                    "tool_calls": [
+                        {
+                            "id": tc["id"],
+                            "type": "function",
+                            "function": {
+                                "name": tc["name"],
+                                "arguments": str(tc["arguments"])
+                            }
+                        }
+                        for tc in tool_calls
+                    ]
+                })
+                
+                for result in tool_results:
+                    conversation_history.append(result)
+                
+                # Get final response
+                assistant_response, reasoning, follow_up_tools = await llm_service.chat_with_tools(
+                    user_message="",
+                    conversation_history=conversation_history,
+                    available_tools=tools,
+                    user_projects=user_projects_data if user_projects_data else None,
+                    mode=request.mode or "ask"
+                )
+            else:
+                # No tool calls - direct response
+                assistant_response = response_text
+                reasoning = reasoning
+            
+            # Save assistant message
+            metadata = {}
+            if reasoning:
+                metadata["reasoning"] = reasoning
+            
+            assistant_message = Message(
+                id=str(uuid.uuid4()),
+                conversation_id=conversation.id,
+                role="assistant",
+                content=assistant_response,
+                message_metadata=metadata if metadata else None
+            )
+            db.add(assistant_message)
+            db.commit()
+            
+            # Send final response
+            yield await send_sse_event("message", {
+                "message": assistant_response,
+                "conversation_id": conversation.id
+            })
+            
+            # Send done event
+            yield await send_sse_event("done", {})
+            
+        except Exception as e:
+            logging.error(f"Error in event_generator: {e}")
+            yield await send_sse_event("error", {"message": str(e)})
+    
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
 @router.post("/message", response_model=ChatResponse)
 async def send_message(
     request: ChatRequest,
     authorization: str = Header(...),
     db: Session = Depends(get_db)
 ):
-    """Send a message and get keyword research advice"""
+    """Send a message and get keyword research advice (non-streaming version)"""
     
     # Extract token from Authorization header
     token = authorization.replace("Bearer ", "")

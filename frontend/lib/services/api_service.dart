@@ -41,6 +41,67 @@ class ApiService {
     }
   }
   
+  Stream<Map<String, dynamic>> sendMessageStream(
+    String message, 
+    String? conversationId, 
+    {String mode = 'ask'}
+  ) async* {
+    final request = http.Request('POST', Uri.parse('$baseUrl/chat/message/stream'));
+    request.headers.addAll(_headers());
+    request.body = jsonEncode({
+      'message': message,
+      'conversation_id': conversationId,
+      'mode': mode,
+    });
+    
+    final streamedResponse = await request.send();
+    
+    if (streamedResponse.statusCode != 200) {
+      throw Exception('Failed to send message: ${streamedResponse.statusCode}');
+    }
+    
+    // Buffer for incomplete lines
+    String buffer = '';
+    
+    await for (var chunk in streamedResponse.stream.transform(utf8.decoder)) {
+      buffer += chunk;
+      
+      // Process complete lines
+      while (buffer.contains('\n\n')) {
+        final endIndex = buffer.indexOf('\n\n');
+        final line = buffer.substring(0, endIndex);
+        buffer = buffer.substring(endIndex + 2);
+        
+        if (line.isEmpty) continue;
+        
+        // Parse SSE format: "event: <type>\ndata: <json>"
+        final lines = line.split('\n');
+        String? eventType;
+        String? data;
+        
+        for (final l in lines) {
+          if (l.startsWith('event: ')) {
+            eventType = l.substring(7).trim();
+          } else if (l.startsWith('data: ')) {
+            data = l.substring(6).trim();
+          }
+        }
+        
+        if (eventType != null && data != null) {
+          try {
+            final jsonData = jsonDecode(data) as Map<String, dynamic>;
+            yield {
+              'event': eventType,
+              'data': jsonData,
+            };
+          } catch (e) {
+            print('Error parsing SSE data: $e');
+          }
+        }
+      }
+    }
+  }
+  
   Future<List<dynamic>> getConversations() async {
     final response = await http.get(
       Uri.parse('$baseUrl/chat/conversations'),

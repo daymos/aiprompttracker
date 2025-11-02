@@ -189,45 +189,50 @@ class _ChatScreenState extends State<ChatScreen> {
       _shouldCancelRequest = false;
     });
     
-    // Determine loading status based on message content
-    String loadingStatus = 'Thinking...';
-    final messageLower = message.toLowerCase();
-    if (messageLower.contains('keyword') || messageLower.contains('research')) {
-      loadingStatus = 'Researching keywords...';
-    } else if (messageLower.contains('rank') || messageLower.contains('position')) {
-      loadingStatus = 'Checking rankings...';
-    } else if (messageLower.contains('website') || messageLower.contains('analyze') || messageLower.contains('seo')) {
-      loadingStatus = 'Analyzing website...';
-    } else if (messageLower.contains('backlink') || messageLower.contains('link')) {
-      loadingStatus = 'Analyzing backlinks...';
-    } else if (messageLower.contains('serp')) {
-      loadingStatus = 'Analyzing SERP...';
-    }
-    
-    chatProvider.setLoading(true, status: loadingStatus);
+    // Start with initial loading status
+    chatProvider.setLoading(true, status: 'Thinking...');
 
     try {
-      final response = await authProvider.apiService.sendMessage(
+      // Use streaming endpoint to get real-time status updates
+      await for (final event in authProvider.apiService.sendMessageStream(
         message,
         chatProvider.currentConversationId,
         mode: _selectedMode,
-      );
+      )) {
+        // Check if request was cancelled
+        if (_shouldCancelRequest) {
+          break;
+        }
 
-      // Check if request was cancelled while waiting
-      if (_shouldCancelRequest) {
-        return;
+        final eventType = event['event'] as String;
+        final data = event['data'] as Map<String, dynamic>;
+
+        if (eventType == 'status') {
+          // Update loading status based on backend events
+          chatProvider.setLoading(true, status: data['message'] as String);
+        } else if (eventType == 'message') {
+          // Final response received
+          chatProvider.setCurrentConversation(data['conversation_id'] as String);
+          chatProvider.addMessage(Message(
+            id: DateTime.now().toString(),
+            role: 'assistant',
+            content: data['message'] as String,
+            createdAt: DateTime.now(),
+          ));
+          _scrollToBottom();
+        } else if (eventType == 'error') {
+          // Error occurred
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error: ${data['message']}')),
+            );
+          }
+          break;
+        } else if (eventType == 'done') {
+          // Stream completed
+          break;
+        }
       }
-
-      chatProvider.setCurrentConversation(response['conversation_id']);
-      chatProvider.addMessage(Message(
-        id: DateTime.now().toString(),
-        role: 'assistant',
-        content: response['message'],
-        createdAt: DateTime.now(),
-        messageMetadata: response['message_metadata'] as Map<String, dynamic>?,
-      ));
-
-      _scrollToBottom();
     } catch (e) {
       if (mounted && !_shouldCancelRequest) {
         ScaffoldMessenger.of(context).showSnackBar(
