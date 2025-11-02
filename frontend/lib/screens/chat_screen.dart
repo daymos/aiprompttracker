@@ -253,16 +253,29 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
                 const SizedBox(height: 24),
                 // New conversation button
-                IconButton(
-                  onPressed: () {
-                    chatProvider.startNewConversation();
-                    MessageBubble.clearAnimationCache();
-                    setState(() {
-                      _currentView = ViewState.chat;
-                    });
-                  },
-                  icon: const Icon(Icons.add),
-                  tooltip: 'New conversation',
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+                      width: 2,
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    onPressed: () {
+                      chatProvider.startNewConversation();
+                      MessageBubble.clearAnimationCache();
+                      setState(() {
+                        _currentView = ViewState.chat;
+                      });
+                    },
+                    icon: const Icon(Icons.add, size: 18),
+                    iconSize: 18,
+                    padding: EdgeInsets.zero,
+                    tooltip: 'New conversation',
+                  ),
                 ),
                 const SizedBox(height: 12),
                 // Conversations button
