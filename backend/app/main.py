@@ -67,6 +67,22 @@ async def sitemap():
         return FileResponse(sitemap_file, media_type="application/xml")
     return FileResponse(landing_dir / "sitemap.xml")
 
+@app.get("/videos/{video_name}")
+async def serve_video(video_name: str):
+    """Serve video files from landing/videos directory"""
+    video_file = landing_dir / "videos" / video_name
+    if video_file.exists() and video_file.suffix in ['.mp4', '.webm', '.mov']:
+        return FileResponse(video_file, media_type="video/mp4")
+    return {"error": "Video not found"}
+
+@app.get("/og-image.png")
+async def og_image():
+    """Serve OG image for social sharing"""
+    og_image_file = landing_dir / "og-image.png"
+    if og_image_file.exists():
+        return FileResponse(og_image_file, media_type="image/png")
+    return {"error": "OG image not found"}
+
 # Serve Flutter app or waitlist message based on WAITLIST_MODE
 if settings.WAITLIST_MODE:
     # Waitlist mode - show coming soon message
