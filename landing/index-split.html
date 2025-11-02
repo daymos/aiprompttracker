@@ -223,7 +223,7 @@
             color: #ffd580;
         }
         
-        /* Right Side - Animated Chat Demo */
+        /* Right Side - Carousel */
         .hero-right {
             display: flex;
             align-items: center;
@@ -250,90 +250,127 @@
             50% { opacity: 0.6; transform: scale(1.1); }
         }
         
-        .chat-demo {
+        .carousel-container {
             width: 100%;
-            max-width: 500px;
-            background: #1f2430;
-            border-radius: 16px;
-            border: 1px solid #2d3544;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-            overflow: hidden;
+            max-width: 650px;
             position: relative;
             z-index: 1;
         }
         
-        .chat-header {
-            padding: 1rem 1.5rem;
-            background: #242936;
-            border-bottom: 1px solid #2d3544;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
+        .carousel-slides {
+            position: relative;
+            width: 100%;
+            min-height: 500px;
+            overflow: hidden;
+            border-radius: 16px;
+            background: #1f2430;
+            border: 1px solid #2d3544;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
         }
         
-        .chat-header-icon {
-            width: 32px;
-            height: 32px;
-            background: linear-gradient(135deg, #ffd580 0%, #ffb347 100%);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            color: #1f2430;
+        .carousel-slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
         }
         
-        .chat-header-text h3 {
-            font-size: 1rem;
+        .carousel-slide.active {
+            opacity: 1;
+            position: relative;
+        }
+        
+        .carousel-slide img {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 16px;
+        }
+        
+        /* Slide 1: Welcome Screen */
+        .slide-welcome {
+            text-align: center;
+            padding: 3rem 2rem;
+        }
+        
+        .slide-welcome h2 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
             color: #cbccc6;
         }
         
-        .chat-header-text p {
-            font-size: 0.8rem;
+        .slide-welcome .keywords {
+            background: linear-gradient(135deg, #ffd580 0%, #5ccfe6 50%, #d4bfff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .slide-welcome p {
+            font-size: 1rem;
+            color: #a6a9b0;
+            margin-bottom: 2rem;
+        }
+        
+        .suggestions-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+        }
+        
+        .suggestion-item {
+            padding: 0.75rem;
+            background: transparent;
+            border: 1px solid rgba(203, 204, 198, 0.3);
+            border-radius: 12px;
+            color: #a6a9b0;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+        
+        .input-box-preview {
+            padding: 0.75rem;
+            background: #242936;
+            border: 1px solid rgba(203, 204, 198, 0.3);
+            border-radius: 12px;
             color: #6b7280;
+            font-size: 0.9rem;
+            text-align: center;
         }
         
-        .chat-messages {
+        /* Slide 2-4: Chat Examples */
+        .slide-chat {
             padding: 1.5rem;
-            min-height: 400px;
-            max-height: 500px;
-            overflow-y: auto;
         }
         
-        .message {
+        .chat-message {
             margin-bottom: 1.5rem;
-            opacity: 0;
-            transform: translateY(20px);
-            animation: messageSlideIn 0.5s ease forwards;
         }
         
-        @keyframes messageSlideIn {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .user-message {
+            text-align: right;
         }
         
-        .message-user {
-            display: flex;
-            justify-content: flex-end;
-        }
-        
-        .message-user .message-content {
+        .user-message .message-bubble {
+            display: inline-block;
             background: rgba(255, 213, 128, 0.15);
             border: 1px solid rgba(255, 213, 128, 0.3);
-            color: #cbccc6;
             padding: 0.75rem 1rem;
             border-radius: 12px 12px 4px 12px;
+            color: #cbccc6;
             max-width: 80%;
         }
         
-        .message-ai {
+        .ai-message {
             display: flex;
             gap: 0.75rem;
         }
         
-        .message-ai .avatar {
+        .ai-avatar {
             width: 32px;
             height: 32px;
             background: linear-gradient(135deg, #ffd580 0%, #ffb347 100%);
@@ -344,82 +381,91 @@
             justify-content: center;
             font-weight: bold;
             color: #1f2430;
-            font-size: 0.9rem;
         }
         
-        .message-ai .message-content {
+        .ai-message .message-bubble {
             background: #242936;
             border: 1px solid #2d3544;
-            color: #cbccc6;
             padding: 0.75rem 1rem;
             border-radius: 12px 12px 12px 4px;
+            color: #cbccc6;
             flex: 1;
         }
         
-        .message-content p {
-            margin-bottom: 0.5rem;
-            line-height: 1.5;
-        }
-        
-        .message-content p:last-child {
-            margin-bottom: 0;
-        }
-        
-        .typing-indicator {
-            display: flex;
-            gap: 0.3rem;
-            padding: 0.5rem 0;
-        }
-        
-        .typing-indicator span {
-            width: 8px;
-            height: 8px;
-            background: #ffd580;
-            border-radius: 50%;
-            animation: typingBounce 1.4s infinite;
-        }
-        
-        .typing-indicator span:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-        
-        .typing-indicator span:nth-child(3) {
-            animation-delay: 0.4s;
-        }
-        
-        @keyframes typingBounce {
-            0%, 60%, 100% { transform: translateY(0); }
-            30% { transform: translateY(-10px); }
-        }
-        
-        .keyword-results {
+        .message-bubble pre {
             margin-top: 0.75rem;
             padding: 0.75rem;
             background: rgba(255, 213, 128, 0.05);
             border: 1px solid rgba(255, 213, 128, 0.2);
             border-radius: 8px;
-            font-size: 0.9rem;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
+            line-height: 1.4;
+            color: #a6a9b0;
         }
         
-        .keyword-item {
+        /* Carousel Dots */
+        .carousel-dots {
             display: flex;
-            justify-content: space-between;
-            padding: 0.4rem 0;
-            border-bottom: 1px solid rgba(203, 204, 198, 0.1);
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1.5rem;
         }
         
-        .keyword-item:last-child {
-            border-bottom: none;
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(203, 204, 198, 0.3);
+            cursor: pointer;
+            transition: all 0.3s;
         }
         
-        .keyword-name {
-            color: #ffd580;
-            font-weight: 500;
+        .dot.active {
+            background: #ffd580;
+            width: 24px;
+            border-radius: 4px;
         }
         
-        .keyword-volume {
-            color: #6b7280;
-            font-size: 0.85rem;
+        /* Typing Animation */
+        .typing-text {
+            overflow: hidden;
+            white-space: nowrap;
+            animation: typing 2s steps(40) 0.5s forwards;
+            opacity: 0;
+        }
+        
+        .typing-text.visible {
+            opacity: 1;
+        }
+        
+        @keyframes typing {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+        
+        .typing-table {
+            opacity: 0;
+            animation: fadeIn 0.5s 2.5s forwards;
+        }
+        
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+        
+        .cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1em;
+            background: #ffd580;
+            margin-left: 2px;
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
         }
         
         /* Sections Below */
@@ -639,19 +685,53 @@
             </div>
         </div>
         
-        <!-- Right Side - Animated Chat Demo -->
+        <!-- Right Side - Carousel -->
         <div class="hero-right">
-            <div class="chat-demo">
-                <div class="chat-header">
-                    <div class="chat-header-icon">K</div>
-                    <div class="chat-header-text">
-                        <h3>Keywords.chat</h3>
-                        <p>AI SEO Assistant</p>
+            <div class="carousel-container">
+                <div class="carousel-slides">
+                    <!-- Screenshot 1: Welcome Screen -->
+                    <div class="carousel-slide active" style="background: #1f2430; display: flex; align-items: center; justify-content: center; padding: 2rem;">
+                        <div style="text-align: center; color: #6b7280;">
+                            <p style="font-size: 3rem; margin-bottom: 1rem;">📸</p>
+                            <p>Screenshot 1: Welcome Screen</p>
+                            <p style="font-size: 0.85rem; margin-top: 0.5rem;">Add: <code>landing/images/screenshot-welcome.png</code></p>
+                        </div>
+                    </div>
+                    
+                    <!-- Screenshot 2: Keyword Research -->
+                    <div class="carousel-slide" style="background: #1f2430; display: flex; align-items: center; justify-content: center; padding: 2rem;">
+                        <div style="text-align: center; color: #6b7280;">
+                            <p style="font-size: 3rem; margin-bottom: 1rem;">📸</p>
+                            <p>Screenshot 2: Keyword Research</p>
+                            <p style="font-size: 0.85rem; margin-top: 0.5rem;">Add: <code>landing/images/screenshot-keywords.png</code></p>
+                        </div>
+                    </div>
+                    
+                    <!-- Screenshot 3: SERP Analysis -->
+                    <div class="carousel-slide" style="background: #1f2430; display: flex; align-items: center; justify-content: center; padding: 2rem;">
+                        <div style="text-align: center; color: #6b7280;">
+                            <p style="font-size: 3rem; margin-bottom: 1rem;">📸</p>
+                            <p>Screenshot 3: SERP Analysis</p>
+                            <p style="font-size: 0.85rem; margin-top: 0.5rem;">Add: <code>landing/images/screenshot-serp.png</code></p>
+                        </div>
+                    </div>
+                    
+                    <!-- Screenshot 4: Backlinks -->
+                    <div class="carousel-slide" style="background: #1f2430; display: flex; align-items: center; justify-content: center; padding: 2rem;">
+                        <div style="text-align: center; color: #6b7280;">
+                            <p style="font-size: 3rem; margin-bottom: 1rem;">📸</p>
+                            <p>Screenshot 4: Backlink Analysis</p>
+                            <p style="font-size: 0.85rem; margin-top: 0.5rem;">Add: <code>landing/images/screenshot-backlinks.png</code></p>
+                        </div>
                     </div>
                 </div>
                 
-                <div class="chat-messages" id="chat-messages">
-                    <!-- Messages will be animated here -->
+                <!-- Carousel Navigation Dots -->
+                <div class="carousel-dots">
+                    <span class="dot active" onclick="goToSlide(0)"></span>
+                    <span class="dot" onclick="goToSlide(1)"></span>
+                    <span class="dot" onclick="goToSlide(2)"></span>
+                    <span class="dot" onclick="goToSlide(3)"></span>
                 </div>
             </div>
         </div>
@@ -723,149 +803,47 @@
     </footer>
 
     <script>
-        // Animated chat demo
-        const scenarios = [
-            {
-                user: "Research keywords for 'sustainable coffee'",
-                ai: "I'll research keywords related to sustainable coffee for you.",
-                results: [
-                    { keyword: "sustainable coffee brands", volume: "8,100/mo" },
-                    { keyword: "eco friendly coffee", volume: "5,400/mo" },
-                    { keyword: "organic fair trade coffee", volume: "3,600/mo" },
-                    { keyword: "sustainable coffee beans", volume: "2,900/mo" }
-                ]
-            },
-            {
-                user: "Check my ranking for 'best coffee maker'",
-                ai: "I'll check your website's ranking for that keyword.",
-                results: null,
-                response: "Your site ranks #12 for 'best coffee maker' in the US. You're on page 2 - with some optimization, you could break into the top 10! Would you like SERP analysis?"
-            },
-            {
-                user: "Analyze backlinks for techcrunch.com",
-                ai: "Analyzing backlink profile for TechCrunch...",
-                results: null,
-                response: "TechCrunch has an impressive backlink profile:\n• Domain Authority: 93/100\n• Total Backlinks: 12.4M\n• Referring Domains: 428K\n• High-quality links from major publications"
-            }
-        ];
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.carousel-slide');
+        const dots = document.querySelectorAll('.dot');
         
-        let currentScenario = 0;
-        
-        async function runDemo() {
-            const chatMessages = document.getElementById('chat-messages');
-            const scenario = scenarios[currentScenario];
+        function showSlide(n) {
+            slides.forEach(slide => {
+                slide.classList.remove('active');
+                // Reset animations
+                const typingText = slide.querySelector('.typing-text');
+                if (typingText) {
+                    typingText.classList.remove('visible');
+                }
+            });
+            dots.forEach(dot => dot.classList.remove('active'));
             
-            chatMessages.innerHTML = '';
+            currentSlide = (n + slides.length) % slides.length;
             
-            // User message
-            await sleep(1000);
-            addMessage('user', scenario.user);
+            slides[currentSlide].classList.add('active');
+            dots[currentSlide].classList.add('active');
             
-            // Typing indicator
-            await sleep(1500);
-            addTypingIndicator();
-            
-            // AI response
-            await sleep(2000);
-            removeTypingIndicator();
-            addMessage('ai', scenario.ai);
-            
-            // Results or additional response
-            await sleep(1500);
-            if (scenario.results) {
-                addKeywordResults(scenario.results);
-            } else if (scenario.response) {
-                addMessage('ai', scenario.response);
-            }
-            
-            // Wait before next scenario
-            await sleep(4000);
-            currentScenario = (currentScenario + 1) % scenarios.length;
-            runDemo();
+            // Trigger typing animation
+            setTimeout(() => {
+                const typingText = slides[currentSlide].querySelector('.typing-text');
+                if (typingText) {
+                    typingText.classList.add('visible');
+                }
+            }, 100);
         }
         
-        function addMessage(type, content) {
-            const chatMessages = document.getElementById('chat-messages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message message-${type}`;
-            
-            if (type === 'ai') {
-                messageDiv.innerHTML = `
-                    <div class="avatar">K</div>
-                    <div class="message-content">
-                        <p>${content}</p>
-                    </div>
-                `;
-            } else {
-                messageDiv.innerHTML = `
-                    <div class="message-content">
-                        <p>${content}</p>
-                    </div>
-                `;
-            }
-            
-            chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+        function goToSlide(n) {
+            showSlide(n);
         }
         
-        function addKeywordResults(results) {
-            const chatMessages = document.getElementById('chat-messages');
-            const lastMessage = chatMessages.querySelector('.message-ai:last-child .message-content');
-            
-            if (lastMessage) {
-                const resultsDiv = document.createElement('div');
-                resultsDiv.className = 'keyword-results';
-                
-                let resultsHTML = '';
-                results.forEach(item => {
-                    resultsHTML += `
-                        <div class="keyword-item">
-                            <span class="keyword-name">${item.keyword}</span>
-                            <span class="keyword-volume">${item.volume}</span>
-                        </div>
-                    `;
-                });
-                
-                resultsDiv.innerHTML = resultsHTML;
-                lastMessage.appendChild(resultsDiv);
-            }
-            
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+        function nextSlide() {
+            showSlide(currentSlide + 1);
         }
         
-        function addTypingIndicator() {
-            const chatMessages = document.getElementById('chat-messages');
-            const typingDiv = document.createElement('div');
-            typingDiv.className = 'message message-ai';
-            typingDiv.id = 'typing-indicator';
-            typingDiv.innerHTML = `
-                <div class="avatar">K</div>
-                <div class="message-content">
-                    <div class="typing-indicator">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                    </div>
-                </div>
-            `;
-            chatMessages.appendChild(typingDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-        
-        function removeTypingIndicator() {
-            const typingIndicator = document.getElementById('typing-indicator');
-            if (typingIndicator) {
-                typingIndicator.remove();
-            }
-        }
-        
-        function sleep(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
-        }
-        
-        // Start demo
-        runDemo();
+        // Auto-advance carousel every 5 seconds
+        setInterval(nextSlide, 5000);
     </script>
+
 </body>
 </html>
 
