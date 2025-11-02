@@ -280,17 +280,17 @@ class _ChatScreenState extends State<ChatScreen> {
                     shape: BoxShape.circle,
                   ),
                   child: IconButton(
-                    onPressed: () {
-                      chatProvider.startNewConversation();
-                      MessageBubble.clearAnimationCache();
-                      setState(() {
-                        _currentView = ViewState.chat;
-                      });
-                    },
+                  onPressed: () {
+                    chatProvider.startNewConversation();
+                    MessageBubble.clearAnimationCache();
+                    setState(() {
+                      _currentView = ViewState.chat;
+                    });
+                  },
                     icon: const Icon(Icons.add, size: 18),
                     iconSize: 18,
                     padding: EdgeInsets.zero,
-                    tooltip: 'New conversation',
+                  tooltip: 'New conversation',
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -413,8 +413,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   // Title with colored "Keywords"
                   RichText(
                     text: TextSpan(
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
                       ),
                       children: [
                         const TextSpan(text: 'Welcome to '),
@@ -642,38 +642,38 @@ class _ChatScreenState extends State<ChatScreen> {
     return Tooltip(
       message: message,
       child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            _messageController.text = message;
-            _sendMessage();
-          },
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
-              ),
-              borderRadius: BorderRadius.circular(12),
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          _messageController.text = message;
+          _sendMessage();
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  icon,
-                  size: 14,
-                  color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.6),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 14,
+                color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.6),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
+                  fontSize: 13,
                 ),
-                const SizedBox(width: 6),
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
-                    fontSize: 13,
-                  ),
-                ),
-              ],
+              ),
+            ],
             ),
           ),
         ),
@@ -925,7 +925,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     );
                   },
                 ),
-              ),
+                ),
               
               // Input area (bottom)
               _buildInputArea(),

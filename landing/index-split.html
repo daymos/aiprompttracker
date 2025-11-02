@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keywords.chat - AI-Powered SEO Assistant | Keyword Research & Analysis</title>
+    <meta name="description" content="Keywords.chat is your AI-powered SEO assistant. Research keywords, analyze SERP, check rankings, audit websites, and analyze backlinks - all in one conversational interface.">
+    <meta name="keywords" content="keyword research, seo tools, serp analysis, backlink checker, rank tracker, seo assistant, ai seo tool">
+    <meta property="og:title" content="Keywords.chat - AI-Powered SEO Assistant">
+    <meta property="og:description" content="Research keywords, analyze SERP, check rankings, and more with our AI-powered SEO assistant.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://keywords.chat">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Keywords.chat - AI-Powered SEO Assistant">
+    <meta name="twitter:description" content="Research keywords, analyze SERP, check rankings, and more with our AI-powered SEO assistant.">
+    <link rel="canonical" href="https://keywords.chat">
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-11PY1QFBK5"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-11PY1QFBK5');
+    </script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #1f2430;
+            color: #cbccc6;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        
+        /* Header */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem 2rem;
+            background: rgba(31, 36, 48, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #2d3544;
+            z-index: 1000;
+        }
+        
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+        
+        .logo-k {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ffd580;
+        }
+        
+        .logo-text {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #cbccc6;
+        }
+        
+        .logo-text .highlight {
+            color: #ffd580;
+        }
+        
+        .header-cta {
+            background: linear-gradient(135deg, #ffd580 0%, #ffb347 100%);
+            color: #1f2430;
+            padding: 0.6rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .header-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 213, 128, 0.3);
+        }
+        
+        /* Hero Split Layout */
+        .hero-split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            min-height: 100vh;
+            padding-top: 70px;
+        }
+        
+        /* Left Side - Marketing Copy */
+        .hero-left {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 4rem 3rem 4rem 4rem;
+            background: #1f2430;
+        }
+        
+        .hero-content {
+            max-width: 550px;
+        }
+        
+        .hero-badge {
+            display: inline-block;
+            padding: 0.4rem 1rem;
+            background: rgba(255, 213, 128, 0.1);
+            border: 1px solid rgba(255, 213, 128, 0.3);
+            border-radius: 20px;
+            color: #ffd580;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+        }
+        
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            color: #cbccc6;
+        }
+        
+        .hero-title .highlight {
+            background: linear-gradient(135deg, #ffd580 0%, #5ccfe6 50%, #d4bfff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .hero-subtitle {
+            font-size: 1.3rem;
+            color: #a6a9b0;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+        
+        .hero-features {
+            list-style: none;
+            margin-bottom: 2.5rem;
+        }
+        
+        .hero-features li {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 0;
+            color: #cbccc6;
+            font-size: 1.05rem;
+        }
+        
+        .hero-features li::before {
+            content: '✓';
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            background: rgba(255, 213, 128, 0.15);
+            border-radius: 50%;
+            color: #ffd580;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        
+        .hero-cta-group {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        
+        .primary-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #ffd580 0%, #ffb347 100%);
+            color: #1f2430;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 12px rgba(255, 213, 128, 0.3);
+        }
+        
+        .primary-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 213, 128, 0.4);
+        }
+        
+        .secondary-button {
+            display: inline-block;
+            color: #cbccc6;
+            padding: 1rem 2rem;
+            border: 1px solid rgba(203, 204, 198, 0.3);
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.2s;
+        }
+        
+        .secondary-button:hover {
+            border-color: #ffd580;
+            color: #ffd580;
+        }
+        
+        /* Right Side - Animated Chat Demo */
+        .hero-right {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem 4rem 4rem 3rem;
+            background: linear-gradient(135deg, #242936 0%, #1f2430 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero-right::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255, 213, 128, 0.05) 0%, transparent 70%);
+            animation: pulse 8s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.1); }
+        }
+        
+        .chat-demo {
+            width: 100%;
+            max-width: 500px;
+            background: #1f2430;
+            border-radius: 16px;
+            border: 1px solid #2d3544;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .chat-header {
+            padding: 1rem 1.5rem;
+            background: #242936;
+            border-bottom: 1px solid #2d3544;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .chat-header-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #ffd580 0%, #ffb347 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #1f2430;
+        }
+        
+        .chat-header-text h3 {
+            font-size: 1rem;
+            color: #cbccc6;
+        }
+        
+        .chat-header-text p {
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+        
+        .chat-messages {
+            padding: 1.5rem;
+            min-height: 400px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .message {
+            margin-bottom: 1.5rem;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: messageSlideIn 0.5s ease forwards;
+        }
+        
+        @keyframes messageSlideIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message-user {
+            display: flex;
+            justify-content: flex-end;
+        }
+        
+        .message-user .message-content {
+            background: rgba(255, 213, 128, 0.15);
+            border: 1px solid rgba(255, 213, 128, 0.3);
+            color: #cbccc6;
+            padding: 0.75rem 1rem;
+            border-radius: 12px 12px 4px 12px;
+            max-width: 80%;
+        }
+        
+        .message-ai {
+            display: flex;
+            gap: 0.75rem;
+        }
+        
+        .message-ai .avatar {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #ffd580 0%, #ffb347 100%);
+            border-radius: 50%;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #1f2430;
+            font-size: 0.9rem;
+        }
+        
+        .message-ai .message-content {
+            background: #242936;
+            border: 1px solid #2d3544;
+            color: #cbccc6;
+            padding: 0.75rem 1rem;
+            border-radius: 12px 12px 12px 4px;
+            flex: 1;
+        }
+        
+        .message-content p {
+            margin-bottom: 0.5rem;
+            line-height: 1.5;
+        }
+        
+        .message-content p:last-child {
+            margin-bottom: 0;
+        }
+        
+        .typing-indicator {
+            display: flex;
+            gap: 0.3rem;
+            padding: 0.5rem 0;
+        }
+        
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            background: #ffd580;
+            border-radius: 50%;
+            animation: typingBounce 1.4s infinite;
+        }
+        
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes typingBounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+        
+        .keyword-results {
+            margin-top: 0.75rem;
+            padding: 0.75rem;
+            background: rgba(255, 213, 128, 0.05);
+            border: 1px solid rgba(255, 213, 128, 0.2);
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .keyword-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.4rem 0;
+            border-bottom: 1px solid rgba(203, 204, 198, 0.1);
+        }
+        
+        .keyword-item:last-child {
+            border-bottom: none;
+        }
+        
+        .keyword-name {
+            color: #ffd580;
+            font-weight: 500;
+        }
+        
+        .keyword-volume {
+            color: #6b7280;
+            font-size: 0.85rem;
+        }
+        
+        /* Sections Below */
+        .content-section {
+            max-width: 1200px;
+            margin: 4rem auto;
+            padding: 0 2rem;
+        }
+        
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: #cbccc6;
+        }
+        
+        .section-subtitle {
+            text-align: center;
+            color: #a6a9b0;
+            font-size: 1.2rem;
+            margin-bottom: 3rem;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+        
+        .feature-card {
+            background: #242936;
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid #2d3544;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+        
+        .feature-card h3 {
+            color: #ffd580;
+            font-size: 1.3rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .feature-card p {
+            color: #a6a9b0;
+            line-height: 1.6;
+        }
+        
+        /* Waitlist Section */
+        .waitlist-section {
+            max-width: 600px;
+            margin: 4rem auto;
+            padding: 3rem 2rem;
+            background: #242936;
+            border-radius: 16px;
+            border: 1px solid #2d3544;
+            text-align: center;
+        }
+        
+        .waitlist-section h2 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: #cbccc6;
+        }
+        
+        .waitlist-section p {
+            color: #a6a9b0;
+            margin-bottom: 2rem;
+        }
+        
+        .waitlist-form .form-group {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        
+        .email-input {
+            flex: 1;
+            padding: 1rem;
+            background: #1f2430;
+            border: 1px solid rgba(203, 204, 198, 0.3);
+            border-radius: 8px;
+            color: #cbccc6;
+            font-size: 1rem;
+        }
+        
+        .email-input:focus {
+            outline: none;
+            border-color: #ffd580;
+        }
+        
+        .submit-button {
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, #ffd580 0%, #ffb347 100%);
+            color: #1f2430;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .submit-button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .form-note {
+            font-size: 0.9rem;
+            color: #a6a9b0;
+        }
+        
+        /* Footer */
+        footer {
+            border-top: 1px solid #2d3544;
+            padding: 2rem;
+            text-align: center;
+            color: #6b7280;
+            margin-top: 4rem;
+        }
+        
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .hero-split {
+                grid-template-columns: 1fr;
+            }
+            
+            .hero-left {
+                padding: 3rem 2rem;
+            }
+            
+            .hero-right {
+                padding: 3rem 2rem;
+                min-height: 600px;
+            }
+            
+            .hero-title {
+                font-size: 2.5rem;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2rem;
+            }
+            
+            .hero-subtitle {
+                font-size: 1.1rem;
+            }
+            
+            .hero-cta-group {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .primary-button, .secondary-button {
+                width: 100%;
+                text-align: center;
+            }
+            
+            .waitlist-form .form-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="header-content">
+            <a href="#" class="logo">
+                <span class="logo-k">K</span>
+                <span class="logo-text"><span class="highlight">Keywords</span>.chat</span>
+            </a>
+            <a href="#waitlist" class="header-cta">Join Waitlist</a>
+        </div>
+    </header>
+
+    <!-- Hero Split -->
+    <div class="hero-split">
+        <!-- Left Side - Marketing -->
+        <div class="hero-left">
+            <div class="hero-content">
+                <span class="hero-badge">✨ AI-Powered SEO Research</span>
+                
+                <h1 class="hero-title">
+                    Your SEO Assistant<br>
+                    That Actually<br>
+                    <span class="highlight">Understands</span> You
+                </h1>
+                
+                <p class="hero-subtitle">
+                    Stop juggling complex dashboards. Just chat naturally about your SEO needs and get instant, actionable insights.
+                </p>
+                
+                <ul class="hero-features">
+                    <li>Research keywords with real data</li>
+                    <li>Analyze SERP competition</li>
+                    <li>Track rankings across locations</li>
+                    <li>Audit websites for SEO issues</li>
+                    <li>Analyze backlink profiles</li>
+                </ul>
+                
+                <div class="hero-cta-group">
+                    <a href="#waitlist" class="primary-button" onclick="gtag('event', 'click', {'event_category': 'cta', 'event_label': 'hero_primary_cta'});">
+                        Join the Waitlist →
+                    </a>
+                    <a href="#features" class="secondary-button">
+                        See Features
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Side - Animated Chat Demo -->
+        <div class="hero-right">
+            <div class="chat-demo">
+                <div class="chat-header">
+                    <div class="chat-header-icon">K</div>
+                    <div class="chat-header-text">
+                        <h3>Keywords.chat</h3>
+                        <p>AI SEO Assistant</p>
+                    </div>
+                </div>
+                
+                <div class="chat-messages" id="chat-messages">
+                    <!-- Messages will be animated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="content-section" id="features">
+        <h2 class="section-title">Everything You Need for SEO</h2>
+        <p class="section-subtitle">Powerful tools, simple interface</p>
+        
+        <div class="features-grid">
+            <div class="feature-card">
+                <h3>🔍 Keyword Research</h3>
+                <p>Discover high-value keywords with search volume, competition data, and trend analysis.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3>📊 SERP Analysis</h3>
+                <p>Understand competition and identify ranking opportunities in seconds.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3>🎯 Rank Tracking</h3>
+                <p>Monitor your rankings across locations and track your SEO progress.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3>🌐 Website Audits</h3>
+                <p>Comprehensive SEO audits with actionable recommendations.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3>🔗 Backlink Analysis</h3>
+                <p>Analyze backlink profiles with authority metrics and link quality.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3>💬 Natural Conversations</h3>
+                <p>No complex menus. Just ask what you need in plain English.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Waitlist Section -->
+    <div class="waitlist-section" id="waitlist">
+        <h2>Join the Waitlist</h2>
+        <p>Be among the first to experience AI-powered SEO research</p>
+        
+        <form class="waitlist-form" action="https://formspree.io/f/myzblabo" method="POST" onsubmit="gtag('event', 'waitlist_signup', {'event_category': 'engagement', 'event_label': 'landing_page'});">
+            <div class="form-group">
+                <input 
+                    type="email" 
+                    name="email" 
+                    placeholder="Enter your email" 
+                    required
+                    class="email-input"
+                >
+                <button type="submit" class="submit-button">
+                    Get Early Access →
+                </button>
+            </div>
+            <p class="form-note">🚀 Launching soon! No spam, ever.</p>
+        </form>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2025 Keywords.chat - AI-Powered SEO Assistant. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // Animated chat demo
+        const scenarios = [
+            {
+                user: "Research keywords for 'sustainable coffee'",
+                ai: "I'll research keywords related to sustainable coffee for you.",
+                results: [
+                    { keyword: "sustainable coffee brands", volume: "8,100/mo" },
+                    { keyword: "eco friendly coffee", volume: "5,400/mo" },
+                    { keyword: "organic fair trade coffee", volume: "3,600/mo" },
+                    { keyword: "sustainable coffee beans", volume: "2,900/mo" }
+                ]
+            },
+            {
+                user: "Check my ranking for 'best coffee maker'",
+                ai: "I'll check your website's ranking for that keyword.",
+                results: null,
+                response: "Your site ranks #12 for 'best coffee maker' in the US. You're on page 2 - with some optimization, you could break into the top 10! Would you like SERP analysis?"
+            },
+            {
+                user: "Analyze backlinks for techcrunch.com",
+                ai: "Analyzing backlink profile for TechCrunch...",
+                results: null,
+                response: "TechCrunch has an impressive backlink profile:\n• Domain Authority: 93/100\n• Total Backlinks: 12.4M\n• Referring Domains: 428K\n• High-quality links from major publications"
+            }
+        ];
+        
+        let currentScenario = 0;
+        
+        async function runDemo() {
+            const chatMessages = document.getElementById('chat-messages');
+            const scenario = scenarios[currentScenario];
+            
+            chatMessages.innerHTML = '';
+            
+            // User message
+            await sleep(1000);
+            addMessage('user', scenario.user);
+            
+            // Typing indicator
+            await sleep(1500);
+            addTypingIndicator();
+            
+            // AI response
+            await sleep(2000);
+            removeTypingIndicator();
+            addMessage('ai', scenario.ai);
+            
+            // Results or additional response
+            await sleep(1500);
+            if (scenario.results) {
+                addKeywordResults(scenario.results);
+            } else if (scenario.response) {
+                addMessage('ai', scenario.response);
+            }
+            
+            // Wait before next scenario
+            await sleep(4000);
+            currentScenario = (currentScenario + 1) % scenarios.length;
+            runDemo();
+        }
+        
+        function addMessage(type, content) {
+            const chatMessages = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message message-${type}`;
+            
+            if (type === 'ai') {
+                messageDiv.innerHTML = `
+                    <div class="avatar">K</div>
+                    <div class="message-content">
+                        <p>${content}</p>
+                    </div>
+                `;
+            } else {
+                messageDiv.innerHTML = `
+                    <div class="message-content">
+                        <p>${content}</p>
+                    </div>
+                `;
+            }
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        function addKeywordResults(results) {
+            const chatMessages = document.getElementById('chat-messages');
+            const lastMessage = chatMessages.querySelector('.message-ai:last-child .message-content');
+            
+            if (lastMessage) {
+                const resultsDiv = document.createElement('div');
+                resultsDiv.className = 'keyword-results';
+                
+                let resultsHTML = '';
+                results.forEach(item => {
+                    resultsHTML += `
+                        <div class="keyword-item">
+                            <span class="keyword-name">${item.keyword}</span>
+                            <span class="keyword-volume">${item.volume}</span>
+                        </div>
+                    `;
+                });
+                
+                resultsDiv.innerHTML = resultsHTML;
+                lastMessage.appendChild(resultsDiv);
+            }
+            
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        function addTypingIndicator() {
+            const chatMessages = document.getElementById('chat-messages');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message message-ai';
+            typingDiv.id = 'typing-indicator';
+            typingDiv.innerHTML = `
+                <div class="avatar">K</div>
+                <div class="message-content">
+                    <div class="typing-indicator">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            `;
+            chatMessages.appendChild(typingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        function removeTypingIndicator() {
+            const typingIndicator = document.getElementById('typing-indicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+        
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+        
+        // Start demo
+        runDemo();
+    </script>
+</body>
+</html>
+

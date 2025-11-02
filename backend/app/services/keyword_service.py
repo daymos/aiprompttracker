@@ -39,8 +39,8 @@ class KeywordService:
             logger.info(f"🌍 Using global keyword endpoint (worldwide data)")
         else:
             url = f"{self.base_url}/keysuggest/"
-            params = {
-                "keyword": seed_keyword,
+        params = {
+            "keyword": seed_keyword,
                 "location": location.upper(),  # e.g., "US", "UK"
                 "lang": "en",
                 "return_intent": "true"  # Include search intent
@@ -86,7 +86,7 @@ class KeywordService:
                 # If empty dict/null, no keywords found
                 if isinstance(data, dict) and not data:
                     logger.warning(f"No keywords found for '{seed_keyword}'")
-                    return []
+                return []
                 
                 logger.error(f"❌ Unexpected data format received: {type(data)}")
                 logger.error(f"Expected list, got: {str(data)[:200]}")

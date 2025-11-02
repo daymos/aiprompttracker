@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keywords.chat - AI-Powered SEO Assistant | Keyword Research & Analysis</title>
+    <meta name="description" content="Keywords.chat is your AI-powered SEO assistant. Research keywords, analyze SERP, check rankings, audit websites, and analyze backlinks - all in one conversational interface.">
+    <meta name="keywords" content="keyword research, seo tools, serp analysis, backlink checker, rank tracker, seo assistant, ai seo tool">
+    <meta property="og:title" content="Keywords.chat - AI-Powered SEO Assistant">
+    <meta property="og:description" content="Research keywords, analyze SERP, check rankings, and more with our AI-powered SEO assistant.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://keywords.chat">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Keywords.chat - AI-Powered SEO Assistant">
+    <meta name="twitter:description" content="Research keywords, analyze SERP, check rankings, and more with our AI-powered SEO assistant.">
+    <link rel="canonical" href="https://keywords.chat">
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-11PY1QFBK5"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-11PY1QFBK5');
+    </script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #1f2430;
+            color: #cbccc6;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        
+        /* Top Banner */
+        .top-banner {
+            background: linear-gradient(135deg, rgba(255, 213, 128, 0.1) 0%, rgba(255, 179, 71, 0.05) 100%);
+            border-bottom: 1px solid rgba(255, 213, 128, 0.2);
+            padding: 1rem 2rem;
+            text-align: center;
+        }
+        
+        .top-banner h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #cbccc6;
+            margin-bottom: 0.25rem;
+        }
+        
+        .top-banner .highlight {
+            color: #ffd580;
+        }
+        
+        .top-banner p {
+            font-size: 0.95rem;
+            color: #a6a9b0;
+        }
+        
+        /* Chat Interface Mockup */
+        .chat-interface {
+            max-width: 900px;
+            margin: 3rem auto;
+            padding: 0 1rem;
+            min-height: 60vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .welcome-card {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .welcome-card h2 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: #cbccc6;
+        }
+        
+        .welcome-card .keywords-highlight {
+            color: #ffd580;
+        }
+        
+        .welcome-card p {
+            font-size: 1.1rem;
+            color: #a6a9b0;
+            max-width: 600px;
+            margin: 0 auto 2rem;
+        }
+        
+        /* Suggestion Buttons */
+        .suggestions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+        }
+        
+        .suggestion-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: 1px solid rgba(203, 204, 198, 0.3);
+            border-radius: 12px;
+            color: #a6a9b0;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .suggestion-btn:hover {
+            border-color: #ffd580;
+            color: #ffd580;
+            transform: translateY(-2px);
+        }
+        
+        .suggestion-btn::before {
+            content: '🔍';
+            font-size: 1rem;
+        }
+        
+        .suggestion-btn:nth-child(2)::before {
+            content: '📊';
+        }
+        
+        .suggestion-btn:nth-child(3)::before {
+            content: '🎯';
+        }
+        
+        .suggestion-btn:nth-child(4)::before {
+            content: '🔗';
+        }
+        
+        /* Input Box (Disabled for Landing) */
+        .input-container {
+            max-width: 700px;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        .input-box {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            background: #242936;
+            border: 1px solid rgba(203, 204, 198, 0.3);
+            border-radius: 16px;
+            color: #cbccc6;
+            font-size: 1rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            cursor: not-allowed;
+            text-align: center;
+        }
+        
+        .input-box::placeholder {
+            color: #6b7280;
+        }
+        
+        /* Waitlist CTA */
+        .waitlist-prompt {
+            text-align: center;
+            margin-top: 2rem;
+        }
+        
+        .waitlist-cta {
+            display: inline-block;
+            background: linear-gradient(135deg, #ffd580 0%, #ffb347 100%);
+            color: #1f2430;
+            padding: 1rem 2.5rem;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 12px rgba(255, 213, 128, 0.3);
+        }
+        
+        .waitlist-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 213, 128, 0.4);
+        }
+        
+        /* SEO Content Sections */
+        .seo-section {
+            max-width: 1200px;
+            margin: 4rem auto;
+            padding: 0 2rem;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+        
+        .feature-card {
+            background: #242936;
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid #2d3544;
+        }
+        
+        .feature-card h3 {
+            color: #ffd580;
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .feature-card p {
+            color: #a6a9b0;
+            line-height: 1.6;
+        }
+        
+        .section-title {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: #cbccc6;
+        }
+        
+        .section-subtitle {
+            text-align: center;
+            color: #a6a9b0;
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+        
+        /* Waitlist Form */
+        .waitlist-section {
+            max-width: 600px;
+            margin: 4rem auto;
+            padding: 3rem 2rem;
+            background: #242936;
+            border-radius: 16px;
+            border: 1px solid #2d3544;
+            text-align: center;
+        }
+        
+        .waitlist-section h2 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: #cbccc6;
+        }
+        
+        .waitlist-section p {
+            color: #a6a9b0;
+            margin-bottom: 2rem;
+        }
+        
+        .waitlist-form {
+            margin-top: 2rem;
+        }
+        
+        .form-group {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        
+        .email-input {
+            flex: 1;
+            padding: 1rem;
+            background: #1f2430;
+            border: 1px solid rgba(203, 204, 198, 0.3);
+            border-radius: 8px;
+            color: #cbccc6;
+            font-size: 1rem;
+        }
+        
+        .email-input:focus {
+            outline: none;
+            border-color: #ffd580;
+        }
+        
+        .submit-button {
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, #ffd580 0%, #ffb347 100%);
+            color: #1f2430;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .submit-button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .form-note {
+            font-size: 0.9rem;
+            color: #a6a9b0;
+        }
+        
+        /* Footer */
+        footer {
+            border-top: 1px solid #2d3544;
+            padding: 2rem;
+            text-align: center;
+            color: #6b7280;
+            margin-top: 4rem;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .top-banner h1 {
+                font-size: 1.2rem;
+            }
+            
+            .welcome-card h2 {
+                font-size: 1.5rem;
+            }
+            
+            .suggestions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .suggestion-btn {
+                justify-content: center;
+            }
+            
+            .form-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Banner -->
+    <div class="top-banner">
+        <h1><span class="highlight">Keywords</span>.chat - AI-Powered SEO Assistant</h1>
+        <p>Research keywords, analyze SERP, check rankings, audit websites & backlinks - all through conversation</p>
+    </div>
+
+    <!-- Chat Interface Mockup -->
+    <div class="chat-interface">
+        <div class="welcome-card">
+            <h2>Welcome to <span class="keywords-highlight">Keywords</span>.chat</h2>
+            <p>Your AI-powered SEO research assistant. Ask me anything about keywords, rankings, competitors, or SEO analysis.</p>
+            
+            <!-- Suggestion Buttons -->
+            <div class="suggestions">
+                <button class="suggestion-btn" onclick="scrollToWaitlist()">Research keywords</button>
+                <button class="suggestion-btn" onclick="scrollToWaitlist()">Analyze SERP</button>
+                <button class="suggestion-btn" onclick="scrollToWaitlist()">Check rankings</button>
+                <button class="suggestion-btn" onclick="scrollToWaitlist()">Audit backlinks</button>
+            </div>
+        </div>
+        
+        <!-- Disabled Input (shows UI) -->
+        <div class="input-container">
+            <input 
+                type="text" 
+                class="input-box" 
+                placeholder="Currently in private beta - Join the waitlist below" 
+                disabled
+                readonly
+            >
+        </div>
+        
+        <!-- Waitlist CTA -->
+        <div class="waitlist-prompt">
+            <a href="#waitlist" class="waitlist-cta" onclick="gtag('event', 'click', {'event_category': 'cta', 'event_label': 'hero_waitlist_button'});">
+                Join the Waitlist - Get Early Access →
+            </a>
+        </div>
+    </div>
+
+    <!-- Features Section (SEO Content) -->
+    <div class="seo-section">
+        <h2 class="section-title">Powerful SEO Tools at Your Command</h2>
+        <p class="section-subtitle">Everything you need for SEO research, in one conversational interface</p>
+        
+        <div class="features-grid">
+            <div class="feature-card">
+                <h3>🔍 Keyword Research</h3>
+                <p>Discover high-value keywords with real search volume, competition data, and trend analysis. Get suggestions for any topic or URL.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3>📊 SERP Analysis</h3>
+                <p>Analyze search engine results pages to understand competition, identify ranking opportunities, and discover content gaps.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3>🎯 Rank Tracking</h3>
+                <p>Check your website's rankings for target keywords across different locations. Monitor your SEO progress over time.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3>🌐 Website Audits</h3>
+                <p>Comprehensive SEO audits that analyze your site structure, content, technical SEO, and provide actionable recommendations.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3>🔗 Backlink Analysis</h3>
+                <p>Analyze your backlink profile with domain authority metrics, referring domains, and link quality assessments.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3>💬 Conversational Interface</h3>
+                <p>No complex dashboards. Just chat naturally about your SEO needs and get instant, actionable insights.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Waitlist Section -->
+    <div class="waitlist-section" id="waitlist">
+        <h2>Join the Waitlist</h2>
+        <p>Be among the first to experience AI-powered SEO research</p>
+        
+        <form class="waitlist-form" action="https://formspree.io/f/myzblabo" method="POST" onsubmit="gtag('event', 'waitlist_signup', {'event_category': 'engagement', 'event_label': 'landing_page'});">
+            <div class="form-group">
+                <input 
+                    type="email" 
+                    name="email" 
+                    placeholder="Enter your email" 
+                    required
+                    class="email-input"
+                >
+                <button type="submit" class="submit-button">
+                    Get Early Access →
+                </button>
+            </div>
+            <p class="form-note">🚀 Launching soon! No spam, ever.</p>
+        </form>
+    </div>
+
+    <!-- SEO Content (Hidden but crawlable) -->
+    <div class="seo-section" style="max-width: 800px;">
+        <h2 class="section-title">Why Keywords.chat?</h2>
+        <div style="color: #a6a9b0; line-height: 1.8;">
+            <p style="margin-bottom: 1rem;">
+                <strong>Keywords.chat</strong> is an AI-powered SEO assistant that combines the power of advanced language models with real-time SEO data. 
+                Instead of navigating complex dashboards and multiple tools, simply chat with our AI assistant to get the insights you need.
+            </p>
+            <p style="margin-bottom: 1rem;">
+                Whether you're a content creator, digital marketer, or SEO professional, Keywords.chat provides instant access to:
+                keyword research data, SERP analysis, rank tracking, website audits, and backlink analysis - all through a simple conversational interface.
+            </p>
+            <p>
+                Stop paying $65+/month for complex SEO tools you barely use. Get the insights you need, when you need them, through natural conversation.
+            </p>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2025 Keywords.chat - AI-Powered SEO Assistant. All rights reserved.</p>
+    </footer>
+
+    <script>
+        function scrollToWaitlist() {
+            document.getElementById('waitlist').scrollIntoView({ behavior: 'smooth' });
+            gtag('event', 'click', {'event_category': 'cta', 'event_label': 'suggestion_button'});
+        }
+    </script>
+</body>
+</html>
+

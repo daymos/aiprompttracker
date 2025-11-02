@@ -72,7 +72,7 @@ async def sitemap():
 @app.get("/app/{full_path:path}")
 async def app_coming_soon(full_path: str = ""):
     """App is in waitlist mode"""
-    return {
+        return {
         "status": "Coming Soon",
         "message": "Keywords.chat is currently in private beta. Join the waitlist at https://keywords.chat"
     }
