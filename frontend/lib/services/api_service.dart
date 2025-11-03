@@ -368,5 +368,25 @@ class ApiService {
       throw Exception('Failed to unpin item');
     }
   }
+
+  Future<Map<String, dynamic>> pinConversation({
+    required String conversationId,
+    String? projectId,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/project/pin-conversation'),
+      headers: _headers(),
+      body: jsonEncode({
+        'conversation_id': conversationId,
+        'project_id': projectId,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to pin conversation');
+    }
+
+    return json.decode(response.body);
+  }
 }
 

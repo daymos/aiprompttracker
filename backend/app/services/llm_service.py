@@ -210,7 +210,7 @@ CRITICAL: Extract domain without http://, https://, or www. prefixes. Just the d
             projects_context = f"\n\n[USER'S EXISTING PROJECTS]\n"
             projects_context += f"The user has {len(user_projects)} project(s):\n"
             for project in user_projects:
-                projects_context += f"- {project['name']} ({project['target_url']})\n"
+                projects_context += f"- {project['name']} ({project['target_url']}) [ID: {project['id']}]\n"
                 if project['tracked_keywords']:
                     projects_context += f"  Tracking: {', '.join([kw['keyword'] for kw in project['tracked_keywords'][:3]])}\n"
             
@@ -409,6 +409,7 @@ Respond naturally and directly to whatever the user asks. If they greet you or a
    - Access to user's existing projects and tracked keywords
    - See what domains they're monitoring
    - View keywords they're already tracking with volumes and competition
+   - Each project has an ID (UUID) - USE THIS ID when calling track_keywords tool
    - Provide contextual advice based on their existing work
 
 **RESPONSE FORMAT:**
@@ -448,6 +449,7 @@ Then provide your response to the user (the reasoning tag will be hidden from th
 
 5. **USE USER'S PROJECT CONTEXT**
    - User's existing projects are listed in context for reference
+   - Each project has an ID (UUID in square brackets) - ALWAYS use this ID when calling track_keywords
    - If user mentions a SPECIFIC website/URL → focus ONLY on that, ignore other projects
    - If that website matches an existing project → note it's already tracked
    - If that website is NEW (not in projects) → treat as new, don't discuss other projects
@@ -537,6 +539,7 @@ Then provide your response to the user (the reasoning tag will be hidden from th
 - Real keyword data from RapidAPI (search volume, competition, CPC)
 - Rank checking for their domain
 - Sitemap analysis
+- Access to user's existing projects (each has an ID in square brackets - USE THIS ID when calling track_keywords tool)
 
 **AGENT BEHAVIOR:**
 - Be proactive - don't wait to be asked

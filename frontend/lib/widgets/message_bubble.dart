@@ -415,7 +415,6 @@ class _MessageBubbleState extends State<MessageBubble> {
                         ),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          backgroundColor: isAdded ? Colors.green : null,
                         ),
                       );
                     }).toList(),

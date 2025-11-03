@@ -14,6 +14,7 @@ from ..database import get_db
 from ..models.user import User
 from ..models.conversation import Conversation, Message
 from ..models.project import Project, TrackedKeyword
+from ..models.pin import PinnedItem
 from ..services.keyword_service import KeywordService
 from ..services.llm_service import LLMService
 from ..services.rank_checker import RankCheckerService
@@ -237,9 +238,79 @@ async def send_message_stream(
                             "required": ["domain"]
                         }
                     }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "track_keywords",
+                        "description": "Add keywords to a project's keyword tracker for rank tracking. Use when user wants to track/monitor keywords for their project. Requires a project_id.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "project_id": {
+                                    "type": "string",
+                                    "description": "The ID of the project to add keywords to"
+                                },
+                                "keywords": {
+                                    "type": "array",
+                                    "description": "Array of keywords to track. Each keyword should include the keyword text and optionally search volume and competition.",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "keyword": {
+                                                "type": "string",
+                                                "description": "The keyword text"
+                                            },
+                                            "search_volume": {
+                                                "type": "integer",
+                                                "description": "Monthly search volume (optional)"
+                                            },
+                                            "competition": {
+                                                "type": "string",
+                                                "description": "Competition level: LOW, MEDIUM, or HIGH (optional)"
+                                            }
+                                        },
+                                        "required": ["keyword"]
+                                    }
+                                }
+                            },
+                            "required": ["project_id", "keywords"]
+                        }
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "pin_important_info",
+                        "description": "Pin important information, insights, or responses to the pinboard for later reference. Use this when the user wants to save something important, bookmark key findings, or keep track of valuable insights from your analysis.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "title": {
+                                    "type": "string",
+                                    "description": "A concise title for the pinned item (max 100 characters)"
+                                },
+                                "content": {
+                                    "type": "string",
+                                    "description": "The content to pin (can be insights, analysis, recommendations, or any important information)"
+                                },
+                                "content_type": {
+                                    "type": "string",
+                                    "enum": ["insight", "analysis", "recommendation", "note", "finding"],
+                                    "description": "Type of content being pinned",
+                                    "default": "insight"
+                                },
+                                "project_id": {
+                                    "type": "string",
+                                    "description": "Optional project ID to associate this pin with a specific project"
+                                }
+                            },
+                            "required": ["title", "content"]
+                        }
+                    }
                 }
             ]
-            
+
             # First LLM call
             response_text, reasoning, tool_calls = await llm_service.chat_with_tools(
                 user_message=request.message,
@@ -268,6 +339,10 @@ async def send_message_stream(
                         yield await send_sse_event("status", {"message": "Analyzing website..."})
                     elif tool_name == "analyze_backlinks":
                         yield await send_sse_event("status", {"message": "Analyzing backlinks..."})
+                    elif tool_name == "track_keywords":
+                        yield await send_sse_event("status", {"message": "Adding keywords to tracker..."})
+                    elif tool_name == "pin_important_info":
+                        yield await send_sse_event("status", {"message": "Pinning important information..."})
                     
                     try:
                         if tool_name == "research_keywords":
@@ -399,7 +474,129 @@ async def send_message_stream(
                                     "name": tool_name,
                                     "content": str(backlink_data)
                                 })
+                        
+                        elif tool_name == "track_keywords":
+                            project_id = args.get("project_id")
+                            keywords_to_track = args.get("keywords", [])
+                            
+                            # Verify project exists and belongs to user
+                            project = db.query(Project).filter(
+                                Project.id == project_id,
+                                Project.user_id == user.id
+                            ).first()
+                            
+                            if not project:
+                                tool_results.append({
+                                    "tool_call_id": tool_call["id"],
+                                    "role": "tool",
+                                    "name": tool_name,
+                                    "content": "ERROR: Project not found"
+                                })
+                            else:
+                                tracked_count = 0
+                                skipped_count = 0
+                                errors = []
+                                
+                                for kw_data in keywords_to_track:
+                                    keyword = kw_data.get("keyword")
+                                    if not keyword:
+                                        continue
+                                    
+                                    # Check if keyword already tracked
+                                    existing = db.query(TrackedKeyword).filter(
+                                        TrackedKeyword.project_id == project_id,
+                                        TrackedKeyword.keyword == keyword
+                                    ).first()
+                                    
+                                    if existing:
+                                        skipped_count += 1
+                                        continue
+                                    
+                                    try:
+                                        # Add keyword to tracker immediately (don't wait for ranking)
+                                        tracked_keyword = TrackedKeyword(
+                                            id=str(uuid.uuid4()),
+                                            project_id=project_id,
+                                            keyword=keyword,
+                                            search_volume=kw_data.get("search_volume"),
+                                            competition=kw_data.get("competition")
+                                        )
+                                        db.add(tracked_keyword)
+                                        tracked_count += 1
+                                        
+                                        # Note: Initial ranking will be checked on first manual refresh
+                                        # This keeps the response fast and non-blocking
+                                        
+                                    except Exception as e:
+                                        errors.append(f"{keyword}: {str(e)}")
+                                
+                                db.commit()
+                                
+                                result_msg = f"Successfully tracked {tracked_count} keyword(s). Rankings will be checked on next refresh."
+                                if skipped_count > 0:
+                                    result_msg += f" Skipped {skipped_count} already tracked."
+                                if errors:
+                                    result_msg += f" Errors: {', '.join(errors)}"
+                                
+                                tool_results.append({
+                                    "tool_call_id": tool_call["id"],
+                                    "role": "tool",
+                                    "name": tool_name,
+                                    "content": result_msg
+                                })
                     
+                        elif tool_name == "pin_important_info":
+                            title = args.get("title")
+                            content = args.get("content")
+                            content_type = args.get("content_type", "insight")
+                            project_id = args.get("project_id")
+
+                            # Validate required fields
+                            if not title or not content:
+                                tool_results.append({
+                                    "tool_call_id": tool_call["id"],
+                                    "role": "tool",
+                                    "name": tool_name,
+                                    "content": "ERROR: Both title and content are required"
+                                })
+                            else:
+                                # Verify project_id if provided
+                                if project_id:
+                                    project = db.query(Project).filter(
+                                        Project.id == project_id,
+                                        Project.user_id == user.id
+                                    ).first()
+                                    if not project:
+                                        tool_results.append({
+                                            "tool_call_id": tool_call["id"],
+                                            "role": "tool",
+                                            "name": tool_name,
+                                            "content": "ERROR: Project not found"
+                                        })
+                                        continue
+
+                                # Create the pinned item
+                                pinned_item = PinnedItem(
+                                    id=str(uuid.uuid4()),
+                                    user_id=user.id,
+                                    project_id=project_id,
+                                    content_type=content_type,
+                                    title=title[:100],  # Truncate to max length
+                                    content=content,
+                                    source_message_id=None,  # AI-generated pins don't have a source message
+                                    source_conversation_id=conversation.id
+                                )
+
+                                db.add(pinned_item)
+                                db.commit()
+
+                                tool_results.append({
+                                    "tool_call_id": tool_call["id"],
+                                    "role": "tool",
+                                    "name": tool_name,
+                                    "content": f"Successfully pinned '{title}' to the pinboard"
+                                })
+
                     except Exception as e:
                         tool_results.append({
                             "tool_call_id": tool_call["id"],
@@ -444,20 +641,23 @@ async def send_message_stream(
                 assistant_response = response_text
                 reasoning = reasoning
             
-            # Save assistant message
-            metadata = {}
-            if reasoning:
-                metadata["reasoning"] = reasoning
-            
-            assistant_message = Message(
-                id=str(uuid.uuid4()),
-                conversation_id=conversation.id,
-                role="assistant",
-                content=assistant_response,
-                message_metadata=metadata if metadata else None
-            )
-            db.add(assistant_message)
-            db.commit()
+            # Save assistant message (only if we have content)
+            if assistant_response:
+                metadata = {}
+                if reasoning:
+                    metadata["reasoning"] = reasoning
+
+                assistant_message = Message(
+                    id=str(uuid.uuid4()),
+                    conversation_id=conversation.id,
+                    role="assistant",
+                    content=assistant_response,
+                    message_metadata=metadata if metadata else None
+                )
+                db.add(assistant_message)
+                db.commit()
+            else:
+                logger.warning("⚠️  Skipping assistant message save - no content to save")
             
             # Send final response
             yield await send_sse_event("message", {
@@ -678,9 +878,79 @@ async def send_message(
                     "required": ["domain"]
                 }
             }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "track_keywords",
+                "description": "Add keywords to a project's keyword tracker for rank tracking. Use when user wants to track/monitor keywords for their project. Requires a project_id.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "project_id": {
+                            "type": "string",
+                            "description": "The ID of the project to add keywords to"
+                        },
+                        "keywords": {
+                            "type": "array",
+                            "description": "Array of keywords to track. Each keyword should include the keyword text and optionally search volume and competition.",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "keyword": {
+                                        "type": "string",
+                                        "description": "The keyword text"
+                                    },
+                                    "search_volume": {
+                                        "type": "integer",
+                                        "description": "Monthly search volume (optional)"
+                                    },
+                                    "competition": {
+                                        "type": "string",
+                                        "description": "Competition level: LOW, MEDIUM, or HIGH (optional)"
+                                    }
+                                },
+                                "required": ["keyword"]
+                            }
+                        }
+                    },
+                    "required": ["project_id", "keywords"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "pin_important_info",
+                "description": "Pin important information, insights, or responses to the pinboard for later reference. Use this when the user wants to save something important, bookmark key findings, or keep track of valuable insights from your analysis.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "title": {
+                            "type": "string",
+                            "description": "A concise title for the pinned item (max 100 characters)"
+                        },
+                        "content": {
+                            "type": "string",
+                            "description": "The content to pin (can be insights, analysis, recommendations, or any important information)"
+                        },
+                        "content_type": {
+                            "type": "string",
+                            "enum": ["insight", "analysis", "recommendation", "note", "finding"],
+                            "description": "Type of content being pinned",
+                            "default": "insight"
+                        },
+                        "project_id": {
+                            "type": "string",
+                            "description": "Optional project ID to associate this pin with a specific project"
+                        }
+                    },
+                    "required": ["title", "content"]
+                }
+            }
         }
     ]
-    
+
     # First LLM call - may return tool calls
     response_text, reasoning, tool_calls = await llm_service.chat_with_tools(
         user_message=request.message,
@@ -860,7 +1130,143 @@ async def send_message(
                             "name": tool_name,
                             "content": str(backlink_data)
                         })
+                
+                elif tool_name == "track_keywords":
+                    project_id = args.get("project_id")
+                    keywords_to_track = args.get("keywords", [])
+                    
+                    logger.info(f"  📌 Tracking {len(keywords_to_track)} keyword(s) for project {project_id}")
+                    
+                    # Verify project exists and belongs to user
+                    project = db.query(Project).filter(
+                        Project.id == project_id,
+                        Project.user_id == user.id
+                    ).first()
+                    
+                    if not project:
+                        error_msg = "Project not found"
+                        tool_results.append({
+                            "tool_call_id": tool_call["id"],
+                            "role": "tool",
+                            "name": tool_name,
+                            "content": f"ERROR: {error_msg}"
+                        })
+                        logger.warning(f"  ❌ {error_msg}")
+                    else:
+                        tracked_count = 0
+                        skipped_count = 0
+                        errors = []
                         
+                        for kw_data in keywords_to_track:
+                            keyword = kw_data.get("keyword")
+                            if not keyword:
+                                continue
+                            
+                            # Check if keyword already tracked
+                            existing = db.query(TrackedKeyword).filter(
+                                TrackedKeyword.project_id == project_id,
+                                TrackedKeyword.keyword == keyword
+                            ).first()
+                            
+                            if existing:
+                                logger.info(f"    ⏭️  Skipping '{keyword}' (already tracked)")
+                                skipped_count += 1
+                                continue
+                            
+                            try:
+                                # Add keyword to tracker immediately (non-blocking)
+                                tracked_keyword = TrackedKeyword(
+                                    id=str(uuid.uuid4()),
+                                    project_id=project_id,
+                                    keyword=keyword,
+                                    search_volume=kw_data.get("search_volume"),
+                                    competition=kw_data.get("competition")
+                                )
+                                db.add(tracked_keyword)
+                                tracked_count += 1
+                                logger.info(f"    ✅ Tracked '{keyword}' (ranking check will happen on next refresh)")
+                                
+                                # Note: Initial ranking will be checked on first manual refresh
+                                # This keeps the response fast and non-blocking for the user
+                                
+                            except Exception as e:
+                                error_str = f"{keyword}: {str(e)}"
+                                errors.append(error_str)
+                                logger.error(f"    ❌ Error tracking '{keyword}': {e}")
+                        
+                        db.commit()
+                        
+                        result_msg = f"Successfully tracked {tracked_count} keyword(s). Rankings will be checked on next refresh."
+                        if skipped_count > 0:
+                            result_msg += f" Skipped {skipped_count} already tracked."
+                        if errors:
+                            result_msg += f" Errors: {', '.join(errors)}"
+                        
+                        tool_results.append({
+                            "tool_call_id": tool_call["id"],
+                            "role": "tool",
+                            "name": tool_name,
+                            "content": result_msg
+                        })
+                        logger.info(f"  ✅ {result_msg}")
+
+                elif tool_name == "pin_important_info":
+                    title = args.get("title")
+                    content = args.get("content")
+                    content_type = args.get("content_type", "insight")
+                    project_id = args.get("project_id")
+
+                    logger.info(f"  📌 Pinning '{title}' to pinboard")
+
+                    # Validate required fields
+                    if not title or not content:
+                        tool_results.append({
+                            "tool_call_id": tool_call["id"],
+                            "role": "tool",
+                            "name": tool_name,
+                            "content": "ERROR: Both title and content are required"
+                        })
+                        logger.warning("  ❌ Missing title or content for pin")
+                    else:
+                        # Verify project_id if provided
+                        if project_id:
+                            project = db.query(Project).filter(
+                                Project.id == project_id,
+                                Project.user_id == user.id
+                            ).first()
+                            if not project:
+                                tool_results.append({
+                                    "tool_call_id": tool_call["id"],
+                                    "role": "tool",
+                                    "name": tool_name,
+                                    "content": "ERROR: Project not found"
+                                })
+                                logger.warning(f"  ❌ Project {project_id} not found")
+                                continue
+
+                        # Create the pinned item
+                        pinned_item = PinnedItem(
+                            id=str(uuid.uuid4()),
+                            user_id=user.id,
+                            project_id=project_id,
+                            content_type=content_type,
+                            title=title[:100],  # Truncate to max length
+                            content=content,
+                            source_message_id=None,  # AI-generated pins don't have a source message
+                            source_conversation_id=conversation.id
+                        )
+
+                        db.add(pinned_item)
+                        db.commit()
+
+                        tool_results.append({
+                            "tool_call_id": tool_call["id"],
+                            "role": "tool",
+                            "name": tool_name,
+                            "content": f"Successfully pinned '{title}' to the pinboard"
+                        })
+                        logger.info(f"  ✅ Pinned '{title}' to pinboard")
+
             except Exception as e:
                 logger.error(f"  ❌ Error executing {tool_name}: {e}")
                 tool_results.append({
@@ -911,20 +1317,23 @@ async def send_message(
         assistant_response = response_text
         reasoning = reasoning
     
-    # Save assistant message
-    metadata = {}
-    if reasoning:
-        metadata["reasoning"] = reasoning
-    
-    assistant_message = Message(
-        id=str(uuid.uuid4()),
-        conversation_id=conversation.id,
-        role="assistant",
-        content=assistant_response,
-        message_metadata=metadata if metadata else None
-    )
-    db.add(assistant_message)
-    db.commit()
+    # Save assistant message (only if we have content)
+    if assistant_response:
+        metadata = {}
+        if reasoning:
+            metadata["reasoning"] = reasoning
+
+        assistant_message = Message(
+            id=str(uuid.uuid4()),
+            conversation_id=conversation.id,
+            role="assistant",
+            content=assistant_response,
+            message_metadata=metadata if metadata else None
+        )
+        db.add(assistant_message)
+        db.commit()
+    else:
+        logger.warning("⚠️  Skipping assistant message save - no content to save")
     
     return ChatResponse(
         message=assistant_response,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/chat_provider.dart';
@@ -572,6 +573,66 @@ class _ChatScreenState extends State<ChatScreen> {
                             ),
                           ),
                           const Spacer(),
+                          // Pin conversation button
+                          chatProvider.messages.isEmpty
+                              ? Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).colorScheme.surfaceVariant,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Icon(
+                                    Icons.bookmark_border,
+                                    size: 16,
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.4),
+                                  ),
+                                )
+                              : Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).colorScheme.secondaryContainer,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: PopupMenuButton<String>(
+                                    tooltip: 'Pin this conversation',
+                                    icon: Icon(
+                                      Icons.bookmark_border,
+                                      size: 16,
+                                      color: Theme.of(context).colorScheme.onSecondaryContainer,
+                                    ),
+                                    padding: EdgeInsets.zero,
+                                    iconSize: 16,
+                                    onSelected: (projectId) => _pinConversationToProject(projectId),
+                                    itemBuilder: (BuildContext context) {
+                                      final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+                                      if (projectProvider.allProjects.isEmpty) {
+                                        return [
+                                          const PopupMenuItem<String>(
+                                            enabled: false,
+                                            height: 32,
+                                            child: Text(
+                                              'No projects available',
+                                              style: TextStyle(fontSize: 14),
+                                            ),
+                                          ),
+                                        ];
+                                      }
+                                      return projectProvider.allProjects.map((project) {
+                                        return PopupMenuItem<String>(
+                                          value: project.id,
+                                          height: 32,
+                                          child: Text(
+                                            project.name,
+                                            style: const TextStyle(fontSize: 14),
+                                          ),
+                                        );
+                                      }).toList();
+                                    },
+                                  ),
+                                ),
+                          const SizedBox(width: 8),
                           // Download CSV button
                           Container(
                             width: 32,
@@ -826,6 +887,66 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                       ),
                       const Spacer(),
+                      // Pin conversation button
+                      chatProvider.messages.isEmpty
+                          ? Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.surfaceVariant,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Icon(
+                                Icons.bookmark_border,
+                                size: 16,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.4),
+                              ),
+                            )
+                          : Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.secondaryContainer,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: PopupMenuButton<String>(
+                                tooltip: 'Pin this conversation',
+                                icon: Icon(
+                                  Icons.bookmark_border,
+                                  size: 16,
+                                  color: Theme.of(context).colorScheme.onSecondaryContainer,
+                                ),
+                                padding: EdgeInsets.zero,
+                                iconSize: 16,
+                                onSelected: (projectId) => _pinConversationToProject(projectId),
+                                itemBuilder: (BuildContext context) {
+                                  final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+                                  if (projectProvider.allProjects.isEmpty) {
+                                    return [
+                                      const PopupMenuItem<String>(
+                                        enabled: false,
+                                        height: 32,
+                                        child: Text(
+                                          'No projects available',
+                                          style: TextStyle(fontSize: 14),
+                                        ),
+                                      ),
+                                    ];
+                                  }
+                                  return projectProvider.allProjects.map((project) {
+                                    return PopupMenuItem<String>(
+                                      value: project.id,
+                                      height: 32,
+                                      child: Text(
+                                        project.name,
+                                        style: const TextStyle(fontSize: 14),
+                                      ),
+                                    );
+                                  }).toList();
+                                },
+                              ),
+                            ),
+                      const SizedBox(width: 8),
                       // Download CSV button
                       Container(
                         width: 32,
@@ -1466,99 +1587,196 @@ class _ChatScreenState extends State<ChatScreen> {
           itemCount: pinnedItems.length,
           itemBuilder: (context, index) {
             final item = pinnedItems[index];
-
-            return Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: ExpansionTile(
-                leading: const Icon(Icons.push_pin),
-                title: Text(
-                  item['title'] ?? 'Pinned Item',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text(
-                  'Pinned ${DateTime.parse(item['created_at']).toLocal().toString().split('.')[0]}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline),
-                      onPressed: () async {
-                        try {
-                          await Provider.of<AuthProvider>(context, listen: false)
-                              .apiService
-                              .unpinItem(item['id']);
-                          setState(() {}); // Refresh the tab
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Item unpinned')),
-                            );
-                          }
-                        } catch (e) {
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Error: $e')),
-                            );
-                          }
-                        }
-                      },
-                      tooltip: 'Unpin this item',
-                    ),
-                    const Icon(Icons.expand_more),
-                  ],
-                ),
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (item['content_type'] == 'message') ...[
-                          // Display as markdown for message content
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.surfaceVariant,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              item['content'],
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ),
-                        ] else ...[
-                          // Display as plain text for other content types
-                          Text(item['content']),
-                        ],
-                        if (item['source_message_id'] != null) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            'From conversation',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
+            return _buildPinListItem(item);
           },
         );
       },
     );
+  }
+
+  Widget _buildPinListItem(Map<String, dynamic> item) {
+    final isConversation = item['content_type'] == 'conversation';
+    
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ExpansionTile(
+        leading: Icon(
+          isConversation ? Icons.bookmark : Icons.push_pin,
+          color: isConversation ? Colors.blue : null,
+        ),
+        title: Text(
+          item['title'] ?? 'Pinned Item',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Pinned ${DateTime.parse(item['created_at']).toLocal().toString().split('.')[0]}',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 4),
+            // Content type badge
+            if (isConversation) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'Full Conversation',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.blue[700],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+            ],
+            // Content preview
+            Text(
+              _getContentPreview(item),
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[700],
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+        trailing: IconButton(
+          icon: const Icon(Icons.delete_outline),
+          onPressed: () async {
+            try {
+              await Provider.of<AuthProvider>(context, listen: false)
+                  .apiService
+                  .unpinItem(item['id']);
+              setState(() {}); // Refresh the tab
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Item unpinned')),
+                );
+              }
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error: $e')),
+                );
+              }
+            }
+          },
+          tooltip: 'Unpin this item',
+        ),
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Display content based on type
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceVariant,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: MarkdownBody(
+                    data: item['content'],
+                    styleSheet: MarkdownStyleSheet(
+                      p: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                ),
+                if (item['source_message_id'] != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'From conversation',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getContentPreview(Map<String, dynamic> item) {
+    final content = item['content'] as String? ?? '';
+    if (content.isEmpty) return 'No content';
+
+    // Clean up the content for preview
+    // Remove markdown formatting and extra whitespace
+    var preview = content
+        .replaceAll(RegExp(r'\*\*(.*?)\*\*'), r'$1') // Remove bold
+        .replaceAll(RegExp(r'\*(.*?)\*'), r'$1')     // Remove italic
+        .replaceAll(RegExp(r'`([^`]+)`'), r'$1')     // Remove inline code
+        .replaceAll(RegExp(r'#+\s*'), '')            // Remove headers
+        .replaceAll(RegExp(r'\n+'), ' ')             // Replace newlines with spaces
+        .trim();
+
+    // Limit to reasonable length for preview
+    if (preview.length > 100) {
+      preview = '${preview.substring(0, 97)}...';
+    }
+
+    return preview.isEmpty ? 'No content' : preview;
+  }
+
+  Future<void> _pinConversationToProject(String projectId) async {
+    final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+
+    final conversationId = chatProvider.currentConversationId;
+    if (conversationId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No conversation to pin')),
+      );
+      return;
+    }
+
+    try {
+      await authProvider.apiService.pinConversation(
+        conversationId: conversationId,
+        projectId: projectId,
+      );
+
+      if (mounted) {
+        final project = projectProvider.allProjects.firstWhere(
+          (p) => p.id == projectId,
+          orElse: () => throw Exception('Project not found'),
+        );
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✓ Conversation pinned to "${project.name}"'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error pinning conversation: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildKeywordsTab(ProjectProvider projectProvider, List<TrackedKeyword> keywords) {

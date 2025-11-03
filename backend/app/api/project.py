@@ -4,11 +4,13 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 import uuid
 from datetime import datetime
+from sqlalchemy.sql import func
 
 from ..database import get_db
 from ..models.user import User
 from ..models.project import Project, TrackedKeyword, KeywordRanking
 from ..models.backlink import BacklinkSubmission, BacklinkCampaign
+from ..models.pin import PinnedItem
 from ..services.rank_checker import RankCheckerService
 from .auth import get_current_user
 import logging
@@ -41,6 +43,29 @@ class TrackedKeywordResponse(BaseModel):
     current_position: Optional[int]
     target_position: int
     created_at: str
+
+class PinItemRequest(BaseModel):
+    project_id: Optional[str] = None
+    content_type: str
+    title: str
+    content: str
+    source_message_id: Optional[str] = None
+    source_conversation_id: Optional[str] = None
+
+class PinConversationRequest(BaseModel):
+    conversation_id: str
+    project_id: Optional[str] = None
+
+class PinnedItemResponse(BaseModel):
+    id: str
+    project_id: Optional[str]
+    content_type: str
+    title: str
+    content: str
+    source_message_id: Optional[str]
+    source_conversation_id: Optional[str]
+    created_at: str
+    updated_at: str
 
 @router.post("/create", response_model=ProjectResponse)
 async def create_project(
@@ -388,4 +413,188 @@ async def delete_project(
         db.rollback()
         logger.error(f"Error deleting project {project_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to delete project: {str(e)}")
+
+@router.post("/pin", response_model=PinnedItemResponse)
+async def pin_item(
+    request: PinItemRequest,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """Pin an item to the pinboard"""
+    token = authorization.replace("Bearer ", "")
+    user = get_current_user(token, db)
+
+    # If project_id is provided, verify user owns the project
+    if request.project_id:
+        project = db.query(Project).filter(
+            Project.id == request.project_id,
+            Project.user_id == user.id
+        ).first()
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+    pinned_item = PinnedItem(
+        id=str(uuid.uuid4()),
+        user_id=user.id,
+        project_id=request.project_id,
+        content_type=request.content_type,
+        title=request.title,
+        content=request.content,
+        source_message_id=request.source_message_id,
+        source_conversation_id=request.source_conversation_id
+    )
+
+    db.add(pinned_item)
+    db.commit()
+    db.refresh(pinned_item)
+
+    # Use current time if database defaults didn't set the timestamps
+    created_at = pinned_item.created_at or datetime.utcnow()
+    updated_at = pinned_item.updated_at or datetime.utcnow()
+
+    return PinnedItemResponse(
+        id=pinned_item.id,
+        project_id=pinned_item.project_id,
+        content_type=pinned_item.content_type,
+        title=pinned_item.title,
+        content=pinned_item.content,
+        source_message_id=pinned_item.source_message_id,
+        source_conversation_id=pinned_item.source_conversation_id,
+        created_at=created_at.isoformat(),
+        updated_at=updated_at.isoformat()
+    )
+
+@router.get("/pins", response_model=List[PinnedItemResponse])
+async def get_pinned_items(
+    project_id: Optional[str] = None,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """Get all pinned items for user, optionally filtered by project"""
+    token = authorization.replace("Bearer ", "")
+    user = get_current_user(token, db)
+
+    query = db.query(PinnedItem).filter(PinnedItem.user_id == user.id)
+
+    if project_id:
+        query = query.filter(PinnedItem.project_id == project_id)
+
+    pinned_items = query.order_by(PinnedItem.created_at.desc()).all()
+
+    return [
+        PinnedItemResponse(
+            id=item.id,
+            project_id=item.project_id,
+            content_type=item.content_type,
+            title=item.title,
+            content=item.content,
+            source_message_id=item.source_message_id,
+            source_conversation_id=item.source_conversation_id,
+            created_at=(item.created_at or datetime.utcnow()).isoformat(),
+            updated_at=(item.updated_at or datetime.utcnow()).isoformat()
+        )
+        for item in pinned_items
+    ]
+
+@router.post("/pin-conversation", response_model=PinnedItemResponse)
+async def pin_conversation(
+    request: PinConversationRequest,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """Pin an entire conversation to the pinboard"""
+    from ..models.conversation import Conversation, Message
+    
+    token = authorization.replace("Bearer ", "")
+    user = get_current_user(token, db)
+
+    # Get the conversation
+    conversation = db.query(Conversation).filter(
+        Conversation.id == request.conversation_id,
+        Conversation.user_id == user.id
+    ).first()
+    
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    # If project_id is provided, verify user owns the project
+    if request.project_id:
+        project = db.query(Project).filter(
+            Project.id == request.project_id,
+            Project.user_id == user.id
+        ).first()
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+    # Get all messages in the conversation
+    messages = db.query(Message).filter(
+        Message.conversation_id == request.conversation_id
+    ).order_by(Message.created_at).all()
+
+    # Build conversation content
+    conversation_content = []
+    for msg in messages:
+        role = "You" if msg.role == "user" else "Assistant"
+        conversation_content.append(f"**{role}:** {msg.content}")
+    
+    content_text = "\n\n".join(conversation_content)
+    
+    # Create title from first user message or use default
+    first_user_msg = next((m for m in messages if m.role == "user"), None)
+    title = first_user_msg.content[:50] + "..." if first_user_msg and len(first_user_msg.content) > 50 else (first_user_msg.content if first_user_msg else "Conversation")
+
+    # Create the pinned item
+    pinned_item = PinnedItem(
+        id=str(uuid.uuid4()),
+        user_id=user.id,
+        project_id=request.project_id,
+        content_type='conversation',
+        title=title,
+        content=content_text,
+        source_message_id=None,
+        source_conversation_id=request.conversation_id
+    )
+
+    db.add(pinned_item)
+    db.commit()
+    db.refresh(pinned_item)
+
+    # Use current time if database defaults didn't set the timestamps
+    created_at = pinned_item.created_at or datetime.utcnow()
+    updated_at = pinned_item.updated_at or datetime.utcnow()
+
+    return PinnedItemResponse(
+        id=pinned_item.id,
+        project_id=pinned_item.project_id,
+        content_type=pinned_item.content_type,
+        title=pinned_item.title,
+        content=pinned_item.content,
+        source_message_id=pinned_item.source_message_id,
+        source_conversation_id=pinned_item.source_conversation_id,
+        created_at=created_at.isoformat(),
+        updated_at=updated_at.isoformat()
+    )
+
+@router.delete("/pins/{pin_id}")
+async def unpin_item(
+    pin_id: str,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """Remove a pinned item"""
+    token = authorization.replace("Bearer ", "")
+    user = get_current_user(token, db)
+
+    pinned_item = db.query(PinnedItem).filter(
+        PinnedItem.id == pin_id,
+        PinnedItem.user_id == user.id
+    ).first()
+
+    if not pinned_item:
+        raise HTTPException(status_code=404, detail="Pinned item not found")
+
+    db.delete(pinned_item)
+    db.commit()
+
+    return {"message": "Item unpinned successfully"}
 
