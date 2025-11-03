@@ -122,6 +122,18 @@ class _ProjectScreenState extends State<ProjectScreen> with SingleTickerProvider
             ),
             const SizedBox(width: 12),
             const Text('My Projects'),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.green,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text(
+                'v1.0.1+2',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+            ),
           ],
         ),
         actions: [

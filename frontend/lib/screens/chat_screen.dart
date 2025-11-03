@@ -349,6 +349,23 @@ class _ChatScreenState extends State<ChatScreen> {
                   icon: const Icon(Icons.help_outline),
                   tooltip: 'How it works',
                 ),
+                const SizedBox(height: 24),
+                // Version indicator
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.green,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text(
+                    'v1.0.1',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
                 const Spacer(),
                 // Theme switcher
                 const Padding(
