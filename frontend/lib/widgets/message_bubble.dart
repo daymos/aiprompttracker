@@ -10,8 +10,9 @@ import 'dart:convert';
 
 class MessageBubble extends StatefulWidget {
   final Message message;
+  final String? projectId; // Optional project ID for pinning
 
-  const MessageBubble({super.key, required this.message});
+  const MessageBubble({super.key, required this.message, this.projectId});
 
   @override
   State<MessageBubble> createState() => _MessageBubbleState();
@@ -27,6 +28,8 @@ class _MessageBubbleState extends State<MessageBubble> {
   bool _projectsLoaded = false;
   String _displayedText = '';
   bool _isAnimating = false;
+  String? _pinnedItemId; // Track the pin ID for this message
+  String? _pinnedProjectId; // Track the project ID this message is pinned to
   static final Set<String> _animatedMessages = {};
   
   @override
@@ -231,7 +234,7 @@ class _MessageBubbleState extends State<MessageBubble> {
   
   Future<void> _addToSpecificProject(String projectId, KeywordData keyword) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
+
     try {
       final response = await authProvider.apiService.addKeywordToProject(
         projectId,
@@ -239,11 +242,11 @@ class _MessageBubbleState extends State<MessageBubble> {
         keyword.searchVolume,
         keyword.competition,
       );
-      
+
       setState(() {
         addedKeywords.add(keyword.keyword);
       });
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -258,6 +261,64 @@ class _MessageBubbleState extends State<MessageBubble> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _pinMessageToProject(String projectId) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+
+    try {
+      // Extract a title from the message content (first 50 characters)
+      String title = widget.message.content.length > 50
+          ? '${widget.message.content.substring(0, 47)}...'
+          : widget.message.content;
+
+      // If it starts with markdown headers, use that as title
+      final headerMatch = RegExp(r'^#+\s*(.+)$', multiLine: true).firstMatch(widget.message.content);
+      if (headerMatch != null) {
+        title = headerMatch.group(1)!;
+      }
+
+      final pinResponse = await authProvider.apiService.pinItem(
+        projectId: projectId,
+        contentType: 'message',
+        title: title,
+        content: widget.message.content,
+        sourceMessageId: widget.message.id,
+        sourceConversationId: chatProvider.currentConversationId,
+      );
+
+      // Update state to show pinned status
+      if (mounted) {
+        setState(() {
+          _pinnedItemId = pinResponse['id'];
+          _pinnedProjectId = pinResponse['project_id'];
+        });
+
+        // Find project name for the snackbar
+        final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+        final project = projectProvider.allProjects.firstWhere(
+          (p) => p.id == projectId,
+          orElse: () => throw Exception('Project not found'),
+        );
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✓ Response pinned to "${project.name}"'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error pinning: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -360,10 +421,203 @@ class _MessageBubbleState extends State<MessageBubble> {
                     }).toList(),
                   ),
                 ],
+
+                // Show pin button for assistant messages (only after animation completes)
+                if (!isUser && !_isAnimating) ...[
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: _pinnedItemId != null
+                      ? _buildPinnedButton()
+                      : _buildPinButton(),
+                  ),
+                ],
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _unpinMessage() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    try {
+      await authProvider.apiService.unpinItem(_pinnedItemId!);
+
+      if (mounted) {
+        setState(() {
+          _pinnedItemId = null;
+          _pinnedProjectId = null;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✓ Response unpinned'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error unpinning: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _changePinProject(String newProjectId) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    try {
+      // First unpin from current project
+      await authProvider.apiService.unpinItem(_pinnedItemId!);
+
+      // Then pin to new project
+      final pinResponse = await authProvider.apiService.pinItem(
+        projectId: newProjectId,
+        contentType: 'message',
+        title: widget.message.content.length > 50
+            ? '${widget.message.content.substring(0, 47)}...'
+            : widget.message.content,
+        content: widget.message.content,
+        sourceMessageId: widget.message.id,
+        sourceConversationId: Provider.of<ChatProvider>(context, listen: false).currentConversationId,
+      );
+
+      if (mounted) {
+        setState(() {
+          _pinnedItemId = pinResponse['id'];
+          _pinnedProjectId = pinResponse['project_id'];
+        });
+
+        // Find new project name for snackbar
+        final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+        final newProject = projectProvider.allProjects.firstWhere(
+          (p) => p.id == newProjectId,
+          orElse: () => throw Exception('Project not found'),
+        );
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✓ Response moved to "${newProject.name}"'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error changing pin: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildPinButton() {
+    return PopupMenuButton<String>(
+      onSelected: (projectId) => _pinMessageToProject(projectId),
+      itemBuilder: (BuildContext context) {
+        final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+        return projectProvider.allProjects.map((project) {
+          return PopupMenuItem<String>(
+            value: project.id,
+            height: 32, // Make menu items more compact
+            child: Text(
+              project.name,
+              style: const TextStyle(fontSize: 14), // Smaller font
+            ),
+          );
+        }).toList();
+      },
+      child: TextButton(
+        onPressed: null, // Handled by PopupMenuButton
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.push_pin, size: 16),
+            const SizedBox(width: 4),
+            const Text('Pin to project'),
+            const SizedBox(width: 4),
+            const Icon(Icons.arrow_drop_down, size: 16),
+          ],
+        ),
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          textStyle: const TextStyle(fontSize: 12),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPinnedButton() {
+    final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+    final project = projectProvider.allProjects.firstWhere(
+      (p) => p.id == _pinnedProjectId,
+      orElse: () => throw Exception('Project not found'),
+    );
+
+    return PopupMenuButton<String>(
+      onSelected: (value) async {
+        if (value == 'unpin') {
+          await _unpinMessage();
+        } else {
+          await _changePinProject(value);
+        }
+      },
+      itemBuilder: (BuildContext context) {
+        return [
+          // Option to pin to a different project
+          ...projectProvider.allProjects.where((p) => p.id != _pinnedProjectId).map((project) {
+            return PopupMenuItem<String>(
+              value: project.id,
+              height: 32,
+              child: Text(
+                'Move to ${project.name}',
+                style: const TextStyle(fontSize: 14),
+              ),
+            );
+          }),
+          // Separator
+          const PopupMenuItem<String>(
+            value: 'separator',
+            enabled: false,
+            height: 8,
+            child: Divider(),
+          ),
+          // Option to unpin
+          const PopupMenuItem<String>(
+            value: 'unpin',
+            height: 32,
+            child: Text(
+              'Unpin',
+              style: TextStyle(fontSize: 14, color: Colors.red),
+            ),
+          ),
+        ];
+      },
+      child: TextButton.icon(
+        onPressed: null, // Handled by PopupMenuButton
+        icon: const Icon(Icons.push_pin, size: 16),
+        label: Text(
+          'Pinned to ${project.name}',
+          style: const TextStyle(fontSize: 12),
+        ),
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
       ),
     );
   }

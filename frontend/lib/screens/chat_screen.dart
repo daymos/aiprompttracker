@@ -891,7 +891,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildChatView() {
     final chatProvider = context.watch<ChatProvider>();
-    
+    final projectProvider = context.watch<ProjectProvider>();
+    final currentProjectId = projectProvider.selectedProject?.id;
+
     return chatProvider.messages.isEmpty
         ? _buildEmptyStateWithInput()
         : Column(
@@ -953,6 +955,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         constraints: const BoxConstraints(maxWidth: 900),
                         child: MessageBubble(
                           message: chatProvider.messages[index],
+                          projectId: currentProjectId,
                         ),
                       ),
                     );
@@ -1408,35 +1411,153 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildPinboardTab(Project project) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.push_pin,
-            size: 64,
-            color: Colors.grey[600],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Pinboard',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[600],
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: Provider.of<AuthProvider>(context, listen: false)
+          .apiService
+          .getPinnedItems(projectId: project.id), // Get pins for this project only
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Text('Error: ${snapshot.error}'),
+          );
+        }
+
+        final pinnedItems = snapshot.data ?? [];
+
+        if (pinnedItems.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.push_pin,
+                  size: 64,
+                  color: Colors.grey[600],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No Pinned Items Yet',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Pin important responses from the chat to keep them handy',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[500],
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Coming soon - A place to pin important insights and notes',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[500],
-            ),
-          ),
-        ],
-      ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: pinnedItems.length,
+          itemBuilder: (context, index) {
+            final item = pinnedItems[index];
+
+            return Card(
+              margin: const EdgeInsets.only(bottom: 12),
+              child: ExpansionTile(
+                leading: const Icon(Icons.push_pin),
+                title: Text(
+                  item['title'] ?? 'Pinned Item',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                subtitle: Text(
+                  'Pinned ${DateTime.parse(item['created_at']).toLocal().toString().split('.')[0]}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline),
+                      onPressed: () async {
+                        try {
+                          await Provider.of<AuthProvider>(context, listen: false)
+                              .apiService
+                              .unpinItem(item['id']);
+                          setState(() {}); // Refresh the tab
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Item unpinned')),
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Error: $e')),
+                            );
+                          }
+                        }
+                      },
+                      tooltip: 'Unpin this item',
+                    ),
+                    const Icon(Icons.expand_more),
+                  ],
+                ),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (item['content_type'] == 'message') ...[
+                          // Display as markdown for message content
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surfaceVariant,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              item['content'],
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ] else ...[
+                          // Display as plain text for other content types
+                          Text(item['content']),
+                        ],
+                        if (item['source_message_id'] != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            'From conversation',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

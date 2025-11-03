@@ -305,12 +305,68 @@ class ApiService {
       Uri.parse('$baseUrl/backlinks/project/$projectId/verify-all'),
       headers: _headers(),
     );
-    
+
     if (response.statusCode != 200) {
       throw Exception('Failed to verify backlinks');
     }
-    
+
     return json.decode(response.body);
+  }
+
+  Future<Map<String, dynamic>> pinItem({
+    String? projectId,
+    required String contentType,
+    required String title,
+    required String content,
+    String? sourceMessageId,
+    String? sourceConversationId,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/project/pin'),
+      headers: _headers(),
+      body: jsonEncode({
+        'project_id': projectId,
+        'content_type': contentType,
+        'title': title,
+        'content': content,
+        'source_message_id': sourceMessageId,
+        'source_conversation_id': sourceConversationId,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to pin item');
+    }
+
+    return json.decode(response.body);
+  }
+
+  Future<List<Map<String, dynamic>>> getPinnedItems({String? projectId}) async {
+    final uri = projectId != null
+        ? Uri.parse('$baseUrl/project/pins?project_id=$projectId')
+        : Uri.parse('$baseUrl/project/pins');
+
+    final response = await http.get(
+      uri,
+      headers: _headers(),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to get pinned items');
+    }
+
+    return List<Map<String, dynamic>>.from(json.decode(response.body));
+  }
+
+  Future<void> unpinItem(String pinId) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/project/pins/$pinId'),
+      headers: _headers(),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to unpin item');
+    }
   }
 }
 
