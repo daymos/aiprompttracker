@@ -1,23 +1,40 @@
 import logging
 import re
+import asyncio
 from typing import List, Dict, Any, Optional
 from openai import AsyncOpenAI
 from ..config import get_settings
 from .web_scraper import WebScraperService
 
 logger = logging.getLogger(__name__)
-settings = get_settings()
 
 class LLMService:
     """Service for LLM interactions via Groq"""
-    
+
     def __init__(self):
-        self.client = AsyncOpenAI(
-            api_key=settings.GROQ_API_KEY,
-            base_url="https://api.groq.com/openai/v1"
-        )
+        self._client = None
         self.model = "openai/gpt-oss-120b"  # GPT-OSS 120B via Groq
         self.web_scraper = WebScraperService()
+
+    @property
+    def client(self):
+        """Lazy initialization of the OpenAI client"""
+        if self._client is None:
+            try:
+                from ..config import get_settings
+                settings = get_settings()
+                api_key = getattr(settings, 'GROQ_API_KEY', None)
+                if api_key and api_key.strip():
+                    from openai import AsyncOpenAI
+                    self._client = AsyncOpenAI(
+                        api_key=api_key,
+                        base_url="https://api.groq.com/openai/v1"
+                    )
+                else:
+                    logger.warning("GROQ_API_KEY not configured")
+            except Exception as e:
+                logger.warning(f"Failed to initialize LLM client: {e}")
+        return self._client
     
     def _extract_url(self, text: str) -> Optional[str]:
         """Extract URL from user message"""
@@ -25,7 +42,106 @@ class LLMService:
         url_pattern = r'https?://[^\s]+|www\.[^\s]+|[a-zA-Z0-9-]+\.(com|net|org|io|co|app|dev)[^\s]*'
         match = re.search(url_pattern, text)
         return match.group(0) if match else None
-    
+
+    async def summarize_conversation(self, conversation_content: str, max_retries: int = 3) -> str:
+        """
+        Generate a concise one-liner summary of a conversation for pinning purposes.
+        Uses retry mechanism with exponential backoff.
+        """
+        # Check if client is available
+        if self.client is None:
+            raise RuntimeError("LLM client not available - GROQ_API_KEY not configured")
+
+        system_prompt = """You are a helpful assistant that summarizes conversations in one concise sentence.
+Focus on the main topic, question, or key insight. Keep it under 100 characters.
+Be specific but brief. Capture what was discussed or accomplished."""
+
+        user_prompt = f"Conversation:\n{conversation_content}\n\nProvide a one-sentence summary:"
+
+        for attempt in range(max_retries):
+            try:
+                logger.info(f"Summarizing conversation (attempt {attempt + 1}/{max_retries})")
+                response = await self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    max_tokens=100,
+                    temperature=0.3
+                )
+
+                summary = response.choices[0].message.content.strip()
+                # Clean up the summary (remove quotes, extra whitespace)
+                summary = summary.strip('"\'')
+                result = summary[:100] if len(summary) > 100 else summary
+                logger.info(f"Successfully generated conversation summary: {repr(result)}")
+                return result
+
+            except Exception as e:
+                wait_time = 2 ** attempt  # Exponential backoff: 1s, 2s, 4s
+                logger.warning(f"Attempt {attempt + 1}/{max_retries} failed to summarize conversation: {e}")
+                
+                if attempt < max_retries - 1:
+                    logger.info(f"Retrying in {wait_time} seconds...")
+                    await asyncio.sleep(wait_time)
+                else:
+                    logger.error(f"All {max_retries} attempts failed to summarize conversation")
+                    raise RuntimeError(f"Failed to generate conversation summary after {max_retries} attempts: {e}")
+
+    async def summarize_message(self, message_content: str, max_retries: int = 3) -> str:
+        """
+        Generate a concise one-liner summary of a single message for pinning purposes.
+        Uses retry mechanism with exponential backoff.
+        """
+        # Check if client is available
+        if self.client is None:
+            raise RuntimeError("LLM client not available - GROQ_API_KEY not configured")
+
+        system_prompt = """You are a helpful assistant that summarizes messages in one concise phrase.
+Focus on the key point, insight, or question. Keep it under 80 characters.
+Be specific but brief. Capture the essence of the message."""
+
+        user_prompt = f"Message:\n{message_content}\n\nProvide a brief summary in 1-2 words or a short phrase:"
+
+        for attempt in range(max_retries):
+            try:
+                logger.info(f"Summarizing message with content length: {len(message_content)} (attempt {attempt + 1}/{max_retries})")
+                response = await self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    max_tokens=50,
+                    temperature=0.3
+                )
+
+                if not response.choices or not response.choices[0].message:
+                    raise ValueError("LLM response is empty or malformed")
+
+                summary = response.choices[0].message.content
+                if not summary:
+                    raise ValueError("LLM returned empty content")
+
+                summary = summary.strip()
+                # Clean up the summary (remove quotes, extra whitespace)
+                summary = summary.strip('"\'')
+                result = summary[:80] if len(summary) > 80 else summary
+                logger.info(f"Successfully generated message summary: {repr(result)}")
+                return result
+
+            except Exception as e:
+                wait_time = 2 ** attempt  # Exponential backoff: 1s, 2s, 4s
+                logger.warning(f"Attempt {attempt + 1}/{max_retries} failed to summarize message: {e}")
+                
+                if attempt < max_retries - 1:
+                    logger.info(f"Retrying in {wait_time} seconds...")
+                    await asyncio.sleep(wait_time)
+                else:
+                    logger.error(f"All {max_retries} attempts failed to summarize message")
+                    raise RuntimeError(f"Failed to generate message summary after {max_retries} attempts: {e}")
+
     async def extract_keyword_intent(
         self,
         user_message: str,

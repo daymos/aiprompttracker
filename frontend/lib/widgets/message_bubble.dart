@@ -273,21 +273,11 @@ class _MessageBubbleState extends State<MessageBubble> {
     final chatProvider = Provider.of<ChatProvider>(context, listen: false);
 
     try {
-      // Extract a title from the message content (first 50 characters)
-      String title = widget.message.content.length > 50
-          ? '${widget.message.content.substring(0, 47)}...'
-          : widget.message.content;
-
-      // If it starts with markdown headers, use that as title
-      final headerMatch = RegExp(r'^#+\s*(.+)$', multiLine: true).firstMatch(widget.message.content);
-      if (headerMatch != null) {
-        title = headerMatch.group(1)!;
-      }
-
+      // Let the backend generate an AI summary for the title
       final pinResponse = await authProvider.apiService.pinItem(
         projectId: projectId,
         contentType: 'message',
-        title: title,
+        title: 'Message', // Backend will replace with AI-generated summary
         content: widget.message.content,
         sourceMessageId: widget.message.id,
         sourceConversationId: chatProvider.currentConversationId,

@@ -421,6 +421,8 @@ async def pin_item(
     db: Session = Depends(get_db)
 ):
     """Pin an item to the pinboard"""
+    from ..services.llm_service import LLMService
+
     token = authorization.replace("Bearer ", "")
     user = get_current_user(token, db)
 
@@ -433,12 +435,25 @@ async def pin_item(
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
 
+    # Generate AI summary for messages
+    title = request.title
+    if request.content_type == "message":
+        llm_service = LLMService()
+        try:
+            title = await llm_service.summarize_message(request.content)
+        except RuntimeError as e:
+            logger.error(f"Failed to generate AI summary for message: {e}")
+            raise HTTPException(status_code=503, detail=str(e))
+        except Exception as e:
+            logger.error(f"Unexpected error generating AI summary: {e}")
+            raise HTTPException(status_code=500, detail="Failed to generate summary for message")
+
     pinned_item = PinnedItem(
         id=str(uuid.uuid4()),
         user_id=user.id,
         project_id=request.project_id,
         content_type=request.content_type,
-        title=request.title,
+        title=title,
         content=request.content,
         source_message_id=request.source_message_id,
         source_conversation_id=request.source_conversation_id
@@ -504,7 +519,8 @@ async def pin_conversation(
 ):
     """Pin an entire conversation to the pinboard"""
     from ..models.conversation import Conversation, Message
-    
+    from ..services.llm_service import LLMService
+
     token = authorization.replace("Bearer ", "")
     user = get_current_user(token, db)
 
@@ -513,7 +529,7 @@ async def pin_conversation(
         Conversation.id == request.conversation_id,
         Conversation.user_id == user.id
     ).first()
-    
+
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
@@ -536,12 +552,19 @@ async def pin_conversation(
     for msg in messages:
         role = "You" if msg.role == "user" else "Assistant"
         conversation_content.append(f"**{role}:** {msg.content}")
-    
+
     content_text = "\n\n".join(conversation_content)
-    
-    # Create title from first user message or use default
-    first_user_msg = next((m for m in messages if m.role == "user"), None)
-    title = first_user_msg.content[:50] + "..." if first_user_msg and len(first_user_msg.content) > 50 else (first_user_msg.content if first_user_msg else "Conversation")
+
+    # Generate AI summary for the title
+    llm_service = LLMService()
+    try:
+        title = await llm_service.summarize_conversation(content_text)
+    except RuntimeError as e:
+        logger.error(f"Failed to generate AI summary for conversation: {e}")
+        raise HTTPException(status_code=503, detail=str(e))
+    except Exception as e:
+        logger.error(f"Unexpected error generating AI summary for conversation: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate summary for conversation")
 
     # Create the pinned item
     pinned_item = PinnedItem(
