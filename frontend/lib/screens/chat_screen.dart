@@ -7,6 +7,7 @@ import '../providers/project_provider.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/conversation_list.dart';
 import '../widgets/theme_switcher.dart';
+import '../widgets/cli_spinner.dart';
 import 'dart:html' as html;
 
 class ChatScreen extends StatefulWidget {
@@ -276,7 +277,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Text(
-                    'Q',
+                    'K',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
@@ -351,23 +352,6 @@ class _ChatScreenState extends State<ChatScreen> {
                   },
                   icon: const Icon(Icons.help_outline),
                   tooltip: 'How it works',
-                ),
-                const SizedBox(height: 24),
-                // Version indicator
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.green,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: const Text(
-                    'v1.0.1',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
                 ),
                 const Spacer(),
                 // Theme switcher
@@ -1044,15 +1028,9 @@ class _ChatScreenState extends State<ChatScreen> {
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      SizedBox(
-                                        width: 14,
-                                        height: 14,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor: AlwaysStoppedAnimation<Color>(
-                                            Theme.of(context).colorScheme.primary,
-                                          ),
-                                        ),
+                                      CliSpinner(
+                                        size: 13,
+                                        color: Theme.of(context).colorScheme.primary,
                                       ),
                                       const SizedBox(width: 12),
                                       Text(
