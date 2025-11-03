@@ -17,6 +17,7 @@ class ChatScreen extends StatefulWidget {
 
 enum ViewState { chat, conversations, projects }
 enum ProjectViewState { list, detail }
+enum ProjectTab { pinboard, keywords, backlinks }
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
@@ -27,6 +28,7 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _shouldCancelRequest = false;
   ViewState _currentView = ViewState.chat;
   ProjectViewState _projectViewState = ProjectViewState.list;
+  ProjectTab _selectedProjectTab = ProjectTab.keywords;
 
   @override
   void initState() {
@@ -273,7 +275,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Text(
-                    'K',
+                    'Q',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
@@ -1223,13 +1225,15 @@ class _ChatScreenState extends State<ChatScreen> {
       });
       return const Center(child: CircularProgressIndicator());
     }
-    
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 900),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+
+    return DefaultTabController(
+      length: 3,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 900),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             // Header with back button
             Padding(
               padding: const EdgeInsets.all(24.0),
@@ -1368,24 +1372,70 @@ class _ChatScreenState extends State<ChatScreen> {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  // Keywords title
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      'Keywords (${keywords.length})',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
+                  // Tabs
+                  TabBar(
+                    onTap: (index) {
+                      setState(() {
+                        _selectedProjectTab = ProjectTab.values[index];
+                      });
+                    },
+                    tabs: const [
+                      Tab(text: 'Pinboard'),
+                      Tab(text: 'Keywords'),
+                      Tab(text: 'Backlinks'),
+                    ],
                   ),
                 ],
               ),
             ),
-            
-            // Keywords content
+
+            // Tab content
             Expanded(
-              child: _buildKeywordsTab(projectProvider, keywords),
+              child: TabBarView(
+                physics: const NeverScrollableScrollPhysics(), // Disable swipe
+                children: [
+                  _buildPinboardTab(project),
+                  _buildKeywordsTab(projectProvider, keywords),
+                  _buildBacklinksTab(project),
+                ],
+              ),
             ),
           ],
         ),
+      ),
+      ),
+    );
+  }
+
+  Widget _buildPinboardTab(Project project) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.push_pin,
+            size: 64,
+            color: Colors.grey[600],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Pinboard',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Coming soon - A place to pin important insights and notes',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[500],
+            ),
+          ),
+        ],
       ),
     );
   }

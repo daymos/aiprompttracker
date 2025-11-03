@@ -20,7 +20,7 @@ class _ProjectScreenState extends State<ProjectScreen> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     // Load projects after build completes to avoid setState during build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadProjects();
@@ -112,13 +112,23 @@ class _ProjectScreenState extends State<ProjectScreen> with SingleTickerProvider
       appBar: AppBar(
         title: Row(
           children: [
-            Image.network(
-              '/logo-icon.svg',
-              height: 32,
+            Container(
               width: 32,
-              errorBuilder: (context, error, stackTrace) {
-                return const Icon(Icons.track_changes, size: 24);
-              },
+              height: 32,
+              decoration: BoxDecoration(
+                color: Colors.purple,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Center(
+                child: Text(
+                  'Q',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
             ),
             const SizedBox(width: 12),
             const Text('My Projects'),
@@ -130,7 +140,7 @@ class _ProjectScreenState extends State<ProjectScreen> with SingleTickerProvider
                 borderRadius: BorderRadius.circular(4),
               ),
               child: const Text(
-                'v1.0.1+2',
+                'v1.0.2+3',
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
               ),
             ),
@@ -313,6 +323,10 @@ class _ProjectScreenState extends State<ProjectScreen> with SingleTickerProvider
                               icon: Icon(Icons.key),
                               text: 'Keywords',
                             ),
+                            Tab(
+                              icon: Icon(Icons.link),
+                              text: 'Backlinks',
+                            ),
                           ],
                         ),
                         const SizedBox(height: 16),
@@ -327,6 +341,9 @@ class _ProjectScreenState extends State<ProjectScreen> with SingleTickerProvider
                               
                               // Keywords Tab
                               _buildKeywordsTab(projectProvider, keywords),
+                              
+                              // Backlinks Tab
+                              _buildBacklinksTab(),
                             ],
                           ),
                         ),
@@ -451,6 +468,50 @@ class _ProjectScreenState extends State<ProjectScreen> with SingleTickerProvider
           ),
         );
       },
+    );
+  }
+
+  Widget _buildBacklinksTab() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.link,
+            size: 64,
+            color: Colors.grey[600],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Backlinks',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Track and manage backlinks to your site',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[500],
+            ),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () {
+              // TODO: Implement backlinks functionality
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Coming soon!')),
+              );
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('Add Backlink'),
+          ),
+        ],
+      ),
     );
   }
 

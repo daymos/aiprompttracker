@@ -13,7 +13,29 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-  <script src="flutter_bootstrap.js" async></script>
+  <script src="flutter.js" defer></script>
+  <script>
+    // Unregister ALL existing service workers immediately
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for(let registration of registrations) {
+          registration.unregister();
+          console.log('[CACHE FIX] Service worker unregistered');
+        }
+      });
+    }
+    
+    // Wait for flutter.js to load, then load app WITHOUT service worker
+    window.addEventListener('load', function() {
+      _flutter.loader.loadEntrypoint({
+        onEntrypointLoaded: async function(engineInitializer) {
+          let appRunner = await engineInitializer.initializeEngine();
+          await appRunner.runApp();
+        },
+        serviceWorker: null // NO SERVICE WORKER
+      });
+    });
+  </script>
 </body>
 </html>
 
