@@ -23,6 +23,7 @@ from ..services.web_scraper import WebScraperService
 from .auth import get_current_user
 
 router = APIRouter(prefix="/chat", tags=["chat"])
+logger = logging.getLogger(__name__)
 
 keyword_service = KeywordService()
 llm_service = LLMService()
@@ -656,6 +657,37 @@ async def send_message_stream(
                 )
                 db.add(assistant_message)
                 db.commit()
+                
+                # Update conversation title with AI summary if this is the first exchange
+                try:
+                    # Check if this is a new conversation (only 2 messages: user + assistant)
+                    message_count = db.query(Message).filter(
+                        Message.conversation_id == conversation.id
+                    ).count()
+                    
+                    if message_count == 2:  # First exchange complete
+                        # Build conversation content for summarization
+                        all_messages = db.query(Message).filter(
+                            Message.conversation_id == conversation.id
+                        ).order_by(Message.created_at).all()
+                        
+                        conversation_content = []
+                        for msg in all_messages:
+                            role = "You" if msg.role == "user" else "Assistant"
+                            conversation_content.append(f"**{role}:** {msg.content}")
+                        
+                        content_text = "\n\n".join(conversation_content)
+                        
+                        # Generate AI summary for the title (use global llm_service)
+                        title = await llm_service.summarize_conversation(content_text)
+                        
+                        # Update conversation title
+                        conversation.title = title
+                        db.commit()
+                        logger.info(f"✨ Updated conversation title to: {title}")
+                except Exception as e:
+                    logger.warning(f"Failed to generate AI title for conversation: {e}")
+                    # Don't fail the request if title generation fails
             else:
                 logger.warning("⚠️  Skipping assistant message save - no content to save")
             
@@ -669,7 +701,7 @@ async def send_message_stream(
             yield await send_sse_event("done", {})
             
         except Exception as e:
-            logging.error(f"Error in event_generator: {e}")
+            logger.error(f"Error in event_generator: {e}")
             yield await send_sse_event("error", {"message": str(e)})
     
     return StreamingResponse(
@@ -746,8 +778,6 @@ async def send_message(
         conversation_history.append({"role": msg.role, "content": content})
     
     # Debug logging
-    import logging
-    logger = logging.getLogger(__name__)
     logger.info(f"Conversation has {len(messages)} total messages, passing {len(conversation_history)} as history")
     
     # Get user's projects for context
@@ -1332,6 +1362,37 @@ async def send_message(
         )
         db.add(assistant_message)
         db.commit()
+        
+        # Update conversation title with AI summary if this is the first exchange
+        try:
+            # Check if this is a new conversation (only 2 messages: user + assistant)
+            message_count = db.query(Message).filter(
+                Message.conversation_id == conversation.id
+            ).count()
+            
+            if message_count == 2:  # First exchange complete
+                # Build conversation content for summarization
+                all_messages = db.query(Message).filter(
+                    Message.conversation_id == conversation.id
+                ).order_by(Message.created_at).all()
+                
+                conversation_content = []
+                for msg in all_messages:
+                    role = "You" if msg.role == "user" else "Assistant"
+                    conversation_content.append(f"**{role}:** {msg.content}")
+                
+                content_text = "\n\n".join(conversation_content)
+                
+                # Generate AI summary for the title (use global llm_service)
+                title = await llm_service.summarize_conversation(content_text)
+                
+                # Update conversation title
+                conversation.title = title
+                db.commit()
+                logger.info(f"✨ Updated conversation title to: {title}")
+        except Exception as e:
+            logger.warning(f"Failed to generate AI title for conversation: {e}")
+            # Don't fail the request if title generation fails
     else:
         logger.warning("⚠️  Skipping assistant message save - no content to save")
     
