@@ -131,7 +131,7 @@ class _ProjectScreenState extends State<ProjectScreen> with SingleTickerProvider
               ),
             ),
             const SizedBox(width: 12),
-            const Text('My Projects'),
+            const Text('My SEO Projects'),
             const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -247,7 +247,7 @@ class _ProjectScreenState extends State<ProjectScreen> with SingleTickerProvider
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'No Projects Yet',
+                            'No SEO Projects Yet',
                             style: TextStyle(
                               fontSize: 20,
                               color: Colors.grey[600],

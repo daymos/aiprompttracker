@@ -32,6 +32,7 @@ class _ChatScreenState extends State<ChatScreen> {
   ViewState _currentView = ViewState.chat;
   ProjectViewState _projectViewState = ProjectViewState.list;
   ProjectTab _selectedProjectTab = ProjectTab.keywords;
+  String? _lastProjectId; // Track project changes to send initial messages
 
   @override
   void initState() {
@@ -343,7 +344,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         ? Theme.of(context).colorScheme.primaryContainer
                         : null,
                   ),
-                  tooltip: 'My Projects',
+                  tooltip: 'My SEO Projects',
                 ),
                 const SizedBox(height: 12),
                 // How it works button
@@ -712,7 +713,7 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
-  
+
   Widget _buildSuggestionButtons() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -1074,71 +1075,145 @@ class _ChatScreenState extends State<ChatScreen> {
     final projectProvider = context.watch<ProjectProvider>();
     final currentProjectId = projectProvider.selectedProject?.id;
 
-    return chatProvider.messages.isEmpty
-        ? _buildEmptyStateWithInput()
-        : Column(
-            children: [
-              // Messages
-              Expanded(
-                child: ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-                  itemCount: chatProvider.messages.length + (chatProvider.isLoading ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    // Show typing indicator as last item when loading
-                    if (index == chatProvider.messages.length && chatProvider.isLoading) {
-                      return Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 900),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      CliSpinner(
-                                        size: 13,
-                                        color: Theme.of(context).colorScheme.primary,
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Text(
-                                        chatProvider.loadingStatus,
-                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                          color: Theme.of(context).textTheme.bodySmall?.color,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
+    // Send initial project message if project changed and no messages exist
+    if (currentProjectId != null &&
+        chatProvider.messages.isEmpty &&
+        currentProjectId != _lastProjectId &&
+        !chatProvider.isLoading) {
+      _lastProjectId = currentProjectId;
+      final project = projectProvider.selectedProject!;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _sendInitialProjectMessage(project);
+      });
+    }
+
+    return Column(
+        children: [
+          // Project context header (if project selected)
+          if (currentProjectId != null)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                border: Border(
+                  bottom: BorderSide(
+                    color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  FaviconWidget(
+                    url: projectProvider.selectedProject!.targetUrl,
+                    size: 32,
+                    apiService: Provider.of<AuthProvider>(context, listen: false).apiService,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Discussing: ${projectProvider.selectedProject!.name}',
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                      );
-                    }
-                    
-                    return Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 900),
-                        child: MessageBubble(
-                          message: chatProvider.messages[index],
-                          projectId: currentProjectId,
+                        Text(
+                          projectProvider.selectedProject!.targetUrl,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _currentView = ViewState.projects;
+                      });
+                    },
+                    icon: const Icon(Icons.close, size: 20),
+                    tooltip: 'Close project context',
+                  ),
+                ],
+              ),
+            ),
+
+          // Messages and Input
+          Expanded(
+            child: chatProvider.messages.isEmpty && !chatProvider.isLoading && currentProjectId == null
+                ? _buildEmptyStateWithInput()
+                : Column(
+                    children: [
+                      // Messages area
+                      Expanded(
+                        child: ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                          itemCount: chatProvider.messages.length + (chatProvider.isLoading ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            // Show typing indicator as last item when loading
+                            if (index == chatProvider.messages.length && chatProvider.isLoading) {
+                              return Center(
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(maxWidth: 900),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                          decoration: BoxDecoration(
+                                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                            borderRadius: BorderRadius.circular(16),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              CliSpinner(
+                                                size: 13,
+                                                color: Theme.of(context).colorScheme.primary,
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Text(
+                                                chatProvider.loadingStatus,
+                                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                                  color: Theme.of(context).textTheme.bodySmall?.color,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+
+                            return Center(
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(maxWidth: 900),
+                                child: MessageBubble(
+                                  message: chatProvider.messages[index],
+                                  projectId: currentProjectId,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
-                    );
-                  },
-                ),
-                ),
-              
-              // Input area (bottom)
-              _buildInputArea(),
+
+                      // Input area (bottom) - only show when there are messages or project context
+                      if (chatProvider.messages.isNotEmpty || currentProjectId != null || chatProvider.isLoading)
+                        _buildInputArea(),
+                    ],
+                  ),
+              ),
             ],
           );
   }
@@ -1249,7 +1324,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Projects',
+                          'SEO Projects',
                           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -1293,7 +1368,7 @@ class _ChatScreenState extends State<ChatScreen> {
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                'No Projects Yet',
+                                'No SEO Projects Yet',
                                 style: TextStyle(
                                   fontSize: 20,
                                   color: Colors.grey[600],
@@ -1385,7 +1460,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final authProvider = context.watch<AuthProvider>();
     final project = projectProvider.selectedProject;
     final keywords = projectProvider.trackedKeywords;
-    
+
     if (project == null) {
       // Shouldn't happen, but fallback to list view
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1418,7 +1493,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       });
                     },
                     icon: const Icon(Icons.arrow_back, size: 18),
-                    label: const Text('Back to projects'),
+                    label: const Text('Back to SEO projects'),
                     style: TextButton.styleFrom(
                       padding: EdgeInsets.zero,
                     ),
@@ -1454,28 +1529,67 @@ class _ChatScreenState extends State<ChatScreen> {
                           ],
                         ),
                       ),
-                      // Refresh button
+                      // Chat button
                       IconButton(
-                        onPressed: projectProvider.isLoading
-                            ? null
-                            : () async {
-                                try {
-                                  await projectProvider.refreshRankings(authProvider.apiService);
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Rankings updated!')),
-                                    );
-                                  }
-                                } catch (e) {
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Error: $e')),
-                                    );
-                                  }
-                                }
-                              },
-                        icon: const Icon(Icons.refresh),
-                        tooltip: 'Refresh Rankings',
+                        onPressed: () {
+                          setState(() {
+                            _currentView = ViewState.chat;
+                          });
+                        },
+                        icon: const Icon(Icons.chat_bubble_outline),
+                        tooltip: 'Start Conversation',
+                      ),
+                      // Refresh buttons
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            onPressed: projectProvider.isLoading
+                                ? null
+                                : () async {
+                                    try {
+                                      await projectProvider.refreshRankings(authProvider.apiService);
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Keywords updated!')),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Error: $e')),
+                                        );
+                                      }
+                                    }
+                                  },
+                            icon: const Icon(Icons.search),
+                            tooltip: 'Refresh Keywords',
+                            iconSize: 20,
+                          ),
+                          IconButton(
+                            onPressed: projectProvider.isLoading
+                                ? null
+                                : () async {
+                                    try {
+                                      await authProvider.apiService.verifyAllBacklinks(project.id);
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Backlinks verified!')),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Error: $e')),
+                                        );
+                                      }
+                                    }
+                                  },
+                            icon: const Icon(Icons.link),
+                            tooltip: 'Refresh Backlinks',
+                            iconSize: 20,
+                          ),
+                        ],
                       ),
                       // Delete button
                       IconButton(
@@ -1534,6 +1648,98 @@ class _ChatScreenState extends State<ChatScreen> {
                         color: Colors.red[400],
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Project summary
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        // Keywords count
+                        Expanded(
+                          child: Column(
+                            children: [
+                              Text(
+                                keywords.length.toString(),
+                                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                              Text(
+                                'Tracked Keywords',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Colors.grey[600],
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          height: 40,
+                          width: 1,
+                          color: Colors.grey[300],
+                        ),
+                        // Backlinks count
+                        Expanded(
+                          child: FutureBuilder<Map<String, dynamic>>(
+                            future: authProvider.apiService.getProjectBacklinks(project.id),
+                            builder: (context, snapshot) {
+                              final backlinksCount = snapshot.data?['submissions']?.length ?? 0;
+                              return Column(
+                                children: [
+                                  Text(
+                                    backlinksCount.toString(),
+                                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(context).colorScheme.primary,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Backlinks',
+                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Colors.grey[600],
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                        ),
+                        Container(
+                          height: 40,
+                          width: 1,
+                          color: Colors.grey[300],
+                        ),
+                        // Last updated
+                        Expanded(
+                          child: Column(
+                            children: [
+                              Text(
+                                _formatLastUpdated(keywords),
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              Text(
+                                'Last Updated',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Colors.grey[600],
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 24),
                   // Tabs
@@ -1936,8 +2142,25 @@ class _ChatScreenState extends State<ChatScreen> {
               )
             : ListView.builder(
                           padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                          itemCount: keywords.length,
+                          itemCount: keywords.length + 1, // +1 for the Add Keyword button
                           itemBuilder: (context, index) {
+                            // Add Keyword button at the end
+                            if (index == keywords.length) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 16.0),
+                                child: Center(
+                                  child: ElevatedButton.icon(
+                                    onPressed: () => _showAddKeywordDialog(context, projectProvider, Provider.of<AuthProvider>(context, listen: false)),
+                                    icon: const Icon(Icons.add),
+                                    label: const Text('Add Keyword'),
+                                    style: ElevatedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+
                             final keyword = keywords[index];
                             
                             return Card(
@@ -1956,7 +2179,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                       ),
                                       child: Center(
                                         child: Text(
-                                          keyword.currentPosition?.toString() ?? '--',
+                                          keyword.currentPosition?.toString() ?? '101+',
                                           style: TextStyle(
                                             color: _getPositionColor(keyword.currentPosition),
                                             fontWeight: FontWeight.bold,
@@ -2012,26 +2235,55 @@ class _ChatScreenState extends State<ChatScreen> {
                                         ],
                                       ),
                                     ),
-                                    // Position chip
-                                    if (keyword.currentPosition != null)
-                                      Chip(
-                                        label: Text('Position ${keyword.currentPosition}'),
-                                        backgroundColor: _getPositionColor(keyword.currentPosition).withOpacity(0.2),
-                                        labelStyle: TextStyle(
-                                          fontSize: 12,
-                                          color: _getPositionColor(keyword.currentPosition),
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      )
-                                    else
-                                      Chip(
-                                        label: const Text('Not ranked'),
-                                        backgroundColor: Colors.grey[800],
-                                        labelStyle: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey[400],
-                                        ),
-                                      ),
+                                    // Progress indicator
+                                    FutureBuilder<Map<String, dynamic>>(
+                                      future: Provider.of<AuthProvider>(context, listen: false).apiService.getKeywordHistory(keyword.id),
+                                      builder: (context, snapshot) {
+                                        if (snapshot.hasData && snapshot.data?['history'] != null) {
+                                          final history = snapshot.data!['history'] as List;
+                                          if (history.isNotEmpty) {
+                                            // Get first and last positions
+                                            final firstEntry = history.first as Map<String, dynamic>;
+                                            final lastEntry = history.last as Map<String, dynamic>;
+                                            final initialPosition = firstEntry['position'] as int?;
+                                            final currentPosition = lastEntry['position'] as int?;
+
+                                            if (initialPosition != null && currentPosition != null && initialPosition != currentPosition) {
+                                              final change = initialPosition - currentPosition;
+                                              final isPositive = change > 0;
+
+                                              return Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                decoration: BoxDecoration(
+                                                  color: isPositive ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2),
+                                                  borderRadius: BorderRadius.circular(12),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Icon(
+                                                      isPositive ? Icons.trending_up : Icons.trending_down,
+                                                      size: 14,
+                                                      color: isPositive ? Colors.green : Colors.red,
+                                                    ),
+                                                    const SizedBox(width: 2),
+                                                    Text(
+                                                      change.abs().toString(),
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        fontWeight: FontWeight.w600,
+                                                        color: isPositive ? Colors.green : Colors.red,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                            }
+                                          }
+                                        }
+                                        return const SizedBox.shrink();
+                                      },
+                                    ),
                                   ],
                                 ),
                               ),
@@ -2509,6 +2761,111 @@ class _ChatScreenState extends State<ChatScreen> {
         ],
       ),
     );
+  }
+
+  void _showAddKeywordDialog(BuildContext context, ProjectProvider projectProvider, AuthProvider authProvider) {
+    final keywordController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Add Keyword'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: keywordController,
+                decoration: const InputDecoration(
+                  labelText: 'Keyword',
+                  hintText: 'Enter keyword to track',
+                ),
+                textCapitalization: TextCapitalization.words,
+                autofocus: true,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Search volume and competition will be automatically fetched and tracked.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (keywordController.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please enter a keyword')),
+                  );
+                  return;
+                }
+
+                try {
+                  await projectProvider.addKeyword(
+                    authProvider.apiService,
+                    keywordController.text.trim(),
+                    null, // Let backend fetch search volume
+                    null, // Let backend determine competition
+                  );
+
+                  if (context.mounted) {
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Keyword added successfully!')),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error adding keyword: $e')),
+                    );
+                  }
+                }
+              },
+              child: const Text('Add'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _sendInitialProjectMessage(Project project) {
+    // Set initial message about the project
+    _messageController.text = "I'm working on my SEO project for ${project.name} (${project.targetUrl}). What suggestions do you have to improve my search rankings?";
+    // Send the message
+    _sendMessage();
+  }
+
+  String _formatLastUpdated(List<TrackedKeyword> keywords) {
+    if (keywords.isEmpty) {
+      return 'Never';
+    }
+
+    // Find the most recent keyword creation/update time
+    DateTime mostRecent = keywords
+        .map((k) => k.createdAt)
+        .reduce((a, b) => a.isAfter(b) ? a : b);
+
+    final now = DateTime.now();
+    final difference = now.difference(mostRecent);
+
+    if (difference.inDays > 0) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m ago';
+    } else {
+      return 'Just now';
+    }
   }
 }
 

@@ -57,7 +57,7 @@ class GuidesScreen extends StatelessWidget {
                 context,
                 Icons.track_changes,
                 'Keyword Tracking',
-                'Create projects to track your website\'s rankings for specific keywords. Monitor your position on Google and get updates when rankings change.',
+                'Create SEO projects to track your website\'s rankings for specific keywords. Monitor your position on Google and get updates when rankings change.',
               ),
               
               _buildFeatureSection(
@@ -109,9 +109,9 @@ class GuidesScreen extends StatelessWidget {
                     const SizedBox(height: 8),
                     _buildTip('3. Ask for keyword research, website analysis, or ranking checks'),
                     const SizedBox(height: 8),
-                    _buildTip('4. Review the suggestions and create a project to track keywords'),
+                    _buildTip('4. Review the suggestions and create an SEO project to track keywords'),
                     const SizedBox(height: 8),
-                    _buildTip('5. Monitor your progress from the Projects section'),
+                    _buildTip('5. Monitor your progress from the SEO Projects section'),
                   ],
                 ),
               ),
