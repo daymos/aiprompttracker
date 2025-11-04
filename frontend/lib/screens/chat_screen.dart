@@ -20,7 +20,7 @@ class ChatScreen extends StatefulWidget {
 
 enum ViewState { chat, conversations, projects }
 enum ProjectViewState { list, detail }
-enum ProjectTab { pinboard, keywords, backlinks }
+enum ProjectTab { overview, pinboard, keywords, backlinks }
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
@@ -1512,8 +1512,8 @@ class _ChatScreenState extends State<ChatScreen> {
                             _sendMessage();
                           });
                         },
-                        icon: const Icon(Icons.chat_bubble_outline, size: 20),
-                        label: const Text('Start Conversation'),
+                        icon: const Icon(Icons.auto_awesome, size: 20),
+                        label: const Text('Work on SEO Strategy'),
                         style: FilledButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                         ),
@@ -1638,6 +1638,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       });
                     },
                     tabs: [
+                      const Tab(text: 'Overview'),
                       const Tab(text: 'Pinboard'),
                       Tab(text: 'Keywords (${keywords.length})'),
                       Tab(text: 'Backlinks (${projectProvider.backlinksData?['total_backlinks'] ?? 0})'),
@@ -1652,6 +1653,7 @@ class _ChatScreenState extends State<ChatScreen> {
               child: TabBarView(
                 physics: const NeverScrollableScrollPhysics(), // Disable swipe
                 children: [
+                  _buildOverviewTab(project, projectProvider),
                   _buildPinboardTab(project),
                   _buildKeywordsTab(projectProvider, keywords),
                   _buildBacklinksTab(project),
@@ -1662,6 +1664,368 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
       ),
       ),
+    );
+  }
+
+  Widget _buildOverviewTab(Project project, ProjectProvider projectProvider) {
+    final backlinksData = projectProvider.backlinksData;
+    
+    // Extract metrics
+    final domainAuthority = backlinksData?['domain_authority'] ?? 0;
+    final totalBacklinks = backlinksData?['total_backlinks'] ?? 0;
+    final referringDomains = backlinksData?['referring_domains'] ?? 0;
+    final overtime = backlinksData?['overtime'] as List? ?? [];
+    final newAndLost = backlinksData?['new_and_lost'] as List? ?? [];
+    final isCached = backlinksData?['is_cached'] == true;
+    final cacheNote = backlinksData?['cache_note'] as String?;
+    final hasError = backlinksData?['error'] != null;
+    final errorMessage = backlinksData?['error'] as String?;
+    
+    return projectProvider.isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Show cache/error notice
+                if (isCached || hasError) ...[
+                  Card(
+                    color: isCached ? Colors.blue[50] : Colors.orange[50],
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Row(
+                        children: [
+                          Icon(
+                            isCached ? Icons.cached : Icons.warning_amber,
+                            size: 20,
+                            color: isCached ? Colors.blue[700] : Colors.orange[700],
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              cacheNote ?? errorMessage ?? 'Using cached data',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isCached ? Colors.blue[900] : Colors.orange[900],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                // Key Metrics Cards
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildMetricCard(
+                        'Domain Authority',
+                        domainAuthority.toString(),
+                        Icons.shield_outlined,
+                        _getDomainAuthorityColor(domainAuthority),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildMetricCard(
+                        'Total Backlinks',
+                        _formatNumber(totalBacklinks),
+                        Icons.link,
+                        Colors.blue[400]!,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildMetricCard(
+                        'Referring Domains',
+                        _formatNumber(referringDomains),
+                        Icons.language,
+                        Colors.purple[400]!,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildMetricCard(
+                        'New/Lost (7d)',
+                        _getNewLostSummary(newAndLost),
+                        Icons.trending_up,
+                        Colors.green[400]!,
+                      ),
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 24),
+                
+                // Historical Trend Chart
+                if (overtime.isNotEmpty) ...[
+                  Text(
+                    'Domain Authority Trend',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            height: 200,
+                            child: _buildHistoricalChart(overtime),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+                
+                // Backlinks Growth Chart
+                if (overtime.isNotEmpty) ...[
+                  Text(
+                    'Backlinks Growth',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            height: 200,
+                            child: _buildBacklinksChart(overtime),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+                
+                // Recent Activity
+                if (newAndLost.isNotEmpty) ...[
+                  Text(
+                    'Recent Activity (Last 30 Days)',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: _buildActivityList(newAndLost.take(10).toList()),
+                    ),
+                  ),
+                ],
+                
+                // If no data
+                if (overtime.isEmpty && newAndLost.isEmpty) ...[
+                  Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.analytics_outlined,
+                          size: 64,
+                          color: Colors.grey[600],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No Data Yet',
+                          style: TextStyle(
+                            fontSize: 20,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Analyze backlinks to see metrics',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          );
+  }
+  
+  Widget _buildMetricCard(String title, String value, IconData icon, Color color) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 20, color: color),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Color _getDomainAuthorityColor(int da) {
+    if (da >= 70) return Colors.green[600]!;
+    if (da >= 50) return Colors.blue[600]!;
+    if (da >= 30) return Colors.orange[600]!;
+    return Colors.red[600]!;
+  }
+  
+  String _formatNumber(int number) {
+    if (number >= 1000000) {
+      return '${(number / 1000000).toStringAsFixed(1)}M';
+    } else if (number >= 1000) {
+      return '${(number / 1000).toStringAsFixed(1)}K';
+    }
+    return number.toString();
+  }
+  
+  String _getNewLostSummary(List newAndLost) {
+    if (newAndLost.isEmpty) return '0/0';
+    
+    int totalNew = 0;
+    int totalLost = 0;
+    
+    // Last 7 days
+    final recentData = newAndLost.take(7).toList();
+    for (var day in recentData) {
+      totalNew += (day['new_backlinks'] ?? 0) as int;
+      totalLost += (day['lost_backlinks'] ?? 0) as int;
+    }
+    
+    final newStr = totalNew > 0 ? '+${_formatNumber(totalNew)}' : '0';
+    final lostStr = totalLost > 0 ? '-${_formatNumber(totalLost)}' : '0';
+    
+    return '$newStr / $lostStr';
+  }
+  
+  Widget _buildHistoricalChart(List overtime) {
+    // Simple line chart visualization
+    final data = overtime.take(30).toList().reversed.toList();
+    
+    return CustomPaint(
+      painter: LineChartPainter(
+        data: data,
+        color: _getDomainAuthorityColor(data.last['da'] ?? 0),
+        dataKey: 'da',
+        labelFormatter: (value) => value.toInt().toString(),
+      ),
+      child: Container(),
+    );
+  }
+  
+  Widget _buildBacklinksChart(List overtime) {
+    // Simple line chart for backlinks
+    final data = overtime.take(30).toList().reversed.toList();
+    
+    return CustomPaint(
+      painter: LineChartPainter(
+        data: data,
+        color: Colors.blue[400]!,
+        dataKey: 'backlinks',
+        labelFormatter: (value) => _formatNumber(value.toInt()),
+      ),
+      child: Container(),
+    );
+  }
+  
+  Widget _buildActivityList(List newAndLost) {
+    return Column(
+      children: newAndLost.map((day) {
+        final date = day['date'] ?? 'Unknown';
+        final newLinks = day['new_backlinks'] ?? 0;
+        final lostLinks = day['lost_backlinks'] ?? 0;
+        
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: Text(
+                  date,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Row(
+                  children: [
+                    Icon(Icons.add, size: 16, color: Colors.green[600]),
+                    const SizedBox(width: 4),
+                    Text(
+                      newLinks.toString(),
+                      style: TextStyle(
+                        color: Colors.green[600],
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Row(
+                  children: [
+                    Icon(Icons.remove, size: 16, color: Colors.red[600]),
+                    const SizedBox(width: 4),
+                    Text(
+                      lostLinks.toString(),
+                      style: TextStyle(
+                        color: Colors.red[600],
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -1692,8 +2056,60 @@ class _ChatScreenState extends State<ChatScreen> {
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Related Conversations Section
+            // Pinned Items Section (moved to top)
+            Row(
+              children: [
+                Icon(Icons.push_pin, size: 20, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'Pinned Items',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            
+            if (pinnedItems.isEmpty)
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32.0),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.push_pin,
+                        size: 48,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'No pinned items yet',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Pin important responses from chat',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              ...pinnedItems.map((item) => _buildPinListItem(item)).toList(),
+            
+            // Related Conversations Section (moved to bottom)
             if (relatedConversations.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 16),
               Row(
                 children: [
                   Icon(Icons.chat_bubble_outline, size: 20, color: Theme.of(context).colorScheme.primary),
@@ -1758,59 +2174,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 );
               }).toList(),
-              const SizedBox(height: 24),
-              const Divider(),
-              const SizedBox(height: 16),
             ],
-            
-            // Pinned Items Section
-            Row(
-              children: [
-                Icon(Icons.push_pin, size: 20, color: Theme.of(context).colorScheme.primary),
-                const SizedBox(width: 8),
-                Text(
-                  'Pinned Items',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            
-            if (pinnedItems.isEmpty)
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32.0),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.push_pin,
-                        size: 48,
-                        color: Colors.grey[400],
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'No pinned items yet',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Pin important responses from chat',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[500],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            else
-              ...pinnedItems.map((item) => _buildPinListItem(item)).toList(),
           ],
         );
       },
@@ -2099,6 +2463,9 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  // Selected keywords state
+  final Set<String> _selectedKeywordIds = {};
+
   Widget _buildKeywordsTab(ProjectProvider projectProvider, List<TrackedKeyword> keywords) {
     return projectProvider.isLoading
         ? const Center(child: CircularProgressIndicator())
@@ -2132,7 +2499,107 @@ class _ChatScreenState extends State<ChatScreen> {
                   ],
                 ),
               )
-            : ListView.builder(
+            : Column(
+                children: [
+                  // Bulk actions bar (shown when keywords are selected)
+                  if (_selectedKeywordIds.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      child: Row(
+                        children: [
+                          Text(
+                            '${_selectedKeywordIds.length} selected',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                          const Spacer(),
+                          TextButton.icon(
+                            onPressed: () async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('Stop Tracking Keywords'),
+                                  content: Text('Stop tracking ${_selectedKeywordIds.length} keyword(s)?'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context, false),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    FilledButton(
+                                      onPressed: () => Navigator.pop(context, true),
+                                      child: const Text('Stop Tracking'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              
+                              if (confirm == true && mounted) {
+                                // TODO: Implement stop tracking API call
+                                setState(() {
+                                  _selectedKeywordIds.clear();
+                                });
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Keywords stopped tracking')),
+                                  );
+                                }
+                              }
+                            },
+                            icon: const Icon(Icons.pause_circle_outline),
+                            label: const Text('Stop Tracking'),
+                          ),
+                          const SizedBox(width: 8),
+                          TextButton.icon(
+                            onPressed: () async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('Remove Keywords'),
+                                  content: Text('Permanently remove ${_selectedKeywordIds.length} keyword(s)?'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context, false),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    FilledButton(
+                                      onPressed: () => Navigator.pop(context, true),
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor: Theme.of(context).colorScheme.error,
+                                      ),
+                                      child: const Text('Remove'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              
+                              if (confirm == true && mounted) {
+                                // TODO: Implement remove keywords API call
+                                setState(() {
+                                  _selectedKeywordIds.clear();
+                                });
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Keywords removed')),
+                                  );
+                                }
+                              }
+                            },
+                            icon: const Icon(Icons.delete_outline),
+                            label: const Text('Remove'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  
+                  // Keywords list
+                  Expanded(
+                    child: ListView.builder(
                           padding: const EdgeInsets.symmetric(horizontal: 24.0),
                           itemCount: keywords.length + 1, // +1 for the Add Keyword button
                           itemBuilder: (context, index) {
@@ -2154,59 +2621,92 @@ class _ChatScreenState extends State<ChatScreen> {
                             }
 
                             final keyword = keywords[index];
+                            final isSelected = _selectedKeywordIds.contains(keyword.id);
                             
-                            return Card(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Row(
-                                  children: [
-                                    // Keyword info
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            keyword.keyword,
-                                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                              fontWeight: FontWeight.bold,
-                                            ),
+                            return MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              child: Card(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                color: isSelected 
+                                    ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3)
+                                    : null,
+                                child: InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      if (isSelected) {
+                                        _selectedKeywordIds.remove(keyword.id);
+                                      } else {
+                                        _selectedKeywordIds.add(keyword.id);
+                                      }
+                                    });
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Row(
+                                      children: [
+                                        // Checkbox
+                                        MouseRegion(
+                                          cursor: SystemMouseCursors.click,
+                                          child: Checkbox(
+                                            value: isSelected,
+                                            onChanged: (value) {
+                                              setState(() {
+                                                if (value == true) {
+                                                  _selectedKeywordIds.add(keyword.id);
+                                                } else {
+                                                  _selectedKeywordIds.remove(keyword.id);
+                                                }
+                                              });
+                                            },
                                           ),
-                                          const SizedBox(height: 4),
-                                          Row(
+                                        ),
+                                        const SizedBox(width: 8),
+                                        // Keyword info
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              Icon(
-                                                Icons.search,
-                                                size: 14,
-                                                color: Colors.grey[500],
-                                              ),
-                                              const SizedBox(width: 4),
                                               Text(
-                                                '${keyword.searchVolume ?? '--'} searches/mo',
-                                                style: TextStyle(
-                                                  fontSize: 13,
-                                                  color: Colors.grey[500],
+                                                keyword.keyword,
+                                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                                  fontWeight: FontWeight.bold,
                                                 ),
                                               ),
-                                              const SizedBox(width: 16),
-                                              Icon(
-                                                Icons.trending_up,
-                                                size: 14,
-                                                color: Colors.grey[500],
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                keyword.competition?.toUpperCase() ?? 'UNKNOWN',
-                                                style: TextStyle(
-                                                  fontSize: 13,
-                                                  color: Colors.grey[500],
-                                                ),
+                                              const SizedBox(height: 4),
+                                              Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.search,
+                                                    size: 14,
+                                                    color: Colors.grey[500],
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    '${keyword.searchVolume ?? '--'} searches/mo',
+                                                    style: TextStyle(
+                                                      fontSize: 13,
+                                                      color: Colors.grey[500],
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 16),
+                                                  Icon(
+                                                    Icons.trending_up,
+                                                    size: 14,
+                                                    color: Colors.grey[500],
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    keyword.competition?.toUpperCase() ?? 'UNKNOWN',
+                                                    style: TextStyle(
+                                                      fontSize: 13,
+                                                      color: Colors.grey[500],
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ],
                                           ),
-                                        ],
-                                      ),
-                                    ),
+                                        ),
                                     const SizedBox(width: 16),
                                     // Sparkline chart
                                     FutureBuilder<Map<String, dynamic>>(
@@ -2264,12 +2764,17 @@ class _ChatScreenState extends State<ChatScreen> {
                                         ),
                                       ),
                                     ),
-                                  ],
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               ),
                             );
                           },
-                        );
+                        ),
+                      ),
+                  ],
+                );
   }
 
   Widget _buildBacklinksTab(Project project) {
@@ -2786,6 +3291,99 @@ class SparklinePainter extends CustomPainter {
   @override
   bool shouldRepaint(SparklinePainter oldDelegate) {
     return oldDelegate.positions != positions || oldDelegate.lineColor != lineColor;
+  }
+}
+
+// Line chart painter for overview tab
+class LineChartPainter extends CustomPainter {
+  final List data;
+  final Color color;
+  final String dataKey;
+  final String Function(double) labelFormatter;
+
+  LineChartPainter({
+    required this.data,
+    required this.color,
+    required this.dataKey,
+    required this.labelFormatter,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (data.isEmpty) return;
+
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+
+    final fillPaint = Paint()
+      ..color = color.withOpacity(0.1)
+      ..style = PaintingStyle.fill;
+
+    // Find min and max values
+    final values = data.map((d) => (d[dataKey] ?? 0).toDouble()).toList();
+    final minValue = values.reduce((a, b) => a < b ? a : b);
+    final maxValue = values.reduce((a, b) => a > b ? a : b);
+    final range = maxValue - minValue;
+
+    // Handle flat line case
+    final effectiveRange = range == 0 ? 1.0 : range;
+
+    // Draw grid lines
+    final gridPaint = Paint()
+      ..color = Colors.grey.withOpacity(0.2)
+      ..strokeWidth = 1;
+
+    for (int i = 0; i <= 4; i++) {
+      final y = size.height * i / 4;
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+    }
+
+    // Draw the line chart
+    final path = Path();
+    final fillPath = Path();
+    
+    fillPath.moveTo(0, size.height);
+    
+    for (int i = 0; i < data.length; i++) {
+      final value = (data[i][dataKey] ?? 0).toDouble();
+      final x = size.width * i / (data.length - 1);
+      final y = size.height - ((value - minValue) / effectiveRange * size.height);
+
+      if (i == 0) {
+        path.moveTo(x, y);
+        fillPath.lineTo(x, y);
+      } else {
+        path.lineTo(x, y);
+        fillPath.lineTo(x, y);
+      }
+    }
+
+    // Complete fill path
+    fillPath.lineTo(size.width, size.height);
+    fillPath.close();
+
+    // Draw fill and line
+    canvas.drawPath(fillPath, fillPaint);
+    canvas.drawPath(path, paint);
+
+    // Draw points
+    final pointPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    for (int i = 0; i < data.length; i++) {
+      final value = (data[i][dataKey] ?? 0).toDouble();
+      final x = size.width * i / (data.length - 1);
+      final y = size.height - ((value - minValue) / effectiveRange * size.height);
+      canvas.drawCircle(Offset(x, y), 3, pointPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(LineChartPainter oldDelegate) {
+    return oldDelegate.data != data || oldDelegate.color != color;
   }
 }
 

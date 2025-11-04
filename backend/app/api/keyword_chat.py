@@ -631,13 +631,30 @@ async def send_message_stream(
                     conversation_history.append(result)
                 
                 # Get final response
+                # Don't pass tools again - we want a final text response, not more tool calls
                 assistant_response, reasoning, follow_up_tools = await llm_service.chat_with_tools(
-                    user_message="",
+                    user_message="Please analyze the results and provide a clear response to the user's request.",
                     conversation_history=conversation_history,
-                    available_tools=tools,
+                    available_tools=None,  # No more tools - force text response
                     user_projects=user_projects_data if user_projects_data else None,
                     mode=request.mode or "ask"
                 )
+                
+                # Log the response for debugging
+                logger.info(f"Final response after tool execution: {len(assistant_response or '')} chars, follow_up_tools: {follow_up_tools is not None}")
+                
+                # If no response, provide a fallback
+                if not assistant_response:
+                    if follow_up_tools:
+                        logger.warning("LLM requested follow-up tools after initial tool execution - providing fallback")
+                        assistant_response = "I've gathered the information. Let me know if you'd like me to analyze it further."
+                    else:
+                        logger.warning("LLM returned no content after tool execution - providing generic fallback")
+                        # Extract info from tool results to provide basic feedback
+                        if tool_results and len(tool_results) > 0:
+                            assistant_response = "I've completed the requested action. The results are ready."
+                        else:
+                            assistant_response = "Task completed. Let me know if you need anything else!"
             else:
                 # No tool calls - direct response
                 assistant_response = response_text
@@ -692,9 +709,9 @@ async def send_message_stream(
             else:
                 logger.warning("⚠️  Skipping assistant message save - no content to save")
             
-            # Send final response
+            # Send final response (ensure message is always a string, not None)
             yield await send_sse_event("message", {
-                "message": assistant_response,
+                "message": assistant_response or "",
                 "conversation_id": conversation.id
             })
             

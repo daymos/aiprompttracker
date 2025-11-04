@@ -340,8 +340,11 @@ CRITICAL: Extract domain without http://, https://, or www. prefixes. Just the d
                 # Build context from user message + recent conversation
                 context = user_message
                 if conversation_history:
-                    recent_context = " ".join([msg.get("content", "") for msg in conversation_history[-3:]])
-                    context = recent_context + " " + user_message
+                    # Filter out None/empty content from conversation history
+                    recent_messages = [msg.get("content") or "" for msg in conversation_history[-3:]]
+                    recent_context = " ".join([m for m in recent_messages if m])
+                    if recent_context:
+                        context = recent_context + " " + user_message
                 
                 seo_knowledge = knowledge_service.get_relevant_knowledge(context, max_chars=15000)
                 
@@ -379,48 +382,71 @@ CRITICAL: Extract domain without http://, https://, or www. prefixes. Just the d
         
         logger.info(f"🤖 Sending chat request to LLM (mode: {mode}, tools available: {len(available_tools) if available_tools else 0})")
         
-        try:
-            # Make request with tools if available
-            request_params = {
-                "model": self.model,
-                "messages": messages,
-                "temperature": 0.7,
-                "max_tokens": 1000
-            }
-            
-            if available_tools:
-                request_params["tools"] = available_tools
-                request_params["tool_choice"] = "auto"  # Let LLM decide when to use tools
-            
-            response = await self.client.chat.completions.create(**request_params)
-            
-            message = response.choices[0].message
-            
-            # Check if LLM wants to call functions
-            if hasattr(message, 'tool_calls') and message.tool_calls:
-                logger.info(f"🛠️  LLM requested {len(message.tool_calls)} tool calls")
-                tool_calls = []
-                for tool_call in message.tool_calls:
-                    import json
-                    tool_calls.append({
-                        "id": tool_call.id,
-                        "name": tool_call.function.name,
-                        "arguments": json.loads(tool_call.function.arguments)
-                    })
-                    logger.info(f"  - {tool_call.function.name}({tool_call.function.arguments})")
+        # Retry logic for empty responses
+        max_retries = 3
+        retry_delay = 0.5  # Start with 0.5 seconds
+        
+        for attempt in range(max_retries):
+            try:
+                # Make request with tools if available
+                request_params = {
+                    "model": self.model,
+                    "messages": messages,
+                    "temperature": 0.7,
+                    "max_tokens": 1000
+                }
                 
-                return (None, None, tool_calls)  # Return tool calls to execute
-            
-            # Normal response without tool calls
-            full_response = message.content
-            reasoning, content = self._extract_reasoning(full_response)
-            
-            logger.info(f"✅ LLM response generated ({len(content)} chars)")
-            return (content, reasoning, None)
-            
-        except Exception as e:
-            logger.error(f"Error in chat with tools: {e}", exc_info=True)
-            return ("Sorry, I encountered an error. Please try again.", None, None)
+                if available_tools:
+                    request_params["tools"] = available_tools
+                    request_params["tool_choice"] = "auto"  # Let LLM decide when to use tools
+                
+                response = await self.client.chat.completions.create(**request_params)
+                
+                message = response.choices[0].message
+                
+                # Check if LLM wants to call functions
+                if hasattr(message, 'tool_calls') and message.tool_calls:
+                    logger.info(f"🛠️  LLM requested {len(message.tool_calls)} tool calls")
+                    tool_calls = []
+                    for tool_call in message.tool_calls:
+                        import json
+                        tool_calls.append({
+                            "id": tool_call.id,
+                            "name": tool_call.function.name,
+                            "arguments": json.loads(tool_call.function.arguments)
+                        })
+                        logger.info(f"  - {tool_call.function.name}({tool_call.function.arguments})")
+                    
+                    return (None, None, tool_calls)  # Return tool calls to execute
+                
+                # Normal response without tool calls
+                full_response = message.content
+                
+                # Handle case where LLM returns no content
+                if not full_response:
+                    if attempt < max_retries - 1:
+                        logger.warning(f"LLM returned no content (attempt {attempt + 1}/{max_retries}) - retrying in {retry_delay}s...")
+                        await asyncio.sleep(retry_delay)
+                        retry_delay *= 2  # Exponential backoff
+                        continue
+                    else:
+                        logger.error("LLM returned no content after all retries")
+                        return ("I apologize, but I didn't receive a proper response after multiple attempts. Please try again.", None, None)
+                
+                reasoning, content = self._extract_reasoning(full_response)
+                
+                logger.info(f"✅ LLM response generated ({len(content)} chars)")
+                return (content, reasoning, None)
+                
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    logger.warning(f"Error in chat with tools (attempt {attempt + 1}/{max_retries}): {e} - retrying...")
+                    await asyncio.sleep(retry_delay)
+                    retry_delay *= 2
+                    continue
+                else:
+                    logger.error(f"Error in chat with tools after all retries: {e}", exc_info=True)
+                    return ("Sorry, I encountered an error after multiple attempts. Please try again.", None, None)
     
     async def generate_keyword_advice(
         self, 
@@ -772,9 +798,22 @@ You have powerful research capabilities:
 
 Use these tools strategically - don't just fetch data, interpret it and provide strategic direction.
 
+**HANDLING FOLLOW-UP QUESTIONS:**
+
+When the user responds with short confirmations like "yes", "sure", "go ahead", "do it", etc.:
+- **DON'T repeat your previous analysis** - they've already seen it
+- **DO proceed with the action** you previously suggested
+- **DO move forward** in the conversation, don't loop back
+- **Reference what you said before** if needed (e.g., "As I mentioned, let me now...")
+
+Example:
+- If you asked "Would you like me to research these keywords?" and they say "yes"
+- ✅ Good: Immediately use the research_keywords tool and provide new insights
+- ❌ Bad: Re-explaining the same website analysis again
+
 **REMEMBER:**
 
-You're not just answering questions - you're building a comprehensive SEO strategy. Think multiple steps ahead. Be opinionated but data-driven. Guide them from where they are to where they need to be, with a clear roadmap."""
+You're not just answering questions - you're building a comprehensive SEO strategy. Think multiple steps ahead. Be opinionated but data-driven. Guide them from where they are to where they need to be, with a clear roadmap. MOST IMPORTANTLY: **Progress the conversation forward** - never repeat yourself unnecessarily."""
     
     def _build_user_content(
         self, 

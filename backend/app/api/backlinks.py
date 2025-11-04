@@ -131,13 +131,63 @@ async def get_project_backlink_analysis(
             
             return analysis.to_dict()
         else:
-            raise HTTPException(
-                status_code=500,
-                detail=backlink_data.get("error", "Failed to fetch backlinks")
-            )
+            # API failed - check if we have cached data to return
+            error_msg = backlink_data.get("error", "Failed to fetch backlinks")
+            logger.warning(f"Backlink API error: {error_msg}")
+            
+            existing_analysis = db.query(BacklinkAnalysis).filter(
+                BacklinkAnalysis.project_id == project_id
+            ).first()
+            
+            if existing_analysis:
+                logger.info(f"Returning cached data due to API error")
+                result = existing_analysis.to_dict()
+                result["is_cached"] = True
+                result["cache_note"] = "Using cached data - API quota exceeded"
+                return result
+            else:
+                # No cached data available
+                logger.warning(f"No cached data available for project {project_id}")
+                return {
+                    "domain_authority": 0,
+                    "total_backlinks": 0,
+                    "referring_domains": 0,
+                    "overtime": [],
+                    "new_and_lost": [],
+                    "backlinks": [],
+                    "anchors": [],
+                    "is_cached": False,
+                    "error": error_msg
+                }
     except Exception as e:
-        logger.error(f"Error analyzing backlinks for {domain}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        error_msg = str(e)
+        logger.error(f"Error analyzing backlinks for {domain}: {error_msg}")
+        
+        # Try to return cached data instead of throwing error
+        existing_analysis = db.query(BacklinkAnalysis).filter(
+            BacklinkAnalysis.project_id == project_id
+        ).first()
+        
+        if existing_analysis:
+            logger.info(f"Returning cached data due to exception")
+            result = existing_analysis.to_dict()
+            result["is_cached"] = True
+            result["cache_note"] = f"Using cached data - Error: {error_msg}"
+            return result
+        else:
+            # No cached data - return empty response instead of 500 error
+            logger.warning(f"No cached data available, returning empty response")
+            return {
+                "domain_authority": 0,
+                "total_backlinks": 0,
+                "referring_domains": 0,
+                "overtime": [],
+                "new_and_lost": [],
+                "backlinks": [],
+                "anchors": [],
+                "is_cached": False,
+                "error": error_msg
+            }
 
 
 @router.get("/project/{project_id}/submissions")
