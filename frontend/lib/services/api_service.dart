@@ -388,5 +388,10 @@ class ApiService {
 
     return json.decode(response.body);
   }
+
+  String getFaviconUrl(String url) {
+    // The backend now proxies the favicon, so we just return the endpoint URL
+    return '$baseUrl/project/favicon?url=${Uri.encodeComponent(url)}';
+  }
 }
 

@@ -169,71 +169,91 @@ class _MessageBubbleState extends State<MessageBubble> {
     _projectsLoaded = true;
   }
   
-  Future<void> _addKeywordToProject(KeywordData keyword) async {
-    final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
-    // Load projects if not already loaded
-    await _loadProjects();
-    
-    final projects = projectProvider.allProjects;
-    
-    // No projects - prompt to create
-    if (projects.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Please create a project first!'),
-            action: SnackBarAction(
-              label: 'Create',
-              onPressed: () {
-                Navigator.pushNamed(context, '/project');
-              },
+  Future<void> _createProjectAndAddKeyword(KeywordData keyword) async {
+    final nameController = TextEditingController();
+    final urlController = TextEditingController();
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Create New Project'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'Project Name',
+                hintText: 'e.g., My AI Chatbot',
+              ),
+              autofocus: true,
             ),
-          ),
-        );
-      }
-      return;
-    }
-    
-    // Single project - add directly
-    if (projects.length == 1) {
-      await _addToSpecificProject(projects[0].id, keyword);
-      return;
-    }
-    
-    // Multiple projects - show selector
-    if (mounted) {
-      final selectedProjectId = await showDialog<String>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Select Project'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: projects.map((project) => ListTile(
-              leading: const Icon(Icons.public),
-              title: Text(project.name),
-              subtitle: Text(project.targetUrl),
-              onTap: () => Navigator.pop(context, project.id),
-            )).toList(),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: urlController,
+              decoration: const InputDecoration(
+                labelText: 'Website URL',
+                hintText: 'e.g., https://example.com',
+              ),
             ),
           ],
         ),
-      );
-      
-      if (selectedProjectId != null) {
-        await _addToSpecificProject(selectedProjectId, keyword);
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Create & Add'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true && mounted) {
+      final name = nameController.text.trim();
+      final url = urlController.text.trim();
+
+      if (name.isEmpty || url.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enter both project name and URL'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      try {
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+
+        // Create the project
+        final projectResponse = await authProvider.apiService.createProject(url, name);
+        final newProjectId = projectResponse['id'];
+
+        // Refresh projects list
+        await projectProvider.loadAllProjects(authProvider.apiService);
+
+        // Add keyword to the new project
+        await _addToSpecificProject(newProjectId, keyword);
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error creating project: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }
   
   Future<void> _addToSpecificProject(String projectId, KeywordData keyword) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
 
     try {
       final response = await authProvider.apiService.addKeywordToProject(
@@ -248,9 +268,15 @@ class _MessageBubbleState extends State<MessageBubble> {
       });
 
       if (mounted) {
+        // Find project name for the snackbar
+        final project = projectProvider.allProjects.firstWhere(
+          (p) => p.id == projectId,
+          orElse: () => throw Exception('Project not found'),
+        );
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✓ Added "${keyword.keyword}" to project'),
+            content: Text('✓ Added "${keyword.keyword}" to "${project.name}"'),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 2),
           ),
@@ -264,6 +290,88 @@ class _MessageBubbleState extends State<MessageBubble> {
             backgroundColor: Colors.red,
           ),
         );
+      }
+    }
+  }
+
+  Future<void> _createProjectAndPin() async {
+    final nameController = TextEditingController();
+    final urlController = TextEditingController();
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Create New Project'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'Project Name',
+                hintText: 'e.g., My AI Chatbot',
+              ),
+              autofocus: true,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: urlController,
+              decoration: const InputDecoration(
+                labelText: 'Website URL',
+                hintText: 'e.g., https://example.com',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Create & Pin'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true && mounted) {
+      final name = nameController.text.trim();
+      final url = urlController.text.trim();
+
+      if (name.isEmpty || url.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enter both project name and URL'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      try {
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+
+        // Create the project
+        final projectResponse = await authProvider.apiService.createProject(url, name);
+        final newProjectId = projectResponse['id'];
+
+        // Refresh projects list
+        await projectProvider.loadAllProjects(authProvider.apiService);
+
+        // Pin the message to the new project
+        await _pinMessageToProject(newProjectId);
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error creating project: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }
@@ -396,15 +504,101 @@ class _MessageBubbleState extends State<MessageBubble> {
                     runSpacing: 8,
                     children: keywords.map((kw) {
                       final isAdded = addedKeywords.contains(kw.keyword);
-                      return ElevatedButton.icon(
-                        onPressed: isAdded ? null : () => _addKeywordToProject(kw),
-                        icon: Icon(isAdded ? Icons.check : Icons.add, size: 16),
-                        label: Text(
-                          isAdded ? 'Added' : 'Add "${kw.keyword}"',
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      
+                      if (isAdded) {
+                        return ElevatedButton.icon(
+                          onPressed: null,
+                          icon: const Icon(Icons.check, size: 16),
+                          label: Text(
+                            'Added "${kw.keyword}"',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                        );
+                      }
+                      
+                      return PopupMenuButton<String>(
+                        onSelected: (value) async {
+                          if (value == 'new_project') {
+                            await _createProjectAndAddKeyword(kw);
+                          } else {
+                            await _addToSpecificProject(value, kw);
+                          }
+                        },
+                        onOpened: () async {
+                          // Load projects if not already loaded
+                          if (!_projectsLoaded) {
+                            await _loadProjects();
+                          }
+                        },
+                        itemBuilder: (BuildContext context) {
+                          final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+                          final items = <PopupMenuEntry<String>>[];
+                          
+                          if (projectProvider.allProjects.isEmpty) {
+                            items.add(
+                              const PopupMenuItem<String>(
+                                value: 'new_project',
+                                height: 32,
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.add, size: 16),
+                                    SizedBox(width: 8),
+                                    Text('Create new project', style: TextStyle(fontSize: 14)),
+                                  ],
+                                ),
+                              ),
+                            );
+                          } else {
+                            items.addAll(projectProvider.allProjects.map((project) {
+                              return PopupMenuItem<String>(
+                                value: project.id,
+                                height: 32,
+                                child: Text(
+                                  project.name,
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                              );
+                            }));
+                            
+                            // Add separator and "Create new project" option
+                            items.add(
+                              const PopupMenuItem<String>(
+                                value: 'separator',
+                                enabled: false,
+                                height: 8,
+                                child: Divider(),
+                              ),
+                            );
+                            items.add(
+                              const PopupMenuItem<String>(
+                                value: 'new_project',
+                                height: 32,
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.add, size: 16),
+                                    SizedBox(width: 8),
+                                    Text('Create new project', style: TextStyle(fontSize: 14)),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
+                          
+                          return items;
+                        },
+                        child: ElevatedButton.icon(
+                          onPressed: null, // Handled by PopupMenuButton
+                          icon: const Icon(Icons.add, size: 16),
+                          label: Text(
+                            'Add "${kw.keyword}"',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
                         ),
                       );
                     }).toList(),
@@ -513,10 +707,16 @@ class _MessageBubbleState extends State<MessageBubble> {
 
   Widget _buildPinButton() {
     return PopupMenuButton<String>(
-      onSelected: (projectId) => _pinMessageToProject(projectId),
+      onSelected: (value) async {
+        if (value == 'new_project') {
+          await _createProjectAndPin();
+        } else {
+          await _pinMessageToProject(value);
+        }
+      },
       itemBuilder: (BuildContext context) {
         final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
-        return projectProvider.allProjects.map((project) {
+        final items = projectProvider.allProjects.map((project) {
           return PopupMenuItem<String>(
             value: project.id,
             height: 32, // Make menu items more compact
@@ -526,6 +726,34 @@ class _MessageBubbleState extends State<MessageBubble> {
             ),
           );
         }).toList();
+        
+        // Add separator and "Create new project" option
+        if (items.isNotEmpty) {
+          items.add(
+            const PopupMenuItem<String>(
+              value: 'separator',
+              enabled: false,
+              height: 8,
+              child: Divider(),
+            ),
+          );
+        }
+        
+        items.add(
+          const PopupMenuItem<String>(
+            value: 'new_project',
+            height: 32,
+            child: Row(
+              children: [
+                Icon(Icons.add, size: 16),
+                SizedBox(width: 8),
+                Text('Create new project', style: TextStyle(fontSize: 14)),
+              ],
+            ),
+          ),
+        );
+        
+        return items;
       },
       child: TextButton(
         onPressed: null, // Handled by PopupMenuButton

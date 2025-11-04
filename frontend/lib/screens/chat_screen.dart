@@ -8,6 +8,7 @@ import '../widgets/message_bubble.dart';
 import '../widgets/conversation_list.dart';
 import '../widgets/theme_switcher.dart';
 import '../widgets/cli_spinner.dart';
+import '../widgets/favicon_widget.dart';
 import 'dart:html' as html;
 
 class ChatScreen extends StatefulWidget {
@@ -588,31 +589,68 @@ class _ChatScreenState extends State<ChatScreen> {
                                     ),
                                     padding: EdgeInsets.zero,
                                     iconSize: 16,
-                                    onSelected: (projectId) => _pinConversationToProject(projectId),
+                                    onSelected: (value) async {
+                                      if (value == 'new_project') {
+                                        await _createProjectAndPinConversation();
+                                      } else {
+                                        await _pinConversationToProject(value);
+                                      }
+                                    },
                                     itemBuilder: (BuildContext context) {
                                       final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+                                      final items = <PopupMenuEntry<String>>[];
+                                      
                                       if (projectProvider.allProjects.isEmpty) {
-                                        return [
+                                        items.add(
                                           const PopupMenuItem<String>(
-                                            enabled: false,
+                                            value: 'new_project',
                                             height: 32,
-                                            child: Text(
-                                              'No projects available',
-                                              style: TextStyle(fontSize: 14),
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.add, size: 16),
+                                                SizedBox(width: 8),
+                                                Text('Create new project', style: TextStyle(fontSize: 14)),
+                                              ],
                                             ),
                                           ),
-                                        ];
-                                      }
-                                      return projectProvider.allProjects.map((project) {
-                                        return PopupMenuItem<String>(
-                                          value: project.id,
-                                          height: 32,
-                                          child: Text(
-                                            project.name,
-                                            style: const TextStyle(fontSize: 14),
+                                        );
+                                      } else {
+                                        items.addAll(projectProvider.allProjects.map((project) {
+                                          return PopupMenuItem<String>(
+                                            value: project.id,
+                                            height: 32,
+                                            child: Text(
+                                              project.name,
+                                              style: const TextStyle(fontSize: 14),
+                                            ),
+                                          );
+                                        }));
+                                        
+                                        // Add separator and "Create new project" option
+                                        items.add(
+                                          const PopupMenuItem<String>(
+                                            value: 'separator',
+                                            enabled: false,
+                                            height: 8,
+                                            child: Divider(),
                                           ),
                                         );
-                                      }).toList();
+                                        items.add(
+                                          const PopupMenuItem<String>(
+                                            value: 'new_project',
+                                            height: 32,
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.add, size: 16),
+                                                SizedBox(width: 8),
+                                                Text('Create new project', style: TextStyle(fontSize: 14)),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                      
+                                      return items;
                                     },
                                   ),
                                 ),
@@ -902,31 +940,68 @@ class _ChatScreenState extends State<ChatScreen> {
                                 ),
                                 padding: EdgeInsets.zero,
                                 iconSize: 16,
-                                onSelected: (projectId) => _pinConversationToProject(projectId),
+                                onSelected: (value) async {
+                                  if (value == 'new_project') {
+                                    await _createProjectAndPinConversation();
+                                  } else {
+                                    await _pinConversationToProject(value);
+                                  }
+                                },
                                 itemBuilder: (BuildContext context) {
                                   final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+                                  final items = <PopupMenuEntry<String>>[];
+                                  
                                   if (projectProvider.allProjects.isEmpty) {
-                                    return [
+                                    items.add(
                                       const PopupMenuItem<String>(
-                                        enabled: false,
+                                        value: 'new_project',
                                         height: 32,
-                                        child: Text(
-                                          'No projects available',
-                                          style: TextStyle(fontSize: 14),
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.add, size: 16),
+                                            SizedBox(width: 8),
+                                            Text('Create new project', style: TextStyle(fontSize: 14)),
+                                          ],
                                         ),
                                       ),
-                                    ];
-                                  }
-                                  return projectProvider.allProjects.map((project) {
-                                    return PopupMenuItem<String>(
-                                      value: project.id,
-                                      height: 32,
-                                      child: Text(
-                                        project.name,
-                                        style: const TextStyle(fontSize: 14),
+                                    );
+                                  } else {
+                                    items.addAll(projectProvider.allProjects.map((project) {
+                                      return PopupMenuItem<String>(
+                                        value: project.id,
+                                        height: 32,
+                                        child: Text(
+                                          project.name,
+                                          style: const TextStyle(fontSize: 14),
+                                        ),
+                                      );
+                                    }));
+                                    
+                                    // Add separator and "Create new project" option
+                                    items.add(
+                                      const PopupMenuItem<String>(
+                                        value: 'separator',
+                                        enabled: false,
+                                        height: 8,
+                                        child: Divider(),
                                       ),
                                     );
-                                  }).toList();
+                                    items.add(
+                                      const PopupMenuItem<String>(
+                                        value: 'new_project',
+                                        height: 32,
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.add, size: 16),
+                                            SizedBox(width: 8),
+                                            Text('Create new project', style: TextStyle(fontSize: 14)),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                  
+                                  return items;
                                 },
                               ),
                             ),
@@ -1257,17 +1332,10 @@ class _ChatScreenState extends State<ChatScreen> {
                                   child: Row(
                                     children: [
                                       // Icon
-                                      Container(
-                                        width: 48,
-                                        height: 48,
-                                        decoration: BoxDecoration(
-                                          color: Theme.of(context).colorScheme.primaryContainer,
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: const Icon(
-                                          Icons.language,
-                                          size: 24,
-                                        ),
+                                      FaviconWidget(
+                                        url: project.targetUrl,
+                                        size: 48,
+                                        apiService: authProvider.apiService,
                                       ),
                                       const SizedBox(width: 16),
                                       // Content
@@ -1359,17 +1427,11 @@ class _ChatScreenState extends State<ChatScreen> {
                   // Project info
                   Row(
                     children: [
-                      Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.language,
-                          size: 28,
-                        ),
+                      FaviconWidget(
+                        url: project.targetUrl,
+                        size: 56,
+                        iconSize: 28,
+                        apiService: authProvider.apiService,
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -1711,6 +1773,88 @@ class _ChatScreenState extends State<ChatScreen> {
     }
 
     return preview.isEmpty ? 'No content' : preview;
+  }
+
+  Future<void> _createProjectAndPinConversation() async {
+    final nameController = TextEditingController();
+    final urlController = TextEditingController();
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Create New Project'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'Project Name',
+                hintText: 'e.g., My AI Chatbot',
+              ),
+              autofocus: true,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: urlController,
+              decoration: const InputDecoration(
+                labelText: 'Website URL',
+                hintText: 'e.g., https://example.com',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Create & Pin'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true && mounted) {
+      final name = nameController.text.trim();
+      final url = urlController.text.trim();
+
+      if (name.isEmpty || url.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enter both project name and URL'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      try {
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+
+        // Create the project
+        final projectResponse = await authProvider.apiService.createProject(url, name);
+        final newProjectId = projectResponse['id'];
+
+        // Refresh projects list
+        await projectProvider.loadAllProjects(authProvider.apiService);
+
+        // Pin the conversation to the new project
+        await _pinConversationToProject(newProjectId);
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error creating project: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
   }
 
   Future<void> _pinConversationToProject(String projectId) async {

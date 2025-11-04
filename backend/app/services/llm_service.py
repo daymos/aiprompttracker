@@ -14,6 +14,7 @@ class LLMService:
     def __init__(self):
         self._client = None
         self.model = "openai/gpt-oss-120b"  # GPT-OSS 120B via Groq
+        self.summarization_model = "llama-3.3-70b-versatile"  # Lighter/faster model for summaries
         self.web_scraper = WebScraperService()
 
     @property
@@ -62,7 +63,7 @@ Be specific but brief. Capture what was discussed or accomplished."""
             try:
                 logger.info(f"Summarizing conversation (attempt {attempt + 1}/{max_retries})")
                 response = await self.client.chat.completions.create(
-                    model=self.model,
+                    model=self.summarization_model,
                     messages=[
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt}
@@ -71,9 +72,20 @@ Be specific but brief. Capture what was discussed or accomplished."""
                     temperature=0.3
                 )
 
-                summary = response.choices[0].message.content.strip()
+                summary = response.choices[0].message.content
+                if not summary:
+                    raise ValueError("LLM returned empty content")
+                
+                logger.debug(f"Raw LLM response: {repr(summary)}")
+                
+                summary = summary.strip()
                 # Clean up the summary (remove quotes, extra whitespace)
                 summary = summary.strip('"\'')
+                
+                # Check if summary is empty after cleaning
+                if not summary or len(summary) == 0:
+                    raise ValueError("LLM returned only quotes or whitespace")
+                
                 result = summary[:100] if len(summary) > 100 else summary
                 logger.info(f"Successfully generated conversation summary: {repr(result)}")
                 return result
@@ -108,7 +120,7 @@ Be specific but brief. Capture the essence of the message."""
             try:
                 logger.info(f"Summarizing message with content length: {len(message_content)} (attempt {attempt + 1}/{max_retries})")
                 response = await self.client.chat.completions.create(
-                    model=self.model,
+                    model=self.summarization_model,
                     messages=[
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt}
@@ -124,9 +136,16 @@ Be specific but brief. Capture the essence of the message."""
                 if not summary:
                     raise ValueError("LLM returned empty content")
 
+                logger.debug(f"Raw LLM response: {repr(summary)}")
+                
                 summary = summary.strip()
                 # Clean up the summary (remove quotes, extra whitespace)
                 summary = summary.strip('"\'')
+                
+                # Check if summary is empty after cleaning
+                if not summary or len(summary) == 0:
+                    raise ValueError("LLM returned only quotes or whitespace")
+                
                 result = summary[:80] if len(summary) > 80 else summary
                 logger.info(f"Successfully generated message summary: {repr(result)}")
                 return result

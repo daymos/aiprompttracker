@@ -1,10 +1,14 @@
 from fastapi import APIRouter, HTTPException, Depends, Header
+from fastapi.responses import Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import uuid
 from datetime import datetime
 from sqlalchemy.sql import func
+import httpx
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin, urlparse
 
 from ..database import get_db
 from ..models.user import User
@@ -77,11 +81,16 @@ async def create_project(
     token = authorization.replace("Bearer ", "")
     user = get_current_user(token, db)
     
+    # Normalize the URL - ensure it has a protocol
+    target_url = request.target_url.strip()
+    if not target_url.startswith(('http://', 'https://')):
+        target_url = 'https://' + target_url
+    
     project = Project(
         id=str(uuid.uuid4()),
         user_id=user.id,
-        target_url=request.target_url,
-        name=request.name or f"Project for {request.target_url}"
+        target_url=target_url,
+        name=request.name or f"Project for {target_url}"
     )
     db.add(project)
     db.commit()
@@ -620,4 +629,121 @@ async def unpin_item(
     db.commit()
 
     return {"message": "Item unpinned successfully"}
+
+@router.get("/favicon")
+async def get_favicon(url: str):
+    """
+    Fetch and proxy the favicon from a website to avoid CORS issues
+    Returns the actual favicon image
+    """
+    try:
+        # Ensure URL has protocol
+        if not url.startswith(('http://', 'https://')):
+            url = 'https://' + url
+        
+        # Parse and validate URL
+        parsed_url = urlparse(url)
+        
+        # Validate that we have a proper domain
+        if not parsed_url.netloc or ' ' in parsed_url.netloc:
+            logger.warning(f"Invalid URL format: {url}")
+            # Extract domain-like text
+            domain = url.replace('https://', '').replace('http://', '').split('/')[0].strip()
+            domain = domain.replace(' ', '')  # Remove spaces
+            if domain:
+                # Use Google's favicon service which is CORS-friendly
+                favicon_url = f"https://www.google.com/s2/favicons?domain={domain}&sz=64"
+            else:
+                raise HTTPException(status_code=400, detail="Invalid URL format")
+        else:
+            base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
+            favicon_url = None
+            
+            # Try to fetch the website HTML
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+                try:
+                    response = await client.get(url, headers={
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                    })
+                    response.raise_for_status()
+                    
+                    # Parse HTML to find favicon
+                    soup = BeautifulSoup(response.text, 'html.parser')
+                    
+                    # Try various favicon link patterns in order of preference
+                    favicon_selectors = [
+                        'link[rel="icon"]',
+                        'link[rel="shortcut icon"]',
+                        'link[rel="apple-touch-icon"]',
+                        'link[rel="apple-touch-icon-precomposed"]',
+                    ]
+                    
+                    for selector in favicon_selectors:
+                        tag = soup.select_one(selector)
+                        if tag:
+                            href = tag.get('href')
+                            if href:
+                                # Convert relative URLs to absolute
+                                favicon_url = urljoin(base_url, href)
+                                logger.info(f"Found favicon for {url}: {favicon_url}")
+                                break
+                    
+                    # Fallback to /favicon.ico
+                    if not favicon_url:
+                        favicon_url = f"{base_url}/favicon.ico"
+                        logger.info(f"Using fallback favicon for {url}: {favicon_url}")
+                        
+                except Exception as e:
+                    logger.warning(f"Failed to fetch {url}: {e}")
+                    # Use Google's favicon service as fallback
+                    domain = parsed_url.netloc
+                    favicon_url = f"https://www.google.com/s2/favicons?domain={domain}&sz=64"
+        
+        # Now fetch the actual favicon image
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+            try:
+                favicon_response = await client.get(favicon_url, headers={
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                })
+                favicon_response.raise_for_status()
+                
+                # Determine content type
+                content_type = favicon_response.headers.get('content-type', 'image/x-icon')
+                
+                # Return the image directly
+                return Response(
+                    content=favicon_response.content,
+                    media_type=content_type,
+                    headers={
+                        'Cache-Control': 'public, max-age=86400',  # Cache for 1 day
+                        'Access-Control-Allow-Origin': '*',  # Allow CORS
+                    }
+                )
+            except Exception as e:
+                logger.error(f"Failed to fetch favicon image from {favicon_url}: {e}")
+                # Return a 1x1 transparent pixel as fallback
+                transparent_pixel = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
+                return Response(
+                    content=transparent_pixel,
+                    media_type='image/png',
+                    headers={
+                        'Cache-Control': 'public, max-age=86400',
+                        'Access-Control-Allow-Origin': '*',
+                    }
+                )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching favicon for {url}: {e}")
+        # Return a 1x1 transparent pixel
+        transparent_pixel = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
+        return Response(
+            content=transparent_pixel,
+            media_type='image/png',
+            headers={
+                'Cache-Control': 'public, max-age=3600',
+                'Access-Control-Allow-Origin': '*',
+            }
+        )
 
