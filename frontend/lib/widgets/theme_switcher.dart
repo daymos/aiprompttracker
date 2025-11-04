@@ -42,6 +42,14 @@ class ThemeSwitcher extends StatelessWidget {
           '❄️',
           themeProvider.currentTheme == AppTheme.nord,
         ),
+        const PopupMenuDivider(),
+        _buildThemeMenuItem(
+          context,
+          AppTheme.gruvboxLight,
+          'Gruvbox Light',
+          '☀️',
+          themeProvider.currentTheme == AppTheme.gruvboxLight,
+        ),
       ],
     );
   }

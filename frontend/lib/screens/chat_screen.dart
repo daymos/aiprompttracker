@@ -274,31 +274,34 @@ class _ChatScreenState extends State<ChatScreen> {
             child: Column(
               children: [
                 const SizedBox(height: 16),
-                // Logo
+                // Logo - clickable to start new conversation
                 Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: Text(
-                    'K',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.primary,
+                  child: InkWell(
+                    onTap: () {
+                      chatProvider.startNewConversation();
+                      MessageBubble.clearAnimationCache();
+                      setState(() {
+                        _currentView = ViewState.chat;
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: Text(
+                        'K',
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 24),
                 // New conversation button
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
-                      width: 2,
-                    ),
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
+                IconButton(
                   onPressed: () {
                     chatProvider.startNewConversation();
                     MessageBubble.clearAnimationCache();
@@ -306,11 +309,9 @@ class _ChatScreenState extends State<ChatScreen> {
                       _currentView = ViewState.chat;
                     });
                   },
-                    icon: const Icon(Icons.add, size: 18),
-                    iconSize: 18,
-                    padding: EdgeInsets.zero,
+                  icon: const Icon(Icons.add),
+                  iconSize: 28,
                   tooltip: 'New conversation',
-                  ),
                 ),
                 const SizedBox(height: 12),
                 // Conversations button
@@ -344,15 +345,6 @@ class _ChatScreenState extends State<ChatScreen> {
                         : null,
                   ),
                   tooltip: 'My SEO Projects',
-                ),
-                const SizedBox(height: 12),
-                // How it works button
-                IconButton(
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/guides');
-                  },
-                  icon: const Icon(Icons.help_outline),
-                  tooltip: 'How it works',
                 ),
                 const Spacer(),
                 // Theme switcher
@@ -745,6 +737,12 @@ class _ChatScreenState extends State<ChatScreen> {
           icon: Icons.link,
           label: 'Backlinks',
           message: 'Show me backlinks for my website',
+        ),
+        const SizedBox(width: 8),
+        _buildSuggestionButton(
+          icon: Icons.people_outline,
+          label: 'Competitors',
+          message: 'Analyze competitor keywords',
         ),
       ],
     );
@@ -1169,7 +1167,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Conversations',
+                    'Your conversations',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -1484,8 +1482,9 @@ class _ChatScreenState extends State<ChatScreen> {
                           ],
                         ),
                       ),
-                      // Chat button
-                      IconButton(
+                      const SizedBox(width: 16),
+                      // Chat button - prominent call to action
+                      FilledButton.icon(
                         onPressed: () {
                           // Start a new conversation with project context
                           final chatProvider = context.read<ChatProvider>();
@@ -1501,9 +1500,13 @@ class _ChatScreenState extends State<ChatScreen> {
                             _sendMessage();
                           });
                         },
-                        icon: const Icon(Icons.chat_bubble_outline),
-                        tooltip: 'Start Conversation',
+                        icon: const Icon(Icons.chat_bubble_outline, size: 20),
+                        label: const Text('Start Conversation'),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        ),
                       ),
+                      const SizedBox(width: 8),
                       // Refresh buttons
                       Row(
                         mainAxisSize: MainAxisSize.min,

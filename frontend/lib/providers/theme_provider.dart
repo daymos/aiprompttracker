@@ -5,6 +5,7 @@ enum AppTheme {
   deepPurple,
   ayuMirage,
   nord,
+  gruvboxLight,
 }
 
 class ThemeProvider with ChangeNotifier {
@@ -38,6 +39,8 @@ class ThemeProvider with ChangeNotifier {
         return _ayuMirageTheme();
       case AppTheme.nord:
         return _nordTheme();
+      case AppTheme.gruvboxLight:
+        return _gruvboxLightTheme();
     }
   }
   
@@ -49,6 +52,8 @@ class ThemeProvider with ChangeNotifier {
         return 'Ayu Mirage';
       case AppTheme.nord:
         return 'Nord';
+      case AppTheme.gruvboxLight:
+        return 'Gruvbox Light';
     }
   }
   
@@ -152,6 +157,55 @@ class ThemeProvider with ChangeNotifier {
       ),
       cardColor: nordBgLight,
       dividerColor: nordComment,
+      useMaterial3: true,
+    );
+  }
+  
+  // Gruvbox Light Theme (retro vim light theme)
+  ThemeData _gruvboxLightTheme() {
+    const gruvboxBg = Color(0xFFfbf1c7);             // light background
+    const gruvboxBgHard = Color(0xFFF9F5D7);         // even lighter
+    const gruvboxBg1 = Color(0xFFebdbb2);            // elevated surface
+    const gruvboxFg = Color(0xFF3c3836);             // dark foreground
+    const gruvboxFg0 = Color(0xFF282828);            // darker text
+    const gruvboxGray = Color(0xFF928374);           // gray/comment
+    const gruvboxRed = Color(0xFFcc241d);            // red
+    const gruvboxGreen = Color(0xFF98971a);          // green
+    const gruvboxYellow = Color(0xFFd79921);         // yellow
+    const gruvboxBlue = Color(0xFF458588);           // blue
+    const gruvboxPurple = Color(0xFFb16286);         // purple
+    const gruvboxAqua = Color(0xFF689d6a);           // aqua/cyan
+    const gruvboxOrange = Color(0xFFd65d0e);         // orange
+    
+    return ThemeData(
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: gruvboxBg,
+      colorScheme: ColorScheme.light(
+        primary: gruvboxBlue,
+        secondary: gruvboxAqua,
+        tertiary: gruvboxPurple,
+        surface: gruvboxBgHard,
+        surfaceContainerHighest: gruvboxBg1,
+        background: gruvboxBg,
+        error: gruvboxRed,
+        onPrimary: gruvboxBg,
+        onSecondary: gruvboxBg,
+        onSurface: gruvboxFg,
+        onBackground: gruvboxFg,
+        onError: gruvboxBg,
+      ).copyWith(
+        primaryContainer: gruvboxBg1,
+        secondaryContainer: gruvboxBgHard,
+        outline: gruvboxGray,
+      ),
+      textTheme: const TextTheme(
+        bodyMedium: TextStyle(color: gruvboxFg),
+        bodyLarge: TextStyle(color: gruvboxFg0),
+        bodySmall: TextStyle(color: gruvboxGray),
+      ),
+      cardColor: gruvboxBgHard,
+      dividerColor: gruvboxGray,
+      iconTheme: const IconThemeData(color: gruvboxFg),
       useMaterial3: true,
     );
   }
