@@ -248,6 +248,18 @@ class ApiService {
     }
   }
 
+  Future<void> renameConversation(String conversationId, String newTitle) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/chat/conversation/$conversationId/rename'),
+      headers: _headers(),
+      body: jsonEncode({'title': newTitle}),
+    );
+    
+    if (response.statusCode != 200) {
+      throw Exception('Failed to rename conversation');
+    }
+  }
+
   Future<Map<String, dynamic>> deleteAllConversations() async {
     final response = await http.delete(
       Uri.parse('$baseUrl/chat/conversations/all'),
