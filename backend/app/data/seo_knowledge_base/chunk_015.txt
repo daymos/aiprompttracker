@@ -1,0 +1,336 @@
+# Building Trust and Recovering from Trust Deficits
+
+Building Trust and Recovering from Trust Deficits
+Bringing it all together, here is a checklist of practical steps:
+
+   1.​ Clearly Identify Your Website’s Owner and Purpose: Create a
+       comprehensive “About Us” page that states who runs the site (individual
+       person, team, or company). Include the business name and any legal entity
+       information if applicable (e.g. LLC name, registration number for companies).
+       Explain your site’s mission or purpose so users (and Google) understand why it
+       exists. This directly addresses QRG Section 2.5.2 by showing who is
+       responsible: hobo-web.co.uk. Action: For example, list your company’s full
+       name and address, or if you’re a solo blogger, share a bit about yourself and
+       your credentials. Hobo Web advises that publishing your “full company name,
+       legal registration info, and editorial oversight” is ideal hobo-web.co.uk.​
+
+   2.​ Provide Author By-lines and Bios: Every piece of content that has a
+       discernible author should list one. Add by-lines to articles or posts, and link
+       each by-line to a dedicated author page or bio section. On the author page,
+       include the author’s background, qualifications or experience in the topic, and
+       other publications if relevant. Google explicitly “strongly encourages adding
+       accurate authorship information” on contenthobo-web.co.uk and
+       developers.google.com. This helps satisfy the “Who created the content”
+       aspect of E-E-A-T. Action: Even if the “author” is the site name (e.g. a news
+       site’s staff), you can state content is produced by the “So-and-so Editorial
+       Team” and describe that team. The key is no content should appear
+       anonymous - lack of authorship is a trust killer (“Lack of authorship
+       transparency is considered unhelpful” in Google’s own words hobo-web.co.uk).​
+
+
+
+
+                                                          142
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                              Strategic SEO 2025
+
+
+
+
+3.​ Show Contact and Customer Support Info: Make it easy for users to contact
+    you or get help. At minimum, have a Contact page with a contact form or email
+    address. If you are a business, provide a phone number and physical address. If
+    you offer products or services, list customer service channels or hours.
+    Google’s guidelines associate robust contact info with higher trust (and lack
+    thereof with lowest quality) hobo-web.co.uk. Particularly for online stores or
+    financial services, users expect to see real-world contact details - it signals
+    that there are real people behind the site who will be accountable. Action:
+    Ensure your site’s footer or menu prominently links to contact information.
+    Respond promptly and helpfully to inquiries - while this is a user experience
+    issue, positive interactions can lead to good reviews, bolstering your reputation.​
+
+4.​ Implement Structured Data for Organization/Person: Help Google connect
+    the dots about your entity by using schema markup. For example, use
+    Organization schema on your About page to provide your company’s details
+    (name, logo, address, founders), or Person schema for individual authors
+    (name, title, sameAs links to social profiles or Wikipedia, etc.). Shaun Anderson
+    notes that structured data “ties it all together” for section 2.5.2 compliance.
+    While schema markup itself isn’t a ranking factor, it can feed Google’s
+    Knowledge Graph and improve how your entity is recognized. Action: Add
+   <script type="application/ld+json"> JSON-LD markup on pages to
+   define the organization and author entities. Also link out to official profiles
+   (LinkedIn, official social media, professional associations) - these sameAs links
+   can reinforce that your entity is real and has external corroboration.​
+
+5.​ Demonstrate Experience and Expertise in Content: This addresses the
+    “Experience” and “Expertise” parts of E-E-A-T which support trust. Ensure
+    your content showcases first-hand experience where appropriate. For instance,
+    if you have a product review, mention that you tested the product and include
+    original photos or data - Google says “it can build trust with readers” when
+    they see evidence of hands-on experience developers.google.com. If you
+    discuss a YMYL topic, consider having an expert review the content (and
+    mention that fact). Always strive for factual accuracy and cite sources for
+                                                      143
+
+    © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                              Strategic SEO 2025
+
+
+
+
+   important facts or statistics. Not only will this satisfy users, it aligns with
+   Google’s helpful content criteria (e.g., “Does your content clearly demonstrate
+   first-hand expertise…?”developers.google.com). Action: Add a “References”
+   or “Sources” list if applicable, or inline citations for studies and authoritative
+   references. Regularly update content that could go out-of-date, especially on
+   YMYL topics, to maintain accuracy. Speak in 1st person for Experience and 2nd
+   person when speaking to the user (another recommendation from Google’s
+   style guide - internal documents).​
+
+6.​ Boost Your External Reputation (Earn Mentions and Reviews): While you
+    can’t directly control what others say, you can encourage positive buzz. If you
+    are a business, claim your profiles on review platforms (Google, Yelp,
+    industry-specific sites) and encourage happy customers to leave reviews. If you
+    produce great content, do outreach for backlinks or mentions from respected
+    sites in your niche - not for “link juice” per se, but to get your name out there
+    as a trusted source. Google’s raters will check for external signals
+    vertical-leap.uk, and likely the algorithm does something similar (evaluating
+    mentions or links from authoritative sources as a sign of credibility). Action:
+    Feature testimonials or case studies on your site; these might get picked up by
+    others. Engage in your community (forums, Q&A sites, social media) under your
+    real name or brand to build a positive presence. Also, watch for any negative
+    content about your site - if it’s legitimate criticism (e.g. unresolved customer
+    complaints), address it proactively. A pattern of unresolved complaints can tank
+    trust.​
+
+7.​ Ensure Technical Trust Factors are in Place: This includes having a valid SSL
+    certificate (HTTPS) - an outright requirement nowadays, as users (and
+    browsers) will flag non-HTTPS sites as insecure. Also, display trust seals or
+    certifications if relevant (for example, if you have a medical site and you follow
+    the HONcode, or if you’re e-commerce and have PCI compliance - let users
+    know). Make sure your site doesn’t trigger security warnings (no malware, no
+    deceptive download prompts). Use clear design and avoid aggressive ads or
+    pop-ups, especially on YMYL pages, as these can be seen as signs of low
+    quality or even scaminess hobo-web.co.uk. Action: Perform a security audit. If
+    you handle user data, have a privacy policy and terms of service accessible -
+                                                      144
+
+    © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                              Strategic SEO 2025
+
+
+
+
+   beyond legality, it shows transparency about user rights. If you have any
+   third-party endorsements or are part of a trusted program (like Google’s News
+   Publisher, or a medical accreditation), mention it.​
+
+8.​ Align with Google’s “People-First” Content Guidelines: Ultimately, build
+    your site for users, not for Google. Google’s helpful content criteria asks: “Will
+    someone reading your content leave feeling like they’ve had a satisfying
+    experience?”developers.google.com. If your site is currently filled with
+    SEO-driven filler or articles on every trending topic (regardless of your
+    expertise), you may have a trust problem. Focus your content scope on what
+    you (or your team) truly know and can provide value in. Google is increasingly
+    adept at distinguishing content created just to game search from content
+    created to genuinely help people. As Danny Sullivan put it, they’re looking to
+    reward sites “built on genuine expertise, passion, and trust” and filter out those
+    “built purely for flipping and monetization” and hobo-web.co.uk. Action: Do a
+    content audit: If you find pages you created solely for traffic with no real value,
+    consider pruning or improving them. Stick to a “why” that is user-centric - e.g.
+    publishing because you have something unique to share or a problem to solve
+    for users. This will naturally enforce a level of authenticity that machines and
+    people interpret as trust.​
+
+9.​ If Hit by HCU or a Core Update, Fix Trust Issues First: If you’ve experienced
+    a sharp drop in rankings around a known core update or helpful content
+    update, and you suspect your site might be seen as a “disconnected” or
+    low-trust entity, prioritize the above trust-building steps. Technical SEO or
+    minor tweaks won’t bring back traffic if the core issue is Google’s lack of trust
+    in your site. John Mueller has advised that sites can “regain traffic by improving
+    quality,” but it’s not a simple fix and often requires broad changes that align
+    with core updates’ timing hobo-web.co.uk - in other words, you might only
+    see recovery when Google reruns its core algorithm, and only if you’ve
+    significantly improved what was lacking. Hobo Web’s guidance is even more
+    direct: “Any recovery would start with [Section 2.5.2] basic compliance if that is
+    what is lacking, because Trust is the overarching signal from E-E-A-T, and
+    you can’t have trust without compliance in this area.” hobo-web.co.uk. So,
+    start by fixing the trust fundamentals (transparency, E-E-A-T signals) and
+                                                      145
+
+    © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                 Strategic SEO 2025
+
+
+
+
+      be patient for Google to reassess. During this time, continue adding genuinely
+      helpful content and demonstrate to Google that your site is run by responsible,
+      real people.​
+
+   10.​Avoid Black-Hat or Deceptive “E–E-A-T” Hacks: Finally, a caution: Do not
+       attempt to fake trust signals. Google and users are getting better at sniffing out
+       inauthenticity. For instance, don’t create a bogus persona with a stock photo
+       and pretend they are the author of all your articles - that can backfire terribly if
+       uncovered (and it’s ethically dubious). Don’t buy fake reviews or engage in link
+       schemes claiming endorsements. Such tactics violate Google’s guidelines and
+       can lead to manual or algorithmic penalties. As I wryly recounted on the Hobo
+       SEO Blog, some SEO advice out there encourages people to “fake E-E-A-T with
+       fake profiles,” which he calls “extremely grey… Black even!” hobo-web.co.uk.
+       It’s not worth risking your site’s integrity. Instead, invest that effort into real
+       improvements and genuinely showcasing the expertise you and your team
+       possess.​
+
+
+By following the steps above, you will be aligning your site with Google’s definition of
+a high-trust, high-quality site. This not only helps protect you from the negative
+impacts of core updates and HCU changes, but it also provides a better experience to
+your users (which is the whole point - “helpful content” is content that serves users
+well). In many ways, what’s good for users is now clearly good for SEO.
+
+“Trust” is the linchpin
+
+In Google’s modern search landscape, “Trust” is the linchpin of site quality.
+
+The Search Quality Rater Guidelines place trust at the heart of E-E-A-T, and Google’s
+core algorithms - reinforced by updates like the Helpful Content Update - increasingly
+filter out sites that lack trust signals. “Trust” from Google’s perspective comes from
+transparency, credibility, and a positive reputation. Section 2.5.2 of the QRG, asking
+“Who is responsible?”, might be the simplest distillation of what webmasters need to
+answer on every site they run.
+
+
+
+                                                         146
+
+       © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+If Google (or users) can’t readily see who stands behind a website and why that site
+should be believed, rankings will suffer - as we saw dramatically with many sites in late
+2023.
+
+The Disconnected Entity Hypothesis provides a framework to understand these
+outcomes: it essentially says trust = connectivity.
+
+A site well-connected” to a known entity (through clear disclosures and associations)
+can be trusted; a site that is “disconnected” (operating in the shadows of anonymity
+or unclear ownership) is treated as untrustworthy by default, no matter how good its
+content might be.
+
+This hypothesis, while not officially confirmed by Google, aligns with everything
+Google has been communicating. Google doesn’t want to send users to what it calls
+“unhealthy” or questionable web entities. Therefore, our job as webmasters and
+SEOs is to present our sites as healthy, trustworthy entities - to prove our
+credibility at every opportunity.
+
+To recap, ensuring strong E-E-A-T with an emphasis on Trust involves: clearly
+stating who you are (Experience/Expertise are embodied in real people or
+organizations), demonstrating authority through real-world credentials or
+endorsements, and above all not giving the user or Google any reason to doubt the
+honesty, safety, or reliability of your content. I made the Hobo EEAT Tool to help with
+this aspect.
+
+It’s an ongoing effort - trust can’t be built overnight, but it can be steadily earned. By
+following the principles discussed - drawn from both Google’s guidelines and expert
+insights like Hobo Web’s - webmasters can fortify their sites against algorithm
+changes and create a better web experience for users. In the end, that is Google’s
+goal as well: “to surface great content for users”, which inherently means content
+from sources users (and Google) can trust.
+
+By making Trust your SEO north star, you not only please Google’s algorithms, you
+build a site that users feel comfortable and confident using - and that is a recipe for
+long-term success.
+
+
+
+                                                          147
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+Key Takeaway
+
+Entity SEO is about aligning your online presence with Google’s understanding of the
+world.
+
+For small businesses, it’s one of the most powerful ways to punch above your weight.
+
+By turning your business into a well-defined entity that Google can recognize -
+through profiles on trusted platforms, structured data, authoritative content, and
+consistent signals of credibility - you make it easy for Google to trust and surface your
+site.
+
+In my experience, this approach can protect you from algorithm volatility too.
+
+When Google’s systems “know” you and the value you provide, you’re less likely to be
+seen as just another generic site. Instead, you become the go-to entity for your niche
+or locale.
+
+And as Google’s algorithms continue to evolve, focusing more on semantic
+understanding and less on crude keyword matching, investing in Entity SEO is not just
+wise - it’s essential. As Dixon bluntly put it, “if you don’t start thinking around entities,
+you’re going to be screwed in the end”.
+
+The good news is that by following the steps in this chapter, you’re well on your way to
+entity optimization mastery.
+
+You’re helping Google connect the dots about your business - forging the very
+connections that can catapult your small business to big visibility.
+
+Build your entity, nurture it, and let Google see the real-world expertise behind your
+website. In the long run, this is how you win in SEO: not by tricking an algorithm, but
+by building an identity online that algorithms recognize and reward.
+
+
+
+
+                                                          148
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+Search Engine-First Content - The Impact on the Web and Small
+Businesses
+Recently, we’ve watched Google wage war on what it calls “search engine-first
+content.” This reminds me of other wars - like Panda, Phantom or Penguin and
+unnatural links.
+
+In simple terms, this is content created primarily to rank high on Google rather than to
+genuinely help readers.
+
+We’ve all encountered it - those webpages stuffed with keywords and generic fluff
+that leave you unsatisfied.
+
+Google itself defines search engine-first content as material “created primarily to
+rank high in search results rather than to benefit the reader” Google.
+
+In contrast, people-first content is made with the audience’s needs in mind.
+
+Why Google Targeted “Search Engine-First” Content
+
+By 2022, frustration with low-value, SEO-driven content had reached a boiling point.
+
+Users were complaining that search results often led to unoriginal pages designed just
+to attract clicks, not inform.
+
+A popular hack at the time was appending “reddit” to Google searches to find
+authentic user discussions instead of thin blog posts - a clear sign of dissatisfaction.
+
+Google took notice:
+
+ “We know people don’t find content helpful if it seems like it was designed to attract
+clicks rather than inform readers,” one Google announcement explained
+theverge.com.
+
+In August 2022, Google responded with a major algorithm change pointedly named

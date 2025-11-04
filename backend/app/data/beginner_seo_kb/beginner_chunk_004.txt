@@ -1,0 +1,19 @@
+# The Two Big Ideas That Drive Google Search
+
+Source: Beginner SEO 2025 by Shaun Anderson
+
+       The Two Big Ideas That Drive Google Search
+            Idea #1: Your Website's Reputation
+       The Main Ingredients of Your Q* Score
+            Idea #2: Your Website's Popularity
+       The "Secret Sauce": How Google Measures Everything
+            Navboost: The User Click Engine
+            The "ABC" Signals: How Google Reads Your Page
+       The Ultimate Goal: Branding
+       Six More Important Things to Know as a Beginner
+            1. The "Sandbox" for New Websites
+            2. The Different "Tiers" of Google's Index
+            3. "Zero-Click Search": Winning Without a Click
+            4. "Twiddlers": Google's Final Adjustments
+            5. DocID: Your URL's Unique Name Tag
+            6. Spam Score: A Critical Quality Check

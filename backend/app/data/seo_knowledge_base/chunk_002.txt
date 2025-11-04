@@ -1,0 +1,117 @@
+# How Google Works
+
+   How Google Works
+   United States et al. v. Google LLC
+       The Architecture of Google Search Ranking
+   The Two Pillars of Ranking: An Overview
+   Deconstructing the Signals - The Core Systems
+       Quality Score (Q*) - The Engine of the 'Quality' Signal
+       Navboost and Topicality (T*) - The Engines of the 'Popularity' Signal
+       Information Retrieval and the Primacy of "Hand-Crafted" Signals
+   Trustworthiness
+       Freshness (Timeliness of Content)
+       Linking Behaviour (Link Signals and Page Reputation)
+       The Final Layers: Location and Personalisation
+       Beyond RankBrain: The Shift to Semantic Understanding
+       A Forward-Looking Note on Legal Remedies
+       How Human Quality Raters Are Used
+            Key Takeaways
+       The Role of Human Quality Raters
+       Direct Training Data for Ranking Models
+       Improving Performance on Difficult Queries
+       Providing Foundational Data for Machine Learning
+       Deviation From Google's Past Statements
+       Google’s Public Stance
+       The Deviation Revealed in Court
+   DOJ v. Google Disclosure: The Popularity Signal (P*)
+       What This Means
+       SEO Relevance
+       Topicality (T*) or The ABCs of Relevance
+       Clicks vs. Quality
+   The Q* Metric - A New Understanding of Site-Level Quality
+       “QRank”, Quality Scores & Authority Signals (2010s)
+   The Navboost System
+       The Confirmed Role of Large-Scale User Interaction Data
+                                                            2
+
+         © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+       Key Takeaways
+PageRank
+       Original PageRank: Link-Based Importance (Late 1990s)
+       PageRank (Link-Based Authority) - What SEOs said at the time
+       TrustRank: Incorporating Link Trust & Spam Protection (2004–2000s)
+       PageRank’s Role Today
+       Key Take-aways
+       Panda and Google’s Site-Level Quality Score (QScore)
+       Impact and Legacy of Panda
+   Google’s Panda Algorithm - Site-Level Quality Scoring
+       Origins and Purpose of Panda
+       Assessing Site Quality
+       Evolution of the Panda Algorithm
+   Deconstructing Site Quality via Exploit
+       A Foundational Ranking Gate
+       Measuring Trust: How Site Quality is Calculated
+       The AI Dilemma and the Helpful Content Correction
+       Conclusion: Brand is the New Bottom Line
+   Practical Steps for Webmasters to Improve Site Quality
+   Google’s communications about Quality Score
+   The Role of Machine Learning - RankBrain, DeepRank, and the AI Layer
+       RankBrain: The Query Interpreter
+       DeepRank and the Pursuit of Transparency
+       The Human-ML Symbiosis
+       Overview of Google's RankBrain and BERT-based RankEmbed
+       RankBrain
+           What RankBrain Does
+           Technical Mechanism (Neural Embeddings)
+           Integration with Ranking Signals
+           Current Usage
+       BERT-based RankEmbed
+           What BERT (RankEmbed) Does
+           Technical Mechanism (Transformer-based Neural Network)
+       RankEmbed and Semantic Matching
+       Integration with Ranking Signals
+       Current Usage
+       Key Takeaway
+   Reconciling the New Model of Google Search
+       The Unified Ranking Pipeline
+                                                           3
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                   Strategic SEO 2025
+
+
+
+
+       The Data Feedback Loop as a Competitive Moat
+       The Chasm Between Public Narrative and Internal Reality
+   The Unlocked Warehouse
+       What Google's Accidental Leak Tells Us About Search, Secrecy, and Strategy
+   The Anatomy of a Leak
+       Subsection 1.1: What Was Actually Leaked?
+       A Glimpse Inside the Machine: Core Systems and "Twiddlers"
+   The Four Great Vindications - Where SEO Theory Met Google's Reality
+       The Ghost in the Machine: siteAuthority is Real
+       The All-Seeing Eye: Clicks, Chrome, and NavBoost
+       The Walled Garden: The "Sandbox" and hostAge
+       The Unspoken Hierarchy - Whitelists and Special Treatment
+       The path to authority is paved with positive user interactions.
+   Strategic Imperatives in a Post-Leak World
+       Strategy 1: Brand is the Ultimate Ranking Factor
+       Strategy 2: User Experience is Undeniably the New Core SEO
+       Strategy 3 - Build Topical Authority, Not Just Keyword-Optimised Pages
+       Strategy 4: Adopt a Scientist's Mindset - Test, Don't Just Trust
+   What the Leak Truly Tells Us
+   Trust in Google’s E-E-A-T, the Helpful Content Update, and the Disconnected Entity Hypothesis
+       Trust is the Lever
+       ‘Trustworthiness’ in Google’s Quality Rater Guidelines (E-E-A-T and Section 2.5.2)
+       What “Trust” Signals Do Raters Look For?
+   The Domino Effect of Section 2.5.2: Why Identity Transparency Matters
+   Trust as a Ranking Factor - From Quality Guidelines to Core Updates
+       The “Helpful = Trustworthy” Principle
+   The Disconnected Entity Hypothesis
+       Trust Signals vs. “Disconnected” Sites

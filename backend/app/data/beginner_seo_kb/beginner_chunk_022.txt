@@ -1,0 +1,141 @@
+# Chapter 3: Keyword Research and Content Strategy:
+
+Source: Beginner SEO 2025 by Shaun Anderson
+
+Chapter 3: Keyword Research and Content Strategy:
+Answering the Right Questions
+In the first two chapters, we pulled back the curtain on how Google's systems work and
+established that the most important goal is to create helpful, people-first content. We know
+Google is at war with "search engine-first content" and rewards sites that demonstrate real
+expertise and deliver a satisfying user experience.
+
+This leads to the next logical question: How do you figure out what to write about in the
+first place?
+
+This is where keyword research and content strategy come in. But we're going to forget the
+old-school method of just finding popular words and stuffing them into a page.
+
+In 2025, a modern strategy is about understanding the person behind the search and
+answering their questions so effectively that they have no need to "pogo-stick" back to the
+search results.
+
+The Big Shift: From Keywords to Intent
+For years, SEO was treated like a word-matching game. The goal was to find a keyword with
+high search volume and repeat it on a page.
+
+The HCU has made this approach obsolete and dangerous. Today, the key is to understand
+user intent - the why behind a search query.
+
+Matching your content to the user's intent is the first step to earning those "good clicks" that
+power the Navboost system and signal to Google that your page is a valuable result. For
+beginners, we can simplify intent into three main categories:
+ ●​ Informational ("Know"): The user wants to learn something. These are often "who,"
+    "what," "why," or "how" questions. Example: "how to create helpful content for seo".
+ ●​ Navigational ("Go"): The user is trying to get to a specific website or brand they already
+    know. Example: "hobo web seo book". This is the ultimate goal, as branded searches are
+    a powerful signal that directly improves your Quality Score (Q∗).
+ ●​ Transactional ("Do"): The user wants to take a specific action, like buying a product or
+    signing up for a service. Example: "buy beginner seo 2025".
+
+Before you create any piece of content, your first job is to identify the intent you are trying to
+serve.
+                                                           20
+
+       © Sep 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / SEO Tools
+                                                  Beginner SEO 2025
+
+
+
+
+Your Modern Keyword Research Toolkit
+You don't need expensive tools to get started. The best place to find out what people want is
+the one you're trying to rank on: Google itself.
+ ●​ Google Autocomplete: As you start typing in the search bar, Google suggests popular
+    queries. This is a live look at what people are searching for right now.
+ ●​ "People Also Ask" (PAA): This box, which appears in the middle of the search results, is
+    a goldmine. It shows you the direct questions users have related to your topic. Answering
+    these questions is a straightforward way to create helpful content.
+ ●​ Related Searches: At the very bottom of the results page, Google shows you a list of
+    other queries related to your original search. This helps you understand the different
+    ways people think about a topic.
+
+Leveling Up: Using a Professional Tool like Semrush
+While the free tools are all you need to get started, if you're ready to speed up the process
+and gather more data, a professional tool can be a powerful ally.
+
+Semrush (I am an affiliate) is an industry-standard suite of tools that can help you apply our
+"people-first" principles at scale.
+
+Here's how a beginner can use it effectively:
+ 1.​ Finding Questions at Scale: The Keyword Magic Tool is the perfect step up from
+     looking at the "People Also Ask" box. You can enter a broad topic (like "beginner SEO")
+     and then simply click the "Questions" filter. This will instantly show you hundreds or
+     thousands of questions people are searching for, which you can then sort and analyse to
+     find topics that fit your expertise.
+ 2.​ Mapping Out Your Expertise: The Topic Research Tool is excellent for planning. It
+     helps you visualize an entire subject area, showing you related subtopics, common
+     headlines, and the questions people are asking. This is invaluable when building out topic
+     clusters and proving to Google that you are an authority on your core niche.
+ 3.​ A Note on Competition: Semrush provides a "Keyword Difficulty" (KD%) score to
+     estimate how hard it will be to rank for a term. A word of caution for beginners: Do not
+     fall into the trap of only chasing "low competition" keywords. Remember the HCU's
+     purpose is to demote content created without real expertise. A low KD% for a topic you
+     know nothing about is a trap. Your first filter should always be the Expertise Check
+     mentioned below. Use the KD% metric as a way to prioritize among the topics you are
+     already an expert in.
+
+
+                                                          21
+
+      © Sep 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / SEO Tools
+                                                  Beginner SEO 2025
+
+
+
+
+How to Choose the Right Topics for Your Website
+Finding a popular question isn't enough. The HCU penalizes sites that "enter some niche topic
+area without any real expertise... mainly because you thought you'd get search traffic".
+
+To stay safe and successful, run every potential content idea through this simple checklist,
+which is based directly on Google's new standards:
+ 1.​ The Helpfulness Check: Is my primary motivation to help the reader, or is it "primarily
+     made to attract people from search engines?". Can I create a page that will leave
+     someone feeling they've had a truly "satisfying experience?".
+ 2.​ The Expertise Check: Does this topic align with my site's "primary purpose or focus?".
+     Can I "clearly demonstrate first-hand expertise and a depth of knowledge" on this
+     subject?. If not, skip it. Chasing trends outside your niche is exactly what Google wants to
+     demote.
+ 3.​ The Intent Check: What does the user who searches this phrase really want to
+     accomplish? Does my planned content directly meet that need, or am I trying to force my
+     product or service onto someone who is just looking for information?
+ 4.​ The Competition Check: Look at the top results. Are they all massive, globally
+     recognized brands? If so, you may struggle to compete. Look for a more specific,
+     long-tail question where your deep, first-hand expertise can outshine a generic article
+     from a big publisher.
+
+Chapter 3 Action Plan
+Modern keyword research is less about spreadsheets and more about empathy. It's about
+understanding what people need and using your unique expertise to help them.
+ 1.​ Define Your Core Niche: Pick the single main topic where you are a genuine expert and
+     where your site has a "primary purpose or focus".
+ 2.​ Find the Questions: Use the tools mentioned above to brainstorm a list of 10-15 real
+     questions that people are asking about your niche.
+ 3.​ Validate with the Checklist: Run each of those questions through the 4-point checklist.
+     Be honest with yourself. Ditch any topics that don't pass.
+ 4.​ Start Writing: Choose the most specific question you are most qualified to answer and
+     start creating your first piece of truly helpful, people-first content.
+For a more advanced look at content strategy read this sister book: Hobo Strategic AI SEO
+2025.
+
+
+
+
+                                                          22
+
+      © Sep 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / SEO Tools
+                                                   Beginner SEO 2025
+
+
+
+

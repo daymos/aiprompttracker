@@ -1,0 +1,1127 @@
+# Prepare for the era of Zero-Click Marketing
+
+Prepare for the era of Zero-Click Marketing
+Let’s establish a critical distinction that frames this entire chapter.
+
+The industry uses two related but distinct terms to describe this new world:
+"Zero-Click Search" and "Zero-Click Marketing."
+
+Understanding the difference is not just semantics; it's the key to understanding the
+strategic and philosophical war being waged for the future of the web.
+
+Zero-Click Search (ZCS): This is the user behavior, the phenomenon itself. It occurs
+when a user types a query into a search engine like Google and finds the answer to
+their query directly on the search engine results page (SERP), without clicking through
+to any external website. This is a reality engineered by the search engines, designed to
+provide immediate answers and a more efficient user experience.
+
+Zero-Click Marketing (ZCM): This is the strategic response. The term, largely
+popularised by Rand Fishkin and his team at SparkToro, refers to the practice of
+"creating standalone value in the platforms where people hang out, instead of
+dropping teasers and links in hopes that people will be compelled to click over to your
+site". It is a proactive strategy focused on building brand awareness, influence, and
+community directly on platforms like Google, YouTube, Instagram, and others,
+independent of referral clicks.
+
+The very language used to describe this trend reveals a deep schism in the SEO
+community.
+
+Proponents, who see opportunity, have coalesced around the term "Zero-Click
+Marketing."
+
+They frame it as a new channel to be mastered, a new frontier for building influence
+and brand affinity.They are actively creating a new discipline around this concept.
+
+Conversely, those who feel victimised by this trend - primarily publishers and
+businesses whose models are built on website traffic - almost exclusively use the term
+"Zero-Click Searches."
+
+
+                                                          166
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+For them, it is not an opportunity but a negative outcome being inflicted upon them by
+a monopolistic power.
+
+Their language revolves around traffic loss, theft, and anticompetitive behavior.
+
+This linguistic split is the clearest indicator of the two warring camps.
+
+One side is adapting and building a new strategy (ZCM); the other is fighting what it
+sees as an existential threat (ZCS).
+
+To understand fully, you must understand both perspectives.
+
+The Mechanics of the Clickless SERP: A Rogues' Gallery of Features
+The rise of zero-click searches is not an accident; it's the result of a deliberate,
+long-term strategy by Google to transform its SERP from a list of links into a
+comprehensive answer platform.
+This has been achieved through the introduction and refinement of numerous SERP
+features, each designed to satisfy user intent on-page.
+ ●​ Featured Snippets (Position Zero): Often considered the original zero-click
+    driver, these are the answer boxes that appear at the very top of the SERP, above
+    the traditional organic results. They aim to provide a concise, direct answer to a
+    user's question, often formatted as a paragraph, a bulleted or numbered list, or a
+    table. Google programmatically extracts this information from a single,
+    high-ranking webpage that it deems to be a clear and authoritative source for the
+    query.
+ ●​ Knowledge Panels & Graphs: When you search for a well-known entity - a
+    person, a company, a place, or a concept - a large information box often appears
+    on the right-hand side of the desktop SERP. This is the Knowledge Panel,
+    powered by Google's Knowledge Graph. It aggregates factual information from a
+    multitude of trusted sources, like Wikipedia, to provide a comprehensive overview,
+    including dates, descriptions, images, and related information, satisfying many
+    queries without requiring a click.
+
+
+
+
+                                                          167
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                 Strategic SEO 2025
+
+
+
+
+●​ Direct Answer Boxes: For simple, factual queries like "what is the capital of
+   Sweden?" or "how old is the president?", Google often provides an "Instant
+   Answer" directly on the SERP. Unlike Featured Snippets, these answers frequently
+   come from Google's own licensed data sources or knowledge base and may not
+   include a link to a third-party website at all, making them a pure form of zero-click
+   result.
+●​ The Local Pack: This is arguably the most impactful zero-click feature for small,
+   local businesses. For searches with local intent, like "plumber near me" or "best
+   pizza in Durham," Google displays a map alongside three business listings. This
+   "Local 3-Pack" provides essential information such as the business name,
+   address, phone number, hours of operation, and customer reviews. It facilitates
+   direct, high-value actions like phone calls or requests for directions, completely
+   bypassing the business's website.
+●​ People Also Ask (PAA): This feature appears as a box of related questions in an
+   accordion-style format. When a user clicks on a question, it expands to reveal a
+   short answer - a snippet pulled from a webpage - along with a link to the source.
+   A user can explore multiple facets of their topic and get answers to several
+   related questions without ever leaving the Google results page.
+●​ The New Apex Predator: AI Overviews (AIO): The launch and expansion of AI
+   Overviews in 2024 represents the most significant and controversial evolution in
+   this trend. Powered by Google's Gemini models, AIOs are AI-generated
+   summaries that synthesize information from multiple web sources to provide a
+   single, comprehensive, conversational answer at the very top of the SERP. These
+   overviews push all other results, including ads and traditional organic links,
+   further down the page, dramatically increasing the likelihood of a zero-click
+   search.
+
+
+
+
+                                                         168
+
+       © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+The Great Divide - A Digital Cold War for the Future of the Web
+The current state of zero-click search didn't happen overnight. It is the culmination of
+a nearly two-decade strategic pivot by Google.
+
+Two Competing Realities
+The reaction to the relentless rise of zero-click search has been anything but uniform.
+
+It has cleaved the digital marketing and publishing worlds in two, creating a "digital
+cold war" with no apparent middle ground.
+
+On one side, you have a coalition of publishers, creators, and SEO professionals who
+view this trend as a catastrophic attack on the open web's economic model.
+
+On the other, you have a camp of marketers and strategists who see it as the next,
+unavoidable evolution of search - an opportunity to be seized, not a threat to be
+fought.
+
+To understand the stakes, we must listen to both sides in their own words.
+
+The Critics' Corner: "A Slow, Brutal Asphyxiation of Organic Traffic"
+This is the voice of those whose livelihoods are built on website traffic. Their argument
+is a potent mix of documented financial injury and pointed accusations of
+monopolistic abuse. They see Google not as an innovator improving user experience,
+but as a gatekeeper building a "walled garden" to trap users and hoard revenue.8
+
+The Core Argument: Traffic and Revenue Annihilation
+The central complaint is that by scraping content and presenting it directly on the
+SERP, Google is severing the lifeline of referral traffic that millions of businesses
+depend on for advertising revenue, lead generation, affiliate sales, and e-commerce
+conversions.
+
+The language used is often stark, describing the situation as a "bloodbath" where
+Google is "collecting scalps" and your website becomes just another "unpaid
+consultant".
+
+                                                          169
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+The most vocal critics are often publishers and the organizations that represent them.
+The Independent Publishers Alliance, in a formal EU antitrust complaint, stated that
+Google's actions cause "significant harm to publishers, including news publishers in
+the form of traffic, readership and revenue loss".
+
+Danielle Coffey, CEO of the News/Media Alliance, captured the widespread feeling of
+a broken social contract between the search engine and creators: "Links were the last
+redeeming quality of search that gave publishers traffic and revenue. Now Google just
+takes content by force and uses it with no return, no economic return".
+
+James Rosewell of the Movement for an Open Web frames it even more bluntly as a
+two-front assault: "They steal publishers' content to feed their AI model and then they
+use this capability to steal traffic by putting the Overview ahead of the links to the
+original content".
+
+Lily Ray, a prominent SEO strategist, offers a stark prediction about the next step in
+Google's AI integration. She warns, "If Google makes AI Mode the default in its
+current form, it's going to have a devastating impact on the internet. It will
+severely cut into the main source of revenue for most publishers... Google holds
+all the power." SEO consultant Barry Adams puts a finer point on the outcome,
+stating, "I think 'extinction' is too strong of a word for what's going to happen to
+websites. 'Decimation' is the right word." He quantifies this by estimating that
+clicks from AI Mode could be cut in half, which for many publishers "could be the
+difference between having a viable publishing business and going bankrupt."
+
+She’s right.
+
+And if Google AI mode frightens you, wait until you hear what China’s top search
+engine Baidu has already moved to.
+
+Gisele Navarro of HouseFresh provides the crucial first-hand perspective of a small
+publisher.
+
+She laments the loss of the web's serendipity, comparing AI search to "asking a
+librarian for a book, but they just tell you about the book instead." She captures
+the feeling of a broken ecosystem, stating, "This feeling of the web being a big
+library for all of us, I think that is gone." Her conclusion is a grim one that reflects
+                                                          170
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+the feelings of many independent creators: "I think it's going to destroy the open
+web as we know it, for sure. It probably already has."
+
+When considering future economic models, Matthew Prince of Cloudflare identifies a
+core issue with the "machine web": "Robots don't click on ads."
+
+This simple statement undercuts the entire ad-based revenue model if AI becomes
+the primary audience.
+
+Tom Critchlow of Raptive reinforces this by questioning the viability of direct licensing
+deals, noting, "I don't think that paying for content like this is a model that will work at
+the scale necessary to sustain the web. It's difficult to see how that would work as a
+replacement for the decline in clicks."
+
+Another Wound: Loss of Strategic Data
+Beyond the immediate financial hit, sophisticated critics point to a more insidious
+second-order effect: the loss of invaluable strategic data. SEO professional Michael
+Bonfils articulates this perfectly.
+
+The problem isn't just the lost click; it's the lost insight into the customer journey. He
+states, "AI Overviews remove visibility into the mid-funnel stage (user research and
+comparison)... This makes it difficult to optimise content strategy since marketers
+can’t access the conversations users are having with AI".
+
+When a user gets their answer from a Google AI Overview, the business not only loses
+a potential customer but also loses the data point that would have informed their
+content strategy, product development, and market understanding.
+
+Pushing Back on the "Adapt or Die" Narrative
+Critics vehemently reject the notion that this is simply a natural evolution that
+businesses must adapt to.
+
+They see this argument as a convenient excuse that absolves Google of its
+responsibility.
+
+Sultan Mahmud reinforces this, arguing, "Organic traffic isn't just a vanity metric - it
+                                                          171
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+directly impacts revenue and growth. The idea that businesses should just 'adapt' to
+losing traffic is flawed".
+
+They contend that this isn't evolution; it's the deliberate dismantling of the open
+web's economic engine by a monopolist for its own gain.
+
+The Proponents' Platform: "Influence Has Always Been Better Than
+Traffic"
+On the other side of the divide are those who advocate for a radical rethinking of
+marketing goals (and I am largely on this side).
+
+This camp, championed by figures like Rand Fishkin, argues that fighting against the
+tide of zero-click search is futile.
+
+Instead, they propose embracing the new landscape and shifting the focus from
+chasing clicks to building influence. It's worth noting this camp I am with, were on the
+right side about quality score, too as I pointed out in this book (and my 2018 SEO book
+for beginners).
+
+The Core Argument: Shift from Clicks to Influence
+The central thesis of this school of thought is that the ultimate goal of marketing has
+always been influence, and that website traffic was merely a proxy for that influence -
+and often a poor one.
+
+Zero-Click Marketing, therefore, is about achieving that primary goal of influence
+directly where the audience is, be it on the SERP, a social media feed, or a podcast.
+
+The most prominent voice for this perspective is Rand Fishkin, co-founder of
+SparkToro and someone I’ve followed closely for 2 decades.
+
+He argues that the math has fundamentally changed. In his company's testing, a
+social media post with no link gets approximately 10 times the reach of a post that
+includes a link.
+
+I think his conclusion is powerful:
+
+
+                                                          172
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+"I'd rather influence 10 times as many people than I would draw traffic from a small
+percentage". He also points out that the decades of link-building spam have made
+publications, podcasts, and other media sources more receptive to pitches that don't
+ask for a link, making a zero-click approach more effective for modern PR and
+outreach.
+
+The question is… what is more powerful for your brand. A direct link or a call to action:
+“search for [your offering] on Google”
+
+The Silver Lining: Higher Quality Traffic
+A key pillar of the proponent's argument is that zero-click features act as a powerful
+filter. They satisfy the low-intent, top-of-funnel informational queries directly on the
+SERP.
+
+This means that the users who do end up clicking through to a website are, by
+definition, more qualified. They are looking for something deeper than a simple
+answer and are more likely to be further down the conversion funnel.
+
+Tim Cameron-Kitchen, founder of Exposure Ninja, sees this as a net positive, stating it
+"compress[es] the buyer journey... you may be losing early clicks - but you're gaining
+buyer readiness".
+
+The Opportunity: On-SERP Brand Building
+Finally, this camp sees immense brand-building value in appearing in zero-click
+features. Even if a user doesn't click, seeing your brand's name as the source of an
+authoritative answer in a Featured Snippet or AI Overview builds familiarity, credibility,
+and trust.
+
+This on-SERP branding ensures that when a user is eventually ready to make a
+purchase or take a more significant action, your brand is already top of mind.
+
+
+
+
+                                                          173
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+Table 2: The Zero-Click Debate: Threat vs. Opportunity
+To crystallize this fundamental conflict, the following table juxtaposes the core
+arguments of the two opposing camps.
+
+It serves as an at-a-glance summary of the debate that defines our industry today.
+
+ The Critics' View: An Existential Threat                       The Proponents' View: A Strategic
+                                                                Opportunity
+
+
+ Core Argument: Traffic & Revenue Loss                          Core Argument: Influence Over Clicks
+
+
+
+ "A slow, brutal asphyxiation of organic traffic." 9            "I'd rather influence 10 times as many people
+                                                                than I would draw traffic from a small
+                                                                percentage." 6
+
+
+
+ Core Argument: Monopolistic Abuse                              Core Argument: Higher Quality Traffic
+
+
+ "Google is keeping users in its 'walled garden'                "You may be losing early clicks - but you're
+                                       8
+ to maximise its own ad revenue."                               gaining buyer readiness." 14
+
+
+
+ Core Argument: Loss of Strategic Data                          Core Argument: On-SERP Brand Building
+
+
+ "The middle part of that, where a person is                    "Visibility in AI Overviews... builds familiarity.
+                                       30                       And when that person is ready to take action,
+ researching... that data is gone."
+                                                                you're already the brand they recognise." 14
+
+
+
+
+                                                          174
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+Inside the "Walled Garden" and Google's Official Rationale and
+Rebuttals
+
+The View from Mountain View
+Through a carefully orchestrated series of official blog posts, executive statements,
+and legal filings, Google has built a clear, if highly contested, justification for its
+actions.
+
+Understanding this official rationale is crucial, as it reveals the company's strategic
+priorities and provides context for the intense backlash from publishers and creators.
+
+The Prime Directive: Enhancing the User Experience
+Google's primary public-facing argument is that every change, from the earliest
+Knowledge Panels to the latest AI Overviews, is made in the service of the user.
+
+The stated goal is to provide the best, most relevant, and most direct answers as
+quickly and efficiently as possible.
+
+In a May 2024 blog post announcing the broad rollout of AI Overviews, the company
+claimed,
+
+"People have already used AI Overviews billions of times... They like that they can get
+both a quick overview of a topic and links to learn more".34
+
+Google frames this shift not as a radical departure but as a natural evolution of
+search, comparing it to past updates like the move to mobile-first indexing.
+
+The objective, they maintain, is to create a "more delightful" web for users across all
+platforms.
+
+This positions Google as a user-centric innovator, with the implication that any
+negative impact on publishers is an unfortunate but necessary side effect of progress.
+
+
+
+
+                                                          175
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+The "More and Better Clicks" Rebuttal
+This is Google's most direct - and most contentious - rebuttal to the widespread
+publisher concerns about traffic annihilation.
+
+Faced with a mountain of data showing declining clicks, Google has advanced a
+counter-narrative: AI Overviews don't kill traffic; they transform it for the better.
+
+The official line, repeated in various forms, is that AIOs actually 1. increase clicks to
+a 2. more diverse set of websites.
+
+The same May 2024 blog post boldly asserted, "we see that the links included in AI
+Overviews get more clicks than if the page had appeared as a traditional web
+listing for that query".
+
+They also claim that people are visiting a "greater diversity of websites" and that the
+clicks that do occur are of "higher quality," meaning users are more likely to stay on
+the page because the AI has done a better job of qualifying their intent.
+
+This message is echoed by Google's executives. Robby Stein, VP of Product at Google
+Search, insisted that the team is "really focused on how we make it easy to click to
+sites" and that AIOs will "ultimately create new opportunities for sites to rank".
+
+However, there is a massive, unbridgeable gap between these official claims and the
+data reported by virtually every independent analyst.
+
+This isn't a simple disagreement over numbers; it represents a fundamental
+breakdown of trust between Google and the web creator community.
+
+While Google claims more and better clicks, third-party data paints a starkly different
+picture. A July 2025 report from Similarweb, published in Press Gazette,
+documented a 27% year-over-year drop in traffic to the world's top publishers
+and a jump in the overall zero-click search rate from 56% to a staggering 69% in
+the year following the AIO rollout.
+
+Data from Ahrefs suggests that the presence of an AI Overview can cause the
+click-through rate for the number one organic result to plummet by as much as 34.5%.
+
+
+                                                          176
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+These two sets of "facts" cannot coexist without a hidden variable or a difference in
+methodology.
+
+It's plausible that Google's claims are technically true within a very narrow, specific
+context.
+
+For instance, an AI Overview might surface a hyper-niche blog for a very long-tail
+query that would never have ranked or received a click before, thus increasing the
+"diversity" of sites getting traffic.
+
+However, this micro-level gain is a drop in the ocean compared to the macro-level
+volume of traffic being lost by established sites on high-volume head terms.
+
+This discrepancy creates a significant credibility gap, fueling the perception among
+publishers that they are being misled while their businesses are being systematically
+dismantled.
+
+The "Fair Use" Defense: Our Position on Content Scraping
+When the conversation shifts from traffic to legality, and accusations of "theft" and
+"scraping" arise, Google's defense rests on two pillars: the legal doctrine of "fair use"
+and the assertion that it is only using publicly available information.
+
+In a legal filing responding to a class-action lawsuit, Google's position was
+unequivocal: "Using publicly available information to learn is not stealing. Nor is it an
+invasion of privacy, conversion, negligence, unfair competition, or copyright
+infringement". The company argues that this practice is not only legal but essential for
+the advancement of generative AI as a technology.
+
+The core of their legal argument is that training an AI model on copyrighted material is
+a "transformative" use. Under U.S. copyright law, "transformative use" is a key factor
+in determining fair use. Google contends that it is not simply re-publishing the original
+work but using it to create something entirely new - an AI model capable of
+generating novel responses.
+
+In response to complaints that publishers are not given a choice, Google often points
+to existing controls, stating that "Publishers have always controlled how their content
+is made available to Google".
+                                                          177
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+They refer to technical tools like the robots.txt file and snippet control meta tags
+(nosnippet, max-snippet, etc.) as the mechanisms for this control.
+
+However, this argument is seen by many as disingenuous.
+
+Internal documents unearthed during the U.S. antitrust trial revealed that Google
+executives explicitly considered giving publishers a true opt-out for AI training but
+ultimately decided against it, referring to the all-or-nothing approach as a "hard red
+line".
+
+This exposes the "control" they offer as a Hobson's choice: allow your content to
+be used to train our AI and appear in our SERPs, or use the controls to block us and
+become effectively invisible on the world's largest discovery platform - Google
+Search.
+
+
+
+
+                                                          178
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+The Ripple Effect: Sector-by-Sector Impact Analysis
+
+No Business Left Untouched
+The impact of the zero-click revolution is not uniform. It lands with different force
+depending on a business's monetization model, its industry, and its historical reliance
+on organic search traffic.
+
+For some, it is a minor tremor; for others, it is a category-five hurricane.
+
+In this section, we will dissect the specific pain points and, in some cases, the
+unexpected opportunities that have emerged for key sectors of the economy.
+
+The Small Business Squeeze: A Double-Edged Sword
+For small businesses, the rise of zero-click search is a profoundly mixed bag,
+presenting both a significant threat and a unique opportunity.
+
+The outcome often depends entirely on the nature of the business itself.
+
+The Downside: Traffic Evaporation and Lost Opportunities
+The primary negative impact is the straightforward reduction in organic website
+traffic.
+
+This is especially damaging for small businesses that have invested heavily in content
+marketing to attract and convert customers.
+
+Imagine a niche blogger who has spent years building a repository of expert articles,
+monetized through on-site display ads and affiliate links.
+
+When Google scrapes their carefully crafted "how-to" guide for a Featured Snippet or
+AI Overview, they lose the very pageview that generates their revenue. If they are not
+a well-connected entity, they might also be entirely removed from SERPs.
+
+This scenario limits opportunities for lead generation, diminishes the ability to tell a
+compelling brand story, and cuts off the flow of potential customers into the sales
+funnel.
+
+                                                          179
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                 Strategic SEO 2025
+
+
+
+
+The competition for the remaining clicks becomes fiercer, often favoring larger, more
+established brands and straining the limited resources of small business owners.
+
+The Upside: The Power of the Local Pack
+Conversely, for local service-based businesses - the plumbers, electricians, dentists,
+and restaurants of the world - the Local Pack can be a powerful and net-positive
+zero-click tool.
+
+By surfacing crucial information like a phone number, address, business hours, and
+customer reviews directly on the SERP, the Local Pack facilitates immediate,
+high-intent actions.
+
+A user searching for "emergency plumber" can click-to-call directly from the results
+page, completely bypassing the plumber's website.
+
+In this context, the zero-click "conversion" (a phone call) is far more valuable
+than a website visit ever was.
+
+Indeed, one study found that businesses listed in the top three of the Local Pack
+receive 93% more actions (calls, direction requests) than those ranked just below
+them.
+
+This dichotomy reveals a fundamental truth about the impact of zero-click search: it is
+dictated almost entirely by a business's monetization model.
+
+The closer the business model is to direct, off-site action, the less damaging -
+and potentially more beneficial - the zero-click trend becomes.
+
+For a local restaurant, the click was always just an unnecessary intermediate step to
+the real goal: a phone call for a reservation or a customer walking through the door.
+Zero-click search makes this journey more efficient.
+
+However, for a business where the on-site engagement is the monetizable event -
+such as a publisher relying on ad impressions - the removal of the click is
+catastrophic.
+
+Zero-click search is fundamentally short-circuiting the traditional customer journey.
+                                                         180
+
+       © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                 Strategic SEO 2025
+
+
+
+
+Whether that is a benefit or a disaster depends entirely on where your business
+makes its money.
+
+The E-commerce Conundrum: Collapsing the Funnel
+The world of e-commerce is also experiencing a significant transformation, though
+here too, the impact is nuanced and depends heavily on the user's intent.
+
+Informational vs. Transactional Queries
+The most significant traffic erosion for e-commerce sites is happening at the top of
+the funnel, on broad, informational queries (e.g., "what are the best running shoes for
+flat feet?").
+
+These are the types of questions that AI Overviews are increasingly adept at
+answering.
+
+However, as the user moves down the funnel to specific, transactional queries (e.g.,
+"buy Nike Pegasus size 11 red"), the need to click through to a product page to view
+pricing, check inventory, see detailed images, and complete a purchase remains
+strong.
+
+These bottom-of-funnel searches are far less affected by the zero-click trend.
+
+This phenomenon is illustrated perfectly by a real-world case study from the B2B
+commerce SaaS firm, Commercetools.
+
+Their CMO, Jen Jones, reported to Digiday that the company's click-through rate
+(CTR) had declined by 20% following the rollout of AI Overviews.
+
+However, their conversion rates held steady. This strongly suggests that the traffic
+they lost consisted of early-stage researchers who were being satisfied by the AIOs
+and were unlikely to convert anyway.
+
+The zero-click SERP effectively filtered out low-intent users, making their remaining
+website traffic more qualified and valuable.
+
+Despite this, e-commerce sites face a long-term threat from Google's own properties,
+
+                                                         181
+
+       © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+such as Google Shopping carousels and product listing ads (PLAs), which are
+designed to facilitate transactions within Google's ecosystem, further reducing the
+need to visit a retailer's website.
+
+Adaptation is key, evidently.
+
+The Publishers' Plight: An Existential Crisis
+Nowhere is the impact of zero-click search felt more acutely than in the
+publishing industry.
+
+For news outlets, media companies, and independent creators whose business
+models are almost entirely dependent on website traffic to generate advertising
+revenue and drive subscriptions, the rise of on-SERP answers represents a full-blown
+existential crisis.
+
+The data is staggering and paints a grim picture. A July 2025 report from Similarweb,
+analyzing the year after the broad rollout of AI Overviews, found that the share of
+zero-click searches had surged from 56% to 69%.
+
+In that same period, organic traffic to news publishers plummeted from over 2.3 billion
+monthly visits to under 1.7 billion - a loss of more than 600 million visits in less than a
+year.
+
+A separate report from Enders Analysis concluded that AI Overviews were directly
+"cannibalizing website visits".
+
+This is not an abstract, industry-wide trend; it is having a measurable and devastating
+effect on individual, well-known brands.
+
+The following table, based on data from Similarweb and analysis by Press Gazette,
+shows the concrete impact on several major publishers, comparing their zero-click
+rates before and after the widespread launch of AI Overviews.
+
+
+
+
+                                                          182
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                   Strategic SEO 2025
+
+
+
+
+ News Brand              Zero-Click Rate          Zero-Click Rate           Zero-Click Rate          Key Insight
+                         (May 2024)               (May 2025 -               (May 2025 - When
+                                                  Overall)                  AIO is Present)
+
+
+
+ Mail Online             48.0%                    54.9%                     68.8%                    Massive jump in
+                                                                                                     zero-clicks, with
+                                                                                                     AIOs driving a
+                                                                                                     significantly higher
+                                                                                                     rate than average.
+
+
+
+ People.com              66.2%                    65.6%                     71.2%                    Already high
+                                                                                                     zero-click rate
+                                                                                                     pushed even higher
+                                                                                                     when an AIO is
+                                                                                                     present for a query.
+
+
+
+ Buzzfeed                52.8%                    60.7%                     69.2%                    Significant increase
+                                                                                                     in overall zero-click
+                                                                                                     rate, exacerbated by
+                                                                                                     the presence of
+                                                                                                     AIOs.
+
+
+
+ Ouest France            39.8%                    54.5%                     N/A                      Experienced one of
+                                                                                                     the largest overall
+                                                                                                     increases in
+                                                                                                     zero-click rate over
+                                                                                                     the year.
+
+
+
+ The Independent         52.4%                    63.6%                     N/A                      Among the worst-hit
+ (US)                                                                                                dedicated
+                                                                                                     newsrooms, with a
+                                                                                                     dramatic rise in its
+                                                                                                     overall zero-click
+                                                                                                     rate.
+
+
+
+
+Source: Data from Similarweb, analysis by Press Gazette.
+
+This data provides the receipts for the publishers' claims of catastrophic harm.
+
+                                                           183
+
+         © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                 Strategic SEO 2025
+
+
+
+
+It shows a direct correlation between the expansion of AI Overviews and the decline in
+user clicks.
+
+For these businesses, the symbiotic relationship they once had with Google -
+providing content in exchange for traffic - has been unilaterally impacted.
+
+
+
+
+                                                         184
+
+       © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+The Legal Battlefield - Copyright, Antitrust, and the Fight for Fair Use
+
+The Web Goes to Court
+As the financial and strategic stakes have escalated, the conflict over zero-click
+searches has inevitably spilled out of industry blogs and corporate boardrooms and
+into courtrooms and regulatory chambers.
+
+This is no longer just a debate about SEO tactics; it is a high-stakes legal war being
+fought on multiple fronts, with the outcomes poised to define the fundamental rules
+of the digital economy for decades to come.
+
+Danielle Coffey, President of the News/Media Alliance, frames the issue in starkly
+moral and legal terms, calling Google's actions "the definition of theft." She argues
+that because "the AI answers are a substitute for the original product," Google is
+effectively profiting from stolen goods.
+
+She concludes, "They're making money on our content and we get nothing in
+return... I don't see that being a business proposition that we would ever
+willingly opt into."
+
+The Antitrust Front: Accusations of Monopoly Abuse
+The primary legal weapon being wielded against Google by publishers and their allies
+is antitrust law.
+
+The core argument is that Google is not merely competing but is illegally abusing its
+monopoly power in search to crush competitors and dominate adjacent markets.
+
+The most significant action on this front is the formal antitrust complaint filed with the
+European Commission by a coalition of publishers, including the Independent
+Publishers Alliance.
+
+The complaint alleges that Google is abusing its dominant market position by using AI
+Overviews to siphon traffic, readership, and revenue away from the very publishers
+whose content fuels the AI summaries.
+
+A central pillar of this antitrust argument is the "no choice" dilemma.
+                                                          185
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+Publishers contend that Google has created a coercive environment where they have
+no meaningful way to opt out of having their content scraped for AI Overviews without
+accepting the catastrophic penalty of being effectively de-listed from Google's core
+search results.
+
+This, they argue, is not a legitimate choice but an anticompetitive tying arrangement
+imposed by a monopolist, leaving them in a lose-lose situation.
+
+The Copyright Front - The "Fair Use" Standoff
+The second major legal battleground revolves around copyright law.
+
+A wave of lawsuits has been filed against AI developers, including Google and
+Microsoft-backed OpenAI, by content creators who allege that the unauthorized
+scraping of their work to train large language models constitutes mass copyright
+infringement.
+
+A prominent example is the lawsuit filed by education technology company Chegg
+against Google.
+
+Chegg claims that Google's AI Overviews engage in "unjust enrichment" by using
+Chegg's proprietary educational content to build a competing answer engine.
+
+This, they allege, has directly led to a devastating 49% drop in their non-subscriber
+traffic, as Google now provides answers that students once had to visit Chegg's site
+to find.
+
+Google's defense against these copyright claims is anchored in the legal doctrine of
+"fair use".
+
+The company argues that training an AI model on publicly available data is a
+"transformative" use of that data.
+
+They contend that they are not simply re-publishing copyrighted works but are using
+them as raw material to create something fundamentally new and different: a trained
+AI model.
+
+In a court filing, Google's lawyers asserted,
+
+                                                          186
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+"Using publicly available information to learn is not stealing".39
+
+The outcome of these "fair use" cases will have monumental and far-reaching
+implications.
+
+This is not a fight over a single search feature; it is a battle to establish the
+fundamental property rights for the digital age.
+
+If the courts side with Google and other AI developers, it will legally codify a
+business model for the entire AI industry based on the uncompensated ingestion
+of the world's public data. This would accelerate the development of AI but could
+devastate the creative industries that produce the data in the first place.
+
+Conversely, if the courts side with the publishers and creators, it could force a radical
+shift in the economics of AI development.
+
+It might compel AI companies to enter into widespread licensing agreements to use
+training data, creating a new revenue stream for creators but potentially slowing down
+AI innovation and concentrating power in the hands of a few large media companies
+that can strike such deals.
+
+This legal fight will determine who profits from the vast repository of human
+knowledge on the internet and will set the precedent for the relationship between
+creators and AI for years to come.
+
+
+
+
+                                                          187
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+The Zero-Click Playbook: A New SEO Framework for 2025 and
+Beyond
+
+From Optimisation to Influence
+We have dissected the problem, examined the battle lines, and understood the stakes.
+Now, we turn to the most critical question: What do we do about it?
+
+The old SEO playbook, which centered on ranking a list of blue links to win a click, is
+dangerously obsolete.
+
+Surviving and thriving in the zero-click era requires a new framework, a fundamental
+shift in mindset from Search Engine Optimisation to what might also termed Search
+Experience Optimisation.
+
+The goal is no longer just to rank; it is to be the answer, wherever that answer is
+delivered, and to build influence that transcends the click.
+
+Search Everywhere Optimisation (coined by Ashley Liddell from Deviation) by
+another name.
+
+
+
+
+                                                          188
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+Pillar 1: On-SERP SEO - Winning on Google's Turf
+The first priority is to adapt to the new terrain and maximize your brand's visibility
+within the very SERP features that drive zero-click searches. If you can't always win
+the click, you must win the impression and own the answer.
+ ●​ Mastering Featured Snippets: Earning "Position Zero" is now table stakes for
+    informational queries. This requires a laser focus on content structure. Your
+    content must provide clear, concise answers to specific questions, ideally within
+    the first 40-50 words of a relevant section. Use question-based headings (H2s,
+    H3s) that mirror user queries, and leverage formatting like bulleted lists,
+    numbered steps, and data tables, which Google's algorithms can easily parse and
+    display as a snippet.
+ ●​ Dominating the Local Pack: For any business with a physical location or local
+    service area, your Google Business Profile (GBP) is your most valuable on-SERP
+    asset. It is non-negotiable to fully optimise it. This means completing every single
+    field, uploading high-quality photos and videos, actively encouraging and
+    responding to customer reviews, utilizing Google Posts to share updates, and
+    ensuring absolute consistency of your Name, Address, and Phone number (NAP)
+    across the web.
+ ●​ Content for AI (Answer Engine Optimization - AEO): To increase the likelihood
+    of being cited in an AI Overview in future, your content must be structured for
+    machine readability and demonstrate immense authority. This involves two key
+    tactics. First, implement structured data (Schema markup) to explicitly tell
+    search engines what your content is about (e.g., using FAQ schema, How-to
+    schema, or Product schema). Second, build deep topical authority by creating
+    comprehensive content hubs that cover a subject from every angle, solidifying
+    your site as a go-to resource that AI models can trust. This is about satisfying
+    users who find your content on Google. Note that as I write this, indexation is key.
+    If you have a site already indexed in Google, it is relatively easy to get into AI
+    Overviews quickly by simply blogging.
+
+
+
+
+                                                          189
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                 Strategic SEO 2025
+
+
+
+
+Pillar 2: Building a Moat - Becoming Click-Independent
+The long-term survival strategy is to build a brand so strong and a community so loyal
+that your reliance on Google for traffic diminishes over time.
+The goal is to make your business a destination, not just an answer to a search query.
+●​ The Primacy of Brand: In a world of commoditized, AI-synthesized answers, a
+   trusted brand becomes the ultimate differentiator. The strategic objective should
+   be to shift user behavior from generic, unbranded searches (e.g., "how to fix a
+   leaky faucet") to branded searches (e.g., "Bob's Plumbing how to fix a leaky
+   faucet"). Branded queries are far less likely to be intercepted by zero-click
+   features and signal a direct relationship with the customer.
+●​ Cultivating Owned Audiences: The most valuable digital assets are the ones
+   you control directly. Focus relentlessly on building channels that are immune to
+   Google's algorithmic whims. This means growing a robust email list, fostering an
+   engaged social media community, or even developing a mobile app. These are
+   direct lines of communication to your audience that no search engine can take
+   away.
+●​ The E-E-A-T Imperative: Experience, Expertise, Authoritativeness, and
+   Trustworthiness are no longer just SEO buzzwords; they are the four pillars of a
+   defensible brand in the AI age. Both Google's traditional ranking systems and its
+   new AI models are explicitly designed to identify and surface content from
+   sources that demonstrate these qualities. Publishing original research, featuring
+   expert authors, showcasing real-world experience, and earning links and
+   mentions from other authoritative sites are crucial signals that build the trust
+   necessary to thrive.
+
+
+
+
+                                                        190
+
+       © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+Pillar 3: Rethinking Measurement - A New Scorecard for Success
+If clicks are no longer the primary measure of success, then metrics like click-through
+rate (CTR) and organic sessions can no longer be our Guiding Star.
+We need a new scorecard, one that reflects the reality of on-SERP influence and
+brand building.
+ ●​ From Clicks to Visibility: Your analytics focus must shift from tracking traffic to
+    tracking visibility. The new key performance indicators (KPIs) include:
+     ○​ Impression Share: How often is your brand appearing on the SERP for your
+         most important queries? Are your impressions growing even if clicks are flat?
+     ○​ SERP Feature Wins: How often are you capturing the on-SERP real estate
+         that matters? This means tracking your appearances in Featured Snippets,
+         People Also Ask boxes, Local Packs, and, crucially, your citation rate within AI
+         Overviews.
+     ○​ Brand Search Volume: Is the number of people searching directly for your
+         brand name increasing over time? This is one of the strongest indicators that
+         your zero-click brand-building efforts are working.
+ ●​ Tracking Off-SERP Conversions: It's essential to connect on-SERP visibility to
+    real-world business outcomes. For local businesses, this means implementing call
+    tracking to measure phone calls generated from your Google Business Profile. For
+    all businesses, it means looking for correlations between periods of high SERP
+    impressions and spikes in direct website traffic, as users who see your brand on
+    Google may later navigate directly to your site.
+
+Key Takeaway – The Future of marketing is Influence
+The shift to a zero-click reality is undeniably the most disruptive force to hit the world
+of SEO in a generation.
+
+It is challenging long-held assumptions, dismantling established business models, and
+forcing a painful but necessary evolution in our industry.
+
+For many, especially in the publishing world, this change feels like an existential threat,
+and their fight in the legal and regulatory arenas will have profound consequences for
+the entire digital ecosystem.
+
+
+                                                          191
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+For others, it represents a clarification of purpose - a move away from the vanity
+metric of the click and toward the true goal of marketing: building influence and
+earning customer trust.
+
+The path forward is not to fight a losing battle against the tide of technological
+change, nor is it to passively accept the erosion of our traffic. The future belongs to
+those who can master a hybrid strategy.
+
+Dame Wendy Hall, a web pioneer, offers a more philosophical long-term view, stating,
+"I'm not worried in the sense that this is all an evolution... If Google goes this
+way, some bright spark will come up with a new way of making money." However,
+she adds a crucial, sobering caveat: "Something will happen. But I guess for many
+people along the way, it will be too late."
+
+Technology advocate Cory Doctorow sees this moment of disruption as an
+opportunity, suggesting that user anger could be harnessed to "build a coalition" for
+change. He calls the current situation "a crisis we shouldn't let go to waste."
+
+It requires us to become experts at winning on Google's turf, optimizing our content to
+be the answer wherever and however it is displayed. Simultaneously, it demands that
+we build resilient, independent brands and cultivate direct relationships with our
+audiences, creating a moat that no algorithm can cross.
+
+The era of chasing the click is over.
+
+The era of earning influence has begun.
+
+
+
+
+                                                          192
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                 Strategic SEO 2025
+
+
+
+

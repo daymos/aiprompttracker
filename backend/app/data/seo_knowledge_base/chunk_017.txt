@@ -1,0 +1,593 @@
+# The Helpful Content Update (HCU)
+
+The Helpful Content Update (HCU)
+
+
+
+
+Google’s Helpful Content Update (HCU) launched in late August 2022 and has been
+updated several times since. It marked one of the most significant search algorithm
+changes in a decade searchengineland.com. To understand its impact, let’s look at the
+key milestones of HCU and what each brought:
+
+   ●​ August 2022 - Initial Launch: Rolled out for English searches globally. This
+      update introduced a new site-wide ranking signal to identify and devalue
+      websites with a high amount of unhelpful, “search engine-first”
+      contentsearchengineland.com and searchengineland.com. Google’s goal was
+      to “help searchers find high-quality content” by rewarding pages “written for
+      humans” and downgrading those written solely to ranksearchengineland.com
+      and searchengineland.com. Early communication from Google stressed that
+      this was an “ongoing effort” to reduce low-quality, unoriginal content on the
+      web searchengineland.com.​
+
+   ●​ December 2022 - Global Expansion: The helpful content system was
+      expanded beyond English to cover all languages globally hobo-web.co.uk.
+      Google also improved its classifier’s ability to detect low-quality content.
+      (Notably, this December HCU update took 4–5 weeks to fully roll out, indicating
+      the scale of the change.) hobo-web.co.uk. By this point, webmasters in all
+                                                         152
+
+       © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+      regions needed to ensure their sites weren’t filled with SEO-first filler content.​
+
+   ●​ September 2023 - Refinements: Google rolled out another HCU update with
+      some important tweaks. It clarified that using AI or automation without
+      oversight could be risky, and warned against posting content from third parties
+      “without adding value” - reinforcing that simply republishing or aggregating
+      content isn’t considered helpful hobo-web.co.uk. Google also provided more
+      guidance on recovery, acknowledging site owners’ concerns. (Interestingly,
+      around this time Google softened its stance on AI-generated content if it was
+      helpful and met their guidelines, focusing less on the how and more on the
+      quality of the result.)​
+
+   ●​ March 2024 - Integration into Core Algorithm: A major turning point came
+      when Google fully integrated the helpful content system into its core ranking
+      algorithm hobo-web.co.uk and hobo-web.co.uk. HCU was no longer a one-off
+      update but an always-on part of how Google ranks pages. Google’s search
+      engineers reported that these efforts had already led to a significant purge of
+      unhelpful material online - roughly a 40–45% reduction in low-quality content
+      showing up in search results searchengineland.com and hobo-web.co.uk. In
+      short, nearly half of the shallow “made for SEO” stuff had been swept aside
+      (according to Google’s measurements) by early 2024. Google also introduced
+      new spam-fighting policies in tandem, underscoring that trustworthiness and
+      transparency are crucial for content to be deemed helpful hobo-web.co.uk and
+      hobo-web.co.uk. Sullivan put it plainly: the helpful content system is now a
+      “core ranking system that’s assessing helpfulness” across all types of
+      searches hobo-web.co.uk - a permanent part of Google’s DNA moving forward.​
+
+
+It’s worth noting that HCU was designed as a site-wide signal from the start
+searchengineland.com.
+
+If a large portion of your website is filled with unhelpful content made just for search
+engines, your entire site can be held back in Google’s rankings.
+
+
+
+
+                                                          153
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                 Strategic SEO 2025
+
+
+
+
+This made the update especially scary for publishers - even your good pages could be
+dragged down if Google determined that your site, overall, was guilty of producing too
+much fluff: searchengineland.com and searchengineland.com.
+
+Still, the exact mechanics remain opaque. What’s clear is that Google expects a
+“people-first” focus site-wide, not just a few high-quality pages masking a pile of
+SEO spam.)
+
+Who was most likely to get hit? Google initially pointed out a few content areas that
+“may be impacted the most”: online education, arts & entertainment, shopping, and
+tech-related content searchengineland.com.
+
+These were niches where, historically, creators churned out articles mainly to rank -
+think of thin “how-to” posts, auto-generated lyrics or synopsis sites, product roundup
+blogs written by affiliates, etc.
+
+Sure enough, many affiliate marketing sites, generic how-to blogs, and content farms
+saw their traffic plummet once HCU rolled out.
+
+Meanwhile, genuine expert sites and community forums (even Reddit threads) began
+to rise higher for certain queries, aligning with Google’s goal of surfacing unique
+information you haven’t seen before: searchengineland.com and
+searchengineland.com. In Google’s eyes, this was a net win for searchers. But for
+many site owners, especially small businesses relying on content marketing, the real
+story of HCU was just beginning - and it wasn’t a happy one.
+
+
+
+
+                                                         154
+
+       © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                 Strategic SEO 2025
+
+
+
+
+Impact on Small Businesses and Publishers
+
+
+
+
+From my vantage point, with access to hundreds of HCU hit sites, the impact of the
+Helpful Content updates on a particular type of site has been devastating.
+
+Almost immediately after the first HCU in 2022, forum threads and social media lit up
+with stories of traffic crashes.
+
+Many of these were small or medium-sized sites that had invested heavily in content
+creation as a marketing strategy.
+
+                                                         155
+
+       © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+A lot of affiliate bloggers and niche informational sites (the kind run by solo
+entrepreneurs or small teams) were particularly hard hit.
+
+Google effectively declared that much of this content wasn’t up to snuff in terms of
+authenticity or value - and the algorithms dealt out harsh punishment in the rankings.
+
+All across the world, small businesses and indie publishers are reeling from HCU’s
+effects.
+
+On SEO communities, you’ll find countless reports of sites that lost 20%, 50%, even
+90% of their organic traffic after being deemed “unhelpful.” Some were thin-content
+sites churning out articles on every trending topic - arguably deserving of a hit.
+
+But others were heartfelt projects by subject enthusiasts or entrepreneurs trying to
+share knowledge while earning a living.
+
+This is alarming for web diversity.
+
+Small businesses feel they’re being squeezed out, not necessarily because their
+content is bad, but possibly because they lack the brand authority signals that Google
+now heavily favors (as I discussed earlier).
+
+Morgan, a creator from the site Charleston Crafted, described the disconnect felt by
+many at the Google Creator Summit. She felt Google's representatives acknowledged
+the quality of their work but then offered solutions that missed the mark. Morgan
+testified, "You have good content. You are good creators…. But they really
+wanted to go off on different tangents about setting up a profile or getting you
+verified." She expressed her frustration, stating, "I feel they were going down the
+wrong trail… a Google Profile, a bio…." This perfectly captures the feeling that
+Google was focusing on surface-level identity signals while publishers felt their core
+content was being ignored.
+
+It is very worth noticing about that… Google profile a bio…. Comment.
+
+
+
+
+                                                          156
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+A Hard Road to Recovery (Or None at All)
+“Fix” is hard to say when it comes to relevancy, but I’d assume bigger changes would
+be visible when the next CORE UPDATES happen.” John Mueller, Google
+
+When your website gets dinged by the Helpful Content system, how easy is it to
+recover?
+
+By Google’s design, and from what I’ve witnessed, not very easy.
+
+In fact it can signal the death knell for your site.
+
+The collective sentiment of the affected community is powerfully captured in
+questions posed in online forums.
+
+One publisher asked, “Assuming a site hit by HCU in 2023 has fixed everything
+that caused the sitewide classifier to be applied, what is the timeframe for the
+site to start climbing again?” This was followed by the more desperate and widely
+shared observation: “We are many that would really love a reply to why not a
+single HCU-hit site have begun climbing again and why new articles won’t
+rank.”
+
+The “helpful content” classifier that labels a site as unhelpful can stay in effect for
+months, or years even after you improve your pages.
+
+Google intentionally made this signal persistent, in order to discourage
+quick-and-dirty fixes.
+
+In practice, many site owners hit by HCU have found themselves in a long game of
+waiting - or a hopeless spiral of no recovery at all - as I warned a few of them in
+November 2024 and in my February 202 article when I first looked into the HCU
+impact on small publishers.
+
+Google’s official line is that sites can recover if they significantly improve content
+quality, but “returning to pre-update levels isn’t realistic” in many cases.
+
+John Mueller, a Google Search advocate, bluntly stated that if a site was heavily
+affected, simply fixing a few things won’t bounce it back to where it was.
+
+                                                          157
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+According to Mueller, these aren’t quick technical penalties you can lift; rather, they
+often require fundamental changes to a site’s approach. “These are not ‘recoveries’ in
+the sense that someone fixes a technical issue and they’re back on track - they are
+essentially changes in a business’s priorities,” Mueller explained hobo-web.co.uk.
+
+In other words, a website that thrived on search engine first content might need to
+completely rethink its strategy (and even its business model) to align with what
+Google now wants.
+
+That’s a very bitter pill to swallow for a small business that, say, built its audience over
+years by writing lots of search-optimised articles.
+
+Google is basically saying: “Your old approach won’t cut it anymore. It’s not just one
+thing to fix - you might have to overhaul your whole content philosophy.”
+
+This stance was highlighted in late 2024, when Google took the step of inviting some
+affected publishers to a private “Web Creator Summit.”
+
+The company ostensibly wanted to hear out those who had been “strongly impacted”
+by HCU and discuss solutions.
+
+Unfortunately, by many accounts, that meeting only heightened publishers’
+frustrations.
+
+Several attendees reported that Google’s representatives acknowledged the
+publishers had good content, but “Google’s systems could not detect that” and
+thus treated them as low-quality mariehaynes.com and mariehaynes.com. Perhaps
+most infuriating was the lack of a hopeful timeline: Google offered “little hope… for
+recovery any time soon”.
+
+In fact, when one affected site owner asked Google’s Danny Sullivan what he would do
+if he had a website hit by the helpful content update, Sullivan’s response was
+astonishingly candid.
+
+He said, “I’d do something else in the meantime.” In other words, don’t count on
+Google search traffic returning - go work on other channels or projects.
+
+
+                                                          158
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+According to another attendee, Google’s advice was even more blunt: “If you were hit
+by HCU do not expect a recovery anytime soon. Move on.”See Marie Haynes
+research here: mariehaynes.com.
+
+You can imagine how demoralizing it is for a small business owner to be told by
+Google to essentially give up on the organic search traffic they’d lost.
+
+Telling a business to just forget about that lost traffic (which may have been their main
+source of customers), no matter how pragmatic, felt a little tone-deaf.
+
+The data on recoveries backs up Google’s pessimism.
+
+By late 2023, only a minority of sites had seen any rebound. SEO analyst Glenn Gabe
+tracked roughly 400 websites that were hit hard by the September 2023 HCU update.
+
+He found that after a full year - which included multiple core updates and another
+helpful content tweak - only 22% of those sites had managed even a modest 20% or
+greater increase in organic traffic seroundtable.com.
+
+“Some [sites] have shown full recoveries but most did not,”
+
+Gabe reported, noting that “most [sites] saw no lifts at all.” Even among the
+“recoveries,” many were partial and volatile (a surge during one Google update, then a
+drop off in the next) seroundtable.com.
+
+Full restoration to pre-2022 traffic levels was “an anomaly,” Gabe observed -
+essentially a rare lucky case seroundtable.com. And tellingly, a portion of sites
+continued to decline even further with subsequent updates seroundtable.com. This
+paints a grim picture: once labeled unhelpful, a site often stays in the dog house.
+
+Some webmasters have thrown in the towel, either pivoting their sites to entirely
+different topics, or abandoning projects altogether because they “can’t afford to
+continue… with no traffic” seroundtable.com.
+
+From Google’s perspective, this slow or non-existent recovery is not a flaw - it’s by
+design.
+
+
+
+                                                          159
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+They want to permanently discourage the kind of content strategies that HCU
+targeted.
+
+But from the small business perspective, it feels like being hit by a truck.
+
+There’s a growing sentiment that Google is abandoning smaller sites.
+
+As one attendee at the summit summed it up, Google basically told them “there’s
+nothing wrong with your sites, it’s us” - meaning the search algorithm had changed in
+ways that collateral damage was inevitable - and that they (Google) didn’t really know
+how to fix it for those edge cases.
+
+That admission, “we can’t give you any guarantees”, coupled with “that is not going to
+change”, was a little chilling.
+
+It means that even good content can fall through the cracks of Google’s system, and
+Google’s best advice is to keep improving or find other avenues, because the
+dominance of “people-first” signals is here to stay.
+
+Highlighting the grim reality of HCU's impact, creator Mike Hardaker stated bluntly,
+“We’re now 13 months since the HCU update rolled out, I don’t believe a single
+website has recovered.”
+
+This sentiment was echoed by another publisher, who, according to your research,
+was told by Google that his "content was not the issue."
+
+This creates a powerful contradiction: if the content isn't the problem and yet no one
+is recovering, it points directly to a deeper, more fundamental issue.
+
+
+
+
+                                                         160
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+The E-E-A-T Factor
+Google also tied the helpful content effort to its broader quality guidelines known as
+E-E-A-T (Experience, Expertise, Authoritativeness, Trustworthiness). In Google’s view,
+trustworthiness is the foundation of content quality hobo-web.co.uk.
+
+That means who is creating the content, and why, matters a great deal. Pages that
+don’t clearly indicate authorship, or sites that hide who is responsible for the content,
+inherently lack trust in Google’s eyes and are unlikely to be deemed “helpful”.
+
+This is one reason many small affiliate sites may have gotten hit - they often were
+made to look generic, with no real author bios or brand identity, just a factory of SEO
+articles.
+
+Google now strongly encourages adding accurate authorship information to establish
+trust - for both the site (which can be the Primary Author too) and the creator.
+
+If a website fails to demonstrate transparency about its creators and purpose, “it
+completely violates Google’s helpfulness standard - full stop,” as I’ve written
+before on hobo-web.co.uk.
+
+In fact, Google’s algorithms can sometimes judge a site as untrustworthy before even
+analyzing the specific page content, simply because the site doesn’t meet basic
+E-E-A-T markers (for instance, an “About Us” page, author credentials, etc.).
+
+This focus on trust and expertise is something many supporters of HCU applaud - it
+raises the bar for professionalism in content.
+
+Small businesses that treated their site as a serious publication, showcasing real
+expertise and credentials, tend to fare better than those that cranked out
+cookie-cutter blog posts anonymously.
+
+Even some of the initially skeptical SEOs have come around to the idea that Google’s
+approach forces better content creation practices.
+
+The era of tricking your way to the top with SEO gimmicks is fading. As an industry,
+SEO is (painfully) being reminded that serving the user should be priority number one.
+
+                                                          161
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+There’s a renewed emphasis on first-hand experience in content - something Google
+explicitly rewards.
+
+For example, Google hinted that for travel queries, they’d prefer content by people
+who have actually visited the places they write about hobo-web.co.uk and
+hobo-web.co.uk.
+
+If you’re a small travel business that actually goes on tours and shares unique photos
+and stories, you - theoretically - have a better chance now against a faceless travel
+affiliate site.
+
+That’s encouraging for genuine small operators, but it's a seismic shift in who is
+expected to create content in 2025.
+
+A rule of thumb for me is who created a type of content today, might not be who is
+creating that type of content tomorrow.
+
+Furthermore, some observers note that user satisfaction with Google results has
+improved after these updates.
+
+Google itself claims that thanks to HCU (and related changes), searchers are 40%
+less likely to land on unhelpful pages now searchengineland.com.
+
+And remember that “reddit hack” for getting better results?
+
+Google’s tweaks in late 2022 were seen as “particularly helpful to anyone using the
+append ‘reddit’ trick” theverge.com - meaning Google started surfacing more real
+user forum content and authentic reviews on its own.
+
+In fact, queries for many products began to automatically show a “Discussions”
+section or even Reddit links, indicating Google’s algorithms were actively boosting
+community content where appropriate.
+
+We can only trust it has little to do with any financial agreements Google has with
+Reddit (although that in itself is a big concern for many).
+
+
+
+
+                                                          162
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+Ongoing Debate: The Future of Content and Small Businesses
+The advent of the Helpful Content system has undoubtedly reshaped the SEO
+landscape.
+
+On the one hand, search engine-first content and non-transparent entities are being
+purged from Google SERPs for the betterment of user experience - and that’s hard to
+argue against.
+
+Small businesses that have true expertise and that publish high-quality, authentic
+content can still thrive; in fact, they have a better shot at standing out now if they do
+things right.
+
+On the other hand, many legitimate small publishers have been caught in the
+crossfire.
+
+Their plight has been voiced by some of the most vocal critics of HCU.
+
+Content creators at the summit outright told Google that “there was nothing wrong
+with our sites” - the content was good, but Google’s algorithms simply didn’t surface
+it.
+
+Google’s response has been unsatisfying to say the least, essentially: we’re focused
+on what users want, and we’re not turning back.
+
+For small business owners who built their success on Google Search, that feels like
+the rules of the game changed suddenly and the referee won’t hear an appeal.
+
+Some critics have gone as far as suggesting ulterior motives.
+
+They point out that Google makes the vast majority of its revenue from advertising.
+
+If organic (free) visibility becomes harder for small businesses, where will those
+businesses turn?
+
+Likely to Google Ads, spending money to regain exposure. It’s a cynical take, but not
+unheard of.
+
+
+                                                          163
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+Small businesses need to adapt. The age of easy SEO traffic by pumping out lots of
+mediocre articles is over.
+
+To succeed now, you truly have to put users first in your content strategy - just as
+Google has been preaching.
+
+That means focusing on your niche expertise, demonstrating your experience, being
+transparent about who you are, and genuinely answering the questions your audience
+has (better than anyone else).
+
+It also means diversifying - relying solely on Google traffic is risky if an algorithm can
+wipe you out overnight.
+
+We’ve seen creators like myself start exploring alternatives like social media,
+newsletters, or even other search platforms.
+
+Interestingly, as Google squeezes some types of content, users are exploring things
+like AI chatbots (ChatGPT) or community sites for answers.
+
+The competition for how people find information is heating up, and Google’s moves
+might inadvertently drive some users elsewhere if its results favor only big players or
+too many ads.
+
+Google’s crusade against search-engine-first content - embodied by the Helpful
+Content Update and related changes - has profoundly impacted the web
+ecosystem.
+
+It’s cleaned up a lot of spam and pushed creators to be better, but it has also left
+many small businesses feeling like collateral damage.
+
+I want the web to be filled with helpful, authentic content (and I support Google’s goal
+there). Yet I’ve also witnessed business owners in distress because an update slashed
+their traffic by 80% and they’re not sure how to pay their bills now.
+
+The balance between improving search quality and not stifling the little guys is a
+delicate one.
+
+
+
+                                                          164
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+Google, for its part, appears firm: people-first content is the future, and there’s no
+reversal in sight. “I expect if we see incremental improvements, that might be
+reflected in incremental ranking changes,” Danny Sullivan said - meaning recovery, if it
+comes, will be slow and earned hobo-web.co.uk.
+
+In other words, adapt and improve steadily, or risk fading away.
+
+As we move forward, small businesses and content creators must take these lessons
+to heart.
+
+The ones who survive and thrive will be those who genuinely align with what Google’s
+trying to reward: unique expertise, trustworthiness, and true helpfulness to users.
+
+It’s not an easy path - and it’s certainly not always “fair” in the short term - but it is
+the new reality of SEO we have to deal with.
+
+In my view, search engine-first content had its run (and made plenty of money for
+some), but people-first content is the only sustainable strategy now for anyone
+who publishes on the web. The only other option I can think of in terms outside of
+people-first content, is ironically AI targeted content - Content made for AI with AI -
+which I go into in my article: Optimise for the Synthetic Content Data Layer
+Opportunity Gap.
+
+The challenge for small businesses is to embrace this ethos without losing their
+livelihoods in the transition.
+
+And the challenge for Google is to continue refining its systems so that truly great,
+user-focused content - even from the smallest sites - gets the visibility it deserves,
+while the cheats and the spam fade into history - while at the same time, deal with the
+accusation from many quarters is that it is killing the open web.
+
+The story is still unfolding, and as an SEO, I’ll be watching (and adjusting) every step of
+the way.
+
+
+
+
+                                                          165
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+

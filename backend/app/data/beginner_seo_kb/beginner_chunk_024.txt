@@ -1,0 +1,118 @@
+# Chapter 5: Building Your Reputation: Earning Links and
+
+Source: Beginner SEO 2025 by Shaun Anderson
+
+Chapter 5: Building Your Reputation: Earning Links and
+Authority Signals
+So far, we have a solid plan. You've chosen an expert topic, created a helpful piece of content,
+and optimised it so people can easily read and understand it.
+
+But here’s a critical question: If a million people write about the same topic, how does Google
+decide which page is the most trustworthy?
+
+The answer lies outside of your own website. Google looks for signals of trust from across the
+web. The most powerful signals are links and mentions from other reputable websites.
+
+This chapter is about how to earn those signals, which are the primary ingredients for building
+your site’s overall Reputation (Q∗) score.
+
+Why Links Still Matter More Than Ever
+For as long as Google has existed, links have been fundamental to how it works. Think of a link
+as a vote of confidence from one site to another.
+
+This concept is powered by a foundational system called PageRank. But not all votes are
+equal. A link from a major, trusted source like the BBC or an academic journal is an incredibly
+powerful endorsement. A link from a brand-new, unknown blog is worth very little.
+
+This is because Google organises its index into different quality levels or "tiers". A link from a
+site in a "higher-quality tier" carries significantly more weight and passes more trust to your
+website.
+
+This is how Google algorithmically measures concepts like E-A-T (Experience, Expertise,
+Authoritativeness, Trust). As the book highlights, Google's own engineers have confirmed that
+E-A-T is "largely based on links and mentions on authoritative sites".
+
+
+
+
+                                                           26
+
+       © Sep 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / SEO Tools
+                                                   Beginner SEO 2025
+
+
+
+
+The Anatomy of a Good Link
+When another site links to you, it creates a powerful signal. Let's break down the most
+important part of that signal, which we first met in Chapter 1.
+
+It's the "A is for Anchors" signal. The anchor text is the visible, clickable text in a link. It gives
+Google a valuable clue about the topic of the page being linked to.
+
+
+For example, anchor text like:
+ ●​ "Read our comprehensive guide to caring for houseplants"​
+    ...is much more descriptive and helpful to Google than generic text like:
+ ●​ "Click here to read more"
+
+A truly valuable link has two key qualities:
+ 1.​ Relevance: It comes from a website or page that is topically related to yours. A link from
+     another SEO blog to this book is a highly relevant signal.
+ 2.​ Authority: It comes from a website that is already trusted by Google and sits in a
+     high-quality tier of its index.
+
+
+
+How to Earn Links (The People-First Way)
+Forget about trying to trick Google. Modern, sustainable link building is about link earning.
+It’s about creating assets so valuable that other people in your field want to link to them.
+ ●​ Create Link-Worthy Content: This is the foundation. You cannot earn links to average
+    content. Focus on creating things that are genuinely exceptional. This could be a unique
+    study with original data, the most complete guide on a niche topic, a free tool or
+    calculator, or a compelling case study.
+ ●​ Be a Source for Others: One of the best ways to build authority is to share your
+    expertise. You can use services that connect journalists with experts for quotes. When a
+    journalist uses your quote in an article, they will often credit you with a mention and a link
+    back to your website. This is a powerful E-A-T signal.
+ ●​ Strategic Outreach: Once you have a truly great piece of content, you need to let the
+    right people know it exists. This involves identifying bloggers, journalists, or site
+    managers in your niche and sending them a short, personal email. The goal is not to beg
+    for a link, but to show them a resource you've created that could be genuinely valuable to
+    their audience.
+
+                                                           27
+
+       © Sep 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / SEO Tools
+                                                  Beginner SEO 2025
+
+
+
+
+Chapter 5 Action Plan
+Your first steps in building your site's reputation don't need to be complicated. The focus
+should always be on quality over quantity.
+ 1.​ Identify Your Best Asset: Review the content you have created. Which page is the most
+     helpful, unique, or comprehensive? This is the page you should focus on first.
+ 2.​ Find 5 Potential "Linkers": Use Google to find five other websites or blogs that write
+     about your topic. Look for resource pages or articles where they already link out to other
+     helpful guides.
+ 3.​ Focus on Value: Before you do anything else, ask yourself: "Is my page genuinely more
+     helpful or valuable than the resources they currently link to?" If not, improve your page
+     first.
+ 4.​ Start Small: Pick one site from your list and send a short, polite email. Introduce your
+     resource and briefly explain why it might be a good fit for their audience. Don't expect a
+     reply, but this is how the process begins. One good link is worth more than a hundred
+     bad ones.
+
+
+
+
+                                                          28
+
+      © Sep 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / SEO Tools
+                                                   Beginner SEO 2025
+
+
+
+

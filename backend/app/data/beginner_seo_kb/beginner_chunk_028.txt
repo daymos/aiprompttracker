@@ -1,0 +1,86 @@
+# Chapter 9: Your First Step into Action: The Hobo Free
+
+Source: Beginner SEO 2025 by Shaun Anderson
+
+Chapter 9: Your First Step into Action: The Hobo Free
+SEO Checklist
+
+
+
+
+The journey into SEO can seem daunting. The frameworks in this collection provide the map,
+but you still need a reliable compass to guide your first steps. This is why I've engineered the
+Hobo Free SEO Checklist. This is your first tool for turning the foundational principles from
+Beginner SEO 2025 into tangible, organized actions.
+
+This is not just a list of tips; it is an operational template in Google Sheets, distilled from over
+two decades of professional auditing experience.
+
+It is designed to map out your initial SEO project and empower you to identify the very issues
+that could be suppressing your site's performance, all anchored in Google's own webmaster
+guidelines.
+
+Core Modules of the Free Checklist
+
+The free template is a multi-tabbed system that deconstructs a foundational SEO audit into a
+series of clear, manageable modules.
+
+Module 1: Foundational Health Audit
+The audit begins with your site’s technical bedrock. Before you can win with content, you must
+ensure your digital house is in order.
+
+                                                           37
+
+       © Sep 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / SEO Tools
+                                                  Beginner SEO 2025
+
+
+
+
+ ●​ Technical SEO: This module guides you through the essential technical checks to ensure
+    Google can efficiently find, crawl, and index your site without issue.
+ ●​ Spam Checklist: A critical review to help you identify and avoid practices that violate
+    Google's spam policies, protecting your site from penalties.
+ ●​ Links on Your Site: A guide to auditing your internal and external links, a crucial part of
+    your site's health and user experience.
+
+Module 2: Quality & Content Evaluation
+This section allows you to evaluate your website through the lens of quality and trust, which
+are central to modern ranking.
+ ●​ Website Quality & Main Content Quality: These modules translate the complex
+    principles from Google's Search Quality Evaluator Guidelines into a practical checklist,
+    helping you assess if your site creates a positive user experience.
+ ●​ Page-Level SEO: A sitewide on-page checklist to ensure every element on your pages is
+    optimized to clearly communicate your content's value.
+
+Module 3: Strategic Planning & User-Centric Optimisation
+This is where you begin to understand your digital ecosystem and how to best serve your
+audience's needs.
+ ●​ Keyword Research & Competitor Research: A starter guide to using tools like Google
+    Search Console and Analytics to review your performance and understand the
+    competitive landscape.
+
+The SEO Starter Guide & Integrated Task Manager
+
+For those truly at the beginning of their journey, the checklist includes a dedicated SEO
+Starter Guide to build your knowledge confidently.
+
+It's a free tool you own to manage your SEO project with no ongoing costs.
+
+The free checklist provides everything you need to begin your SEO journey with a structured,
+evidence-based approach.
+
+When you're ready to move from the fundamentals to advanced professional diagnostics, the
+Hobo Premium SEO Checklist is the logical next step in your evolution.
+
+
+
+
+                                                          38
+
+      © Sep 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / SEO Tools
+                                                  Beginner SEO 2025
+
+
+
+

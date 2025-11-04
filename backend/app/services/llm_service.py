@@ -5,6 +5,7 @@ from typing import List, Dict, Any, Optional
 from openai import AsyncOpenAI
 from ..config import get_settings
 from .web_scraper import WebScraperService
+from .seo_knowledge_service import get_seo_knowledge_service
 
 logger = logging.getLogger(__name__)
 
@@ -331,6 +332,29 @@ CRITICAL: Extract domain without http://, https://, or www. prefixes. Just the d
             system_prompt = self._get_ask_mode_prompt()
 
         messages = [{"role": "system", "content": system_prompt}]
+        
+        # In agent mode, try to inject relevant SEO knowledge
+        if mode == "agent":
+            try:
+                knowledge_service = get_seo_knowledge_service()
+                # Build context from user message + recent conversation
+                context = user_message
+                if conversation_history:
+                    recent_context = " ".join([msg.get("content", "") for msg in conversation_history[-3:]])
+                    context = recent_context + " " + user_message
+                
+                seo_knowledge = knowledge_service.get_relevant_knowledge(context, max_chars=15000)
+                
+                if seo_knowledge:
+                    logger.info("✨ Injecting relevant SEO knowledge into agent mode context")
+                    # Add knowledge as a system message after the main prompt
+                    messages.append({
+                        "role": "system",
+                        "content": f"\n\n{seo_knowledge}\n\nUse this advanced SEO knowledge to enhance your strategic recommendations when relevant. Reference specific concepts from the book when appropriate, but explain them clearly for the user."
+                    })
+            except Exception as e:
+                logger.warning(f"Failed to load SEO knowledge: {e}")
+                # Continue without knowledge injection
         
         # Add conversation history
         if conversation_history:

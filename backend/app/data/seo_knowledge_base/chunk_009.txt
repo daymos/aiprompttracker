@@ -1,0 +1,100 @@
+# SEO Evidence Brief
+
+    SEO Evidence Brief
+        DOJ v. Google – Case No. 20-cv-3010 (Remedial Phase Opinion)
+            1. User Data as a Core Input
+            2. Learning from User Feedback
+            3. Page Scoring in Crawling
+            4. Quality & Popularity Signals in Crawling
+            5. PageRank as an Input to Quality Score
+            6. Source of Quality Signals
+            7. Human Raters as Training Data for RankEmbed
+            8. Direct Role of Rater Scores
+            9. Rater Data Improves Long-Tail Search
+            10. Raw vs. Deep-Learning Ranking Signals
+            11. Spam Score as a Quality Signal
+            12. User Queries as Training Data
+            13. Signals from Device & Context
+            14. Chrome Visit Data as a Popularity Signal
+            15. Freshness & Long-Tail Queries
+            16. Scale, Quality, and User Trust
+            17. Glue & Navboost Data (Super Query Logs)
+            18. RankEmbed Training Data = Quality Edge
+            19. User-Side Data Defined (Click & Query Logs)
+            20. Quality Measures & PageRank as Authoritativeness
+            21. Spam Scores & Device-Type Flags in Indexing
+                                                            6
+
+         © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                           Strategic SEO 2025
+
+
+
+
+    22. User Interaction Signals (Clicks, Hovers, Pogo-Sticking, Dwell Time)
+    23. Required Disclosure of Quality, Popularity, Spam & Device-Type Flags
+    24. Spam & Low-Value Pages Excluded from Index
+    25. Filtering Training Data for Quality (Duplicates, Spam, Garbage)
+    26. Index Size & the “80–20 Problem”
+    27. Popularity Signal from Chrome Visit Data
+    28. Popularity as a Top-Level Signal
+    29. Popularity & Quality Guide Crawling Frequency
+    30. Plaintiffs Sought Disclosure of Popularity (via Navboost/Glue)
+    31. Popularity = Chrome Data + Anchors
+    31. Popularity & Quality as Fundamental Ranking Signals
+SEO Community: The People on the Front Lines
+    References:
+
+
+
+
+                                                    7
+
+ © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+Introduction
+My name is Shaun Anderson, known online as @Hobo_Web. I have been a specialist
+SEO consultant since 2006, and worked online as a website designer and developer
+since the early 2000s.
+
+This book is the 6th (the first published in 2009) in a series on SEO strategy, but it
+marks a significant departure from the past 5 books. This is a book of advanced SEO
+concepts for professional SEOs.
+
+The companion book to this book is Hobo: Beginner SEO 2025. That is for beginners;
+this book is not. The third book in the trilogy is Hobo: Strategic AI SEO 2025 again, a
+more advanced book.
+
+Following the landmark U.S. v. Google antitrust case disclosures, and the Content
+Warehouse leak in early 2024, the foundational rules of search have been rewritten.
+Long speculated ranking factors have been all but confirmed.
+
+This book is an advanced strategic playbook for the professional SEO who
+needs to understand and master this new reality.
+
+My analysis is grounded in primary source evidence: sworn testimony from the DOJ
+trial, Google's own patents, official documentation, exploits and recent data leaks.
+
+We will move beyond common knowledge and deconstruct the systems that truly
+define search ranking in 2025.
+
+The goal is to provide a durable, evidence-based framework for making high-stakes
+strategic decisions. Listen to an audio overview of this book. See previous editions.
+
+Let's begin.
+
+
+
+
+                                                           8
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                    Strategic SEO 2025
+
+
+
+

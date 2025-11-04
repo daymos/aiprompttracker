@@ -1,0 +1,93 @@
+# Chapter 6: Essential Technical SEO: A Beginner's Checklist
+
+Source: Beginner SEO 2025 by Shaun Anderson
+
+Chapter 6: Essential Technical SEO: A Beginner's Checklist
+The phrase "technical SEO" can sound intimidating. It brings to mind images of code, servers,
+and complex spreadsheets. But for a beginner, the reality is much simpler.
+
+You've created helpful content that demonstrates your expertise. You've structured it
+perfectly on the page and started earning signals of authority from other sites. The final piece
+of the puzzle is to ensure there are no technical roadblocks preventing Google from finding,
+understanding, and showing your pages to users.
+
+Think of it like this: you've built a brilliant shop with fantastic products. Technical SEO is simply
+making sure the front door is unlocked, the lights are on, and the aisles are clear for both your
+customers and the search engines that list you.
+
+Making Your Site Easy for Google to Read
+Before Google can rank your content, it must first discover it (crawling) and store it in its
+massive database (indexing). Your job is to make this process as efficient as possible.
+ ●​ A Logical Site Structure: A well-organised website is easier for both users and search
+    engines to navigate. The "Topic Cluster" model we discussed in Chapter 3, with a main
+    "pillar" page and several supporting "cluster" pages, is a perfect example. A clear
+    navigation menu and internal links between related articles help Google understand the
+    relationships between your pages and which ones are most important.
+ ●​ An XML Sitemap: This sounds technical, but it's just a list of all the important URLs on
+    your site, formatted for search engines. It's like giving Google a map to ensure it doesn't
+    miss any of your key pages. Thankfully, you don't need to create this by hand. Most
+    modern website platforms and SEO plugins (like Yoast or Rank Math for WordPress) will
+    automatically generate and update it for you.
+ ●​ The Robots.txt File: This is a simple text file that gives search engines instructions about
+    which parts of your site they shouldn't look at. For example, you might tell Google to
+    ignore your admin login pages or a test area of your site. It's not about hiding content,
+    but about helping Google use its resources more efficiently by focusing only on the
+    pages you want it to index.
+
+
+
+
+                                                           29
+
+       © Sep 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / SEO Tools
+                                                  Beginner SEO 2025
+
+
+
+
+Optimising for the User's Experience
+Many technical factors directly impact how a user experiences your website. A slow, clunky, or
+frustrating site will lead to "bad clicks" and "pogo-sticking" - users immediately leaving your
+site and returning to the search results. These are powerful negative signals for the Navboost
+system.
+ ●​ Site Speed: In our fast-paced world, speed is critical. If your page takes too long to load,
+    users will abandon it. Google knows this, and its Core Web Vitals are a set of metrics
+    designed to measure the real-world user experience of a page. For a beginner, you don't
+    need to obsess over a perfect score. Focus on the basics: use a good quality web host
+    and compress your images to reduce their file size before you upload them.
+ ●​ Mobile-Friendliness: The majority of Google searches now happen on mobile phones.
+    Because of this, Google uses the mobile version of your website for indexing and ranking
+    (this is called "mobile-first indexing"). Your website must look and work perfectly on a
+    mobile device. Text should be easy to read without zooming, and buttons should be easy
+    to tap. Most modern website themes are "responsive" (they adapt to different screen
+    sizes) by default, but you should always check this yourself on your own phone.
+
+Chapter 6 Action Plan
+You don't need to be a developer to check the technical health of your site. Here is a simple,
+non-technical checklist you can run through right now.
+ 1.​ Do the Mobile Test: Open your website on your phone. Is it easy to use? Can you read
+     the text? Do the links work? Navigate to a few different pages.
+ 2.​ Run a Speed Check: Use a free tool like Google's PageSpeed Insights. Don't worry
+     about understanding every detail. Just see if it flags your site as "slow" and look for any
+     simple recommendations, like "serve images in next-gen formats" (which often means
+     compressing them).
+ 3.​ Check for the Padlock: Look at your website's address in your browser. Does it begin
+     with https:// and display a padlock icon? This means your site is secure (using HTTPS),
+     which is a crucial trust signal for both users and Google.
+ 4.​ Review Your Navigation: Is it simple for a first-time visitor to find your most important
+     pages (like your "About" or "Contact" pages) from your homepage? If it's easy for a
+     human, it's likely easy for Google.
+ 5.​ Consider an SEO Plugin: If your site is built on WordPress, installing a well-regarded
+     SEO plugin will handle many basic technical basics, like your XML sitemap, automatically.
+
+
+
+
+                                                          30
+
+      © Sep 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / SEO Tools
+                                                   Beginner SEO 2025
+
+
+
+

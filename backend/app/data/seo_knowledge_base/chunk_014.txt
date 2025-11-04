@@ -1,0 +1,525 @@
+# Entity SEO: How to Get Your Business Recognised as an Entity by
+
+Entity SEO: How to Get Your Business Recognised as an Entity by
+Google
+Over the last 20 years I’ve watched Google shift from merely matching keywords to
+truly understanding who and what is behind the content.
+
+This evolution - often summed up by Google’s move to “things, not strings”- means
+that optimizing for entities is now essential, especially for small businesses.
+
+What Are “Entities” in Google’s Eyes?
+
+In Google’s terminology, an entity is essentially a uniquely identifiable “thing” or
+concept - a person, place, organisation, idea, etc., as understood in Google’s
+Knowledge Graph similarweb.com.
+
+Google’s Knowledge Graph is a massive knowledge base of facts about the world,
+which helps Google connect the dots between words and the real-world “things” they
+represent.
+
+As Google Fellow Amit Singhal described when introducing the Knowledge Graph, it
+enables you to search for things (people, places, landmarks, businesses, etc.) that
+Google knows about, and get relevant information instantly.
+
+In plain terms, Google wants to know exactly who or what it’s dealing with when
+ranking content.
+
+From an SEO perspective, an entity isn’t just a keyword or phrase; it’s an actual
+concept with a unique identity in a database.
+
+Dixon Jones puts it nicely: “An entity is a concept in a database with an ID number…
+something like the Eiffel Tower can be called ‘Eiffel Tower’ or ‘that big metal thing in
+Paris’ in many languages, but they all refer to the same well-recognized entity”
+20i.com.
+
+                                                          130
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+In practice, this means Google can recognize your business (or any topic) as a distinct
+entity if it finds enough information to confidently identify it in its Knowledge Graph or
+other structured data sources.
+
+Why Entity SEO Matters (Especially for Small Businesses)
+
+Entity SEO is about making your business “known” to Google as a trustworthy,
+authoritative entity.
+
+This is crucial for earning Google’s trust.
+
+If Google can’t determine that your website is backed by a real, reputable entity, you
+risk being overlooked or filtered out.
+
+In fact, I’ve proposed the “Disconnected Entity Hypothesis” to describe what happens
+when a site lacks clear entity signals.
+
+
+                                                          131
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+In short, sites without a robust, verifiable tie to a trusted real-world presence tend to
+get shoved to the gutter of search results.
+
+Google won’t outright call it that, but the pattern is clear: websites with “no face” - no
+identifiable author, no company info, no external authority signals - struggle to rank.
+
+Google is “hunting down entities it can’t vouch for”, as I have mentioned in my DEH.
+
+On the flip side, if you establish your business as a known entity, Google is more
+confident serving your content.
+
+Google spokespersons have repeatedly emphasized the importance of expertise,
+authority, and trust (E-E-A-T).
+
+But those signals can only fully apply when Google understands who is providing the
+content.
+
+As Jason Barnard explains: “If Google understands who you are, then it can apply
+[E-E-A-T] signals fully. If it has to guess who you are, then it can only apply them in a
+dampened manner… So being in Google’s Knowledge Graph - meaning Google has
+fully understood who you are - is crucial. Entity understanding and your identity in
+Google’s mind is the single most important thing in SEO”.
+
+In other words, your great content and links won’t count for nearly as much if Google
+can’t tie them to a credible entity.
+
+This is especially true after recent algorithm updates (e.g. Google’s Helpful Content
+and spam updates) which appear to favor “entities [Google] can bank on - healthy
+ones with a trail of trust” hobo-web.co.uk.
+
+For small businesses, entity SEO can be a competitive equalizer. You might not
+outspend big brands on ads or have the highest Domain Authority, but you can carve
+out a clear identity in your niche.
+
+By doing so, you signal to Google: “We are a real business with expertise in our area,
+and here’s the proof.”
+
+Let’s find out exactly how to do that.
+                                                          132
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                 Strategic SEO 2025
+
+
+
+
+Practical Steps to Implement Entity SEO for Your Business
+
+Entity SEO may sound abstract, but it comes down to concrete steps and best
+practices.
+
+Below I outline how a small business can build its entity presence, with guidance from
+Google and experienced SEOs.
+
+Secure Your Business’s Presence in Authoritative Databases
+
+To get recognized as an entity, your business needs to exist in the reference sources
+that Google trusts. An expert tip is to go to the primary sources of information for
+Google.
+
+Google’s Knowledge Graph draws information from many places - including Wikidata,
+Wikipedia, official databases, and high-authority websites searchenginejournal.com.
+
+In a 2018 AMA, Google’s John Mueller confirmed “we use the Knowledge Graph
+(which comes from various places, including Wikipedia) to try to understand entities
+on a page.” searchenginejournal.com
+
+This tells us that having a Wikipedia page greatly boosts entity recognition (though
+Wikipedia has strict notability rules, so not every small business can get one).
+
+If your business is notable enough, earning a Wikipedia entry or at least a mention on
+Wikipedia will directly feed Google reliable info about your entity.
+
+However, Wikipedia isn’t the only game in town. Wikidata (the structured database
+behind Wikipedia) is another key source; a Wikidata item for your business can
+sometimes lead to Knowledge Graph recognition. Other databases matter too. For
+example, many companies (especially startups and local businesses) get listed on
+Crunchbase, which provides structured profiles of organizations. As one guide notes,
+registered businesses usually have a Crunchbase entity… linking to this in your
+schema markup can help disambiguate your company inlinks.com and inlinks.com.
+Even if Crunchbase isn’t as “powerful” as Wikipedia, it’s a verified source that can
+reinforce your business details.
+
+
+                                                         133
+
+       © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                     Strategic SEO 2025
+
+
+
+
+Google Business Profile is another must for any local business. If you haven’t
+already, claim your Google Business Profile (formerly Google My Business) and fill it
+out completely.
+
+This effectively creates an entity entry for your business in Google’s local Knowledge
+Graph.
+
+As Dixon Jones emphasizes, “make sure you’re on Google My Business, [it’s]
+especially important if you’re a local or regional business.”20i.com
+
+A Google Business Profile listing ties your entity to a physical location, category,
+hours, reviews, and more - all signals that you’re a legitimate “somebody” in Google’s
+eyes, not a faceless website.
+
+Other authoritative listings: Depending on your niche, seek inclusion in industry
+databases, government registries, or respected directories.
+
+For instance, a healthcare clinic might get listed on Healthgrades, or a software
+company on G2 Crowd.
+
+The goal is to create a footprint of facts about your business across the web: same
+name, address, phone, description, and URL on all these sources.
+
+Consistency is key - you want Google’s crawlers to find the same core information
+everywhere, reinforcing the existence of one unambiguous entity (your business).
+
+Designate an “Entity Home” on Your Website and Use Schema Markup
+
+Your own website should clearly represent your business as an entity. Think of your
+site (especially your homepage or an about page) as the Entity Home - the definitive
+source about who you are.
+
+Jason Barnard advises creating a dedicated page (often the About Us page) that
+explicitly describes your organization or yourself, and then corroborating that
+across the web - see thebrandserpguy.com.
+
+I agree.
+
+
+                                                             134
+
+           © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+In practice, on that page you should include factual details: founding date, founders
+or key people, location, what you do, awards, etc.
+
+Then, you’ll want to mark it up with structured data.
+
+Use schema.org markup (JSON-LD format) to define your entity for search engines.
+
+For a business, you’d typically use the Organization schema (or LocalBusiness
+for local companies) with properties like name, logo, address, founding date, founder,
+etc. A crucial property to add is sameAs - here you list URLs that represent the same
+entity.
+
+These can include your social media profiles, your Crunchbase page, your Wikipedia
+page (if exists), Wikidata entry, Google Business Profile, or any other profile that
+Google can reference.
+
+By providing sameAs links, you’re basically telling Google “All these pages refer to the
+same entity - me.”
+
+This can greatly help Google reconcile your entity’s identity across its Knowledge
+Graph and the web.
+
+One thing to avoid: Don’t use Google’s internal Knowledge Graph IDs (the /g/ or /m/
+codes) in your schema.
+
+John Mueller has noted that while it’s technically possible to put a Knowledge Graph
+ID as a sameAs URL, it’s not recommended seroundtable.com.
+
+Stick to public URLs that are recognized as authoritative profiles.
+
+After adding structured data, test it with Google’s Rich Results Test or Schema
+Markup Validator to ensure it’s error-free.
+
+While schema markup alone doesn’t guarantee a Knowledge Panel or ranking boost,
+it’s an important puzzle piece. It provides machine-readable context about your entity
+that can validate what Google finds elsewhere.
+
+
+
+                                                          135
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+Build a Cohesive Topical Content Structure (Site-Wide Entity Optimisation)
+
+Beyond official profiles and schema, your site’s content and structure need to
+communicate your topic authority to Google.
+
+Entity SEO isn’t just about metadata; it’s also about how you organize and interlink
+your content so Google can see the breadth of knowledge you offer around your
+niche.
+
+Start with your site architecture. A logical, hierarchical site structure helps Google
+understand the relationship between topics on your site.
+
+In fact, Google’s John Mueller has implied that a well-structured site (with clear URL
+hierarchy, breadcrumbs, and internal links) helps Google grasp how things are
+connected on your site – see similarweb.com.
+
+For example, if you run a travel blog, a structure like:
+
+bash
+
+CopyEdit
+
+example.com/travel/                                    (general topic page)
+
+example.com/travel/destinations/                                (subcategory)
+
+example.com/travel/destinations/paris                                     (specific entity page)
+
+example.com/travel/destinations/milan                                     (specific entity page)
+
+
+
+tells Google that Paris and Milan are entities under the sub-topic “destinations,”
+which falls under the broader topic “travel.”
+
+A pyramid-like site architecture (homepage -> categories -> sub-categories -> pages)
+isn’t just good for UX, it’s an SEO signal that your content is systematically covering a
+topic area. By structuring content into silos or clusters, you essentially map an entity
+hierarchy that mirrors real-world relationships.
+                                                          136
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+Use internal linking generously and meaningfully to reinforce these relationships.
+
+If you have a cornerstone page about “Home Security Systems,” and several blog
+posts about related components (cameras, sensors, alarms), link them to the
+cornerstone and to each other where relevant.
+
+This network of contextual links essentially says to Google: “All of these pages are
+about closely related entities/topics.” The easier you make it for Google to crawl your
+whole content network and see the connections, the better it can assign you authority
+for the overall subject matter.
+
+Pro tip: Analyze how top competitors structure their sites in your vertical.
+
+If the leading sites in your niche all have sections for certain subtopics, that’s a clue to
+what Google expects to see as part of the topic cluster.
+
+You don’t need to copy their navigation exactly, but knowing the common content
+segments can guide your own site structure decisions - see.
+
+Optimise On-Page Content with Entities in Mind (Semantic SEO)
+
+Entity SEO also transforms how you approach on-page optimization.
+
+Instead of obsessing over one keyword per page, think in terms of covering a topic
+comprehensively and semantically (as I advised in my 2018 ebook).
+
+Here are practical on-page tactics for entity optimization:
+
+   ●​ Use Semantic HTML Structure: Organize your headings (H1, H2, H3…) to
+       reflect a logical breakdown of the topic. Your H1 should clearly state the page’s
+       primary topic (the main entity or concept). Then use H2s for major subtopics or
+       aspects, and H3s for details under those subtopics. This not only helps readers
+       but also signals to Google the hierarchy of concepts on the page
+       similarweb.com and similarweb.com. For example, if your page is about
+       “Healthy Eating Habits” (primary entity), an H2 might be “Foundation of a
+       Balanced Diet,” with H3s under it like “Role of Macronutrients” and “Essential
+       Micronutrients”similarweb.com. This kind of semantic structuring reinforces the
+       context of each section. Pro Tip - Optimise your Headings 2-6 for the USER ON
+                                                          137
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                              Strategic SEO 2025
+
+
+
+
+   THE PAGE not necessary for Search Engines.​
+
+●​ Cover Related Entities and Contextual Terms: Google’s understanding of a
+   page comes from the network of entities mentioned in the text. Ask yourself:
+   what related people/places/things would naturally be mentioned when
+   discussing this topic? If you have a page about “Bruce Lee,” it’s logical to
+   mention “Jeet Kune Do” (the martial art he created) and maybe related figures
+   like “Ip Man” or “Chuck Norris.” In fact, if none of those appear, your content
+   might be seen as oddly shallow or off-topic. Google’s analysis (with NLP
+   algorithms) will look for these semantically connected terms. A quick trick is the
+   “People Also Ask” or related searches: these often hint at entities tied to your
+   topic. Another is using Google’s Natural Language API demo on a high-ranking
+   article in your topic to see what entities Google extracts - this can reveal which
+   terms Google strongly associates with the topic.​
+
+●​ Answer User Intents Directly: Because Google’s stated goal is to satisfy
+   search intent, make sure your content addresses common questions head-on.
+   Often, this means providing a concise answer or definition at the top of your
+   page (which can even land you a featured snippet). From an entity standpoint,
+   directly defining or explaining the entity early on gives Google a clear signal of
+   relevance. For instance, if the page is “What is Entity SEO?”, start by literally
+   defining it. This aligns with semantic search principles - you’re matching the
+   meaning of the query, not just repeating the query words. It’s good for users
+   and for search engines’ understanding. Think DISTANCE “from”.. Distance from
+   the TITLE to THE TEXT or from the TITLE to a TABLE.​
+
+●​ Avoid “Keyword Stuffing”; Aim for Meaningful Coverage: In the old days,
+   one might just repeat a keyword to death. Now, it’s about coverage of
+   concepts. If you write naturally and thoroughly on a subject, you’ll include many
+   related entities and phrases without forcing it. One clever exercise (credited to
+   Laurent Bourelly) is the “mystery word game”: write a paragraph about your
+   topic without naming it explicitly - if it’s still obvious what you’re talking about,
+   you’ve included enough relevant context words. This helps ensure you’re not
+   relying on one keyword, but truly describing the entity and its connections.​
+
+                                                      138
+
+    © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                 Strategic SEO 2025
+
+
+
+
+In short, think of each page as building Google’s confidence in your knowledge of the
+topic.
+
+The more clearly Google can see which entities your content is about and how they
+relate, the more likely it is to deem your page a good answer for relevant queries.
+
+Highlight Authors and Build E-E-A-T Signals Around Your Entity
+
+Google’s focus on entities isn’t just about companies or products - it also extends to
+people (like the authors who write your content or the professionals at your
+business).
+
+For a small business, this means you should feature real, credentialed people and link
+their identities to your brand.
+
+Make sure articles and blog posts on your site have author names (and ideally brief
+bios) attached.
+
+If Jane Doe writes an article, have an author page for Jane that describes her
+credentials (and mark it up with Person schema).
+
+Google has what’s called an “author entity” for prominent writers and a “publisher
+entity” for websites jasonbarnard.com.
+
+You want to feed the right information to those. The more Google can identify “Oh,
+this article on example.com was written by Dr. Jane Doe, who also is listed as a
+medical expert on HealthSite.org,” the more it can trust the content.
+
+While as a small business you might not have famous authors, you can still establish
+your team’s expertise.
+
+Link to their LinkedIn profiles, mention awards or certifications - anything that would
+exist in the Knowledge Graph or at least signal REAL credibility.
+
+Likewise, be transparent about your business on your site.
+
+Have a robust About page (as discussed) and show trust factors: physical address,
+photos of your team or premises, membership in professional associations, etc.
+                                                         139
+
+       © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+All these contribute to your entity’s trustworthiness.
+
+Google’s own quality rater guidelines (used internally to train algorithms) place huge
+importance on E-E-A-T for content creators and websites.
+
+By demonstrating Experience, Expertise, Authority, and Trust, you are essentially
+saying “We are a legitimate, experienced entity in our field.”
+
+Remember, as Jason states “Google is a child that wants to learn, and we need to
+educate it” about who we are.
+
+So don’t be shy - spell it out. If you’re a licensed contractor with 10 years in business,
+say so.
+
+If your CEO has a PhD in the topic you’re covering, make that known.
+
+Think of every detail as another reference point for Google’s entity understanding.
+
+Maintain Consistency and Corroborate Information Across the Web
+
+Finally, Entity SEO isn’t a set-and-forget deal. You need to maintain consistency of
+your business information and continually seek corroboration.
+
+Ensure that whenever your business is mentioned elsewhere (news articles,
+directories, guest posts, etc.), the facts match what’s on your site. Inconsistent NAP
+(Name, Address, Phone) data, for instance, can confuse Google’s local entity
+resolution.
+
+Use a service or manually keep track of all your listings and correct any discrepancies.
+
+It also pays to monitor your presence in Google’s Knowledge Graph. You can use
+Google’s Knowledge Graph API to query if your entity is recognized (it will return an ID
+and some info if found).
+
+Set up Google Alerts for your brand name or key people to catch new mentions -
+those might be opportunities to build more entity signals (for example, if a local
+newspaper mentions your business, make sure they included a link or at least the
+correct name - if not, you might reach out to fix any errors).
+
+                                                         140
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
+If you start to see a Knowledge Panel appear for your business on Google searches
+(that box with facts on the right side), that’s a great sign - it means Google has
+assembled an entity profile for you.
+
+At that point, claim the knowledge panel (there’s a “Claim this knowledge panel”
+option) by verifying through your official accounts.
+
+Once claimed, you can suggest edits to it and further ensure accuracy.
+
+Leverage Entity-Oriented SEO Tools (Optional, Advanced)
+
+As a bonus step, consider using tools that specialize in entity SEO to refine your
+strategy. For example, InLinks (which Dixon Jones co-founded) can analyze your
+content and suggest internal links and schema based on entity detection.
+
+There are also tools to visualize knowledge graphs of your site or to find entity gaps in
+your content.
+
+While you can absolutely do Entity SEO manually, these tools can provide
+guidance - think of them as training wheels that use NLP APIs and knowledge bases
+to make recommendations (like telling you that top-ranking pages about “DIY home
+security” all mention a certain concept that you omitted).
+
+Whether or not you use specialized software, the fundamental strategy remains: treat
+your website not just as a collection of pages, but as an interconnected web of
+known entities and topics.
+
+You’re effectively teaching Google how all the pieces fit together, and why your
+business is a trusted authority in your domain.
+
+
+
+
+                                                          141
+
+        © 2025 Shaun Anderson / Hobo / X (Twitter) / Linkedin / Facebook / SEO Audit / SEO Dashboard / EEAT Tool
+                                                  Strategic SEO 2025
+
+
+
+
