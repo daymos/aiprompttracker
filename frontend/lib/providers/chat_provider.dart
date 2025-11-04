@@ -21,12 +21,14 @@ class Conversation {
   final String title;
   final DateTime createdAt;
   final int messageCount;
+  final List<String> projectNames;
   
   Conversation({
     required this.id,
     required this.title,
     required this.createdAt,
     required this.messageCount,
+    this.projectNames = const [],
   });
 }
 

@@ -33,6 +33,7 @@ class _ConversationListState extends State<ConversationList> {
         title: c['title'],
         createdAt: DateTime.parse(c['created_at']),
         messageCount: c['message_count'],
+        projectNames: (c['project_names'] as List<dynamic>?)?.cast<String>() ?? [],
       )).toList();
       
       // Sort by most recent first
@@ -105,6 +106,62 @@ class _ConversationListState extends State<ConversationList> {
     }
   }
 
+  Future<void> _deleteAllConversations() async {
+    final authProvider = context.read<AuthProvider>();
+    final chatProvider = context.read<ChatProvider>();
+    
+    // Confirm deletion
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete All Conversations'),
+        content: const Text('Are you sure you want to delete ALL conversations? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete All'),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirmed != true) return;
+    
+    try {
+      final result = await authProvider.apiService.deleteAllConversations();
+      final count = result['count'] ?? 0;
+      
+      // Clear active conversation
+      chatProvider.startNewConversation();
+      
+      // Reload conversations
+      await _loadConversations();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Deleted $count conversation${count == 1 ? '' : 's'}'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error deleting conversations: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final diff = now.difference(date);
@@ -152,6 +209,12 @@ class _ConversationListState extends State<ConversationList> {
                   onPressed: _loadConversations,
                   tooltip: 'Refresh',
                 ),
+                IconButton(
+                  icon: const Icon(Icons.delete_sweep),
+                  onPressed: _deleteAllConversations,
+                  tooltip: 'Delete all conversations',
+                  color: Colors.red[400],
+                ),
               ],
             ),
           ),
@@ -168,10 +231,39 @@ class _ConversationListState extends State<ConversationList> {
                       final isSelected = conversation.id == chatProvider.currentConversationId;
                       
                       return ListTile(
-                        title: Text(
-                          conversation.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        title: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                conversation.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (conversation.projectNames.isNotEmpty) ...[
+                              const SizedBox(width: 8),
+                              ...conversation.projectNames.map((projectName) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(left: 4),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context).colorScheme.primaryContainer,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      projectName,
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ],
+                          ],
                         ),
                         subtitle: Text(
                           _formatDate(conversation.createdAt),

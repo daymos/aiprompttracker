@@ -1392,6 +1392,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildProjectDetailView() {
     final projectProvider = context.watch<ProjectProvider>();
     final authProvider = context.watch<AuthProvider>();
+    final chatProvider = context.watch<ChatProvider>();
     final project = projectProvider.selectedProject;
     final keywords = projectProvider.trackedKeywords;
 
@@ -1403,6 +1404,26 @@ class _ChatScreenState extends State<ChatScreen> {
         });
       });
       return const Center(child: CircularProgressIndicator());
+    }
+    
+    // Load conversations if not already loaded
+    if (chatProvider.conversations.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        try {
+          final conversations = await authProvider.apiService.getConversations();
+          final conversationList = conversations.map((c) => Conversation(
+            id: c['id'],
+            title: c['title'],
+            createdAt: DateTime.parse(c['created_at']),
+            messageCount: c['message_count'],
+            projectNames: (c['project_names'] as List<dynamic>?)?.cast<String>() ?? [],
+          )).toList();
+          conversationList.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          chatProvider.setConversations(conversationList);
+        } catch (e) {
+          // Silently handle error - conversations are optional
+        }
+      });
     }
 
     return DefaultTabController(
@@ -1630,10 +1651,16 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildPinboardTab(Project project) {
+    final chatProvider = context.watch<ChatProvider>();
+    final authProvider = context.watch<AuthProvider>();
+    
+    // Filter conversations related to this project
+    final relatedConversations = chatProvider.conversations
+        .where((conv) => conv.projectNames.contains(project.name))
+        .toList();
+    
     return FutureBuilder<List<Map<String, dynamic>>>(
-      future: Provider.of<AuthProvider>(context, listen: false)
-          .apiService
-          .getPinnedItems(projectId: project.id), // Get pins for this project only
+      future: authProvider.apiService.getPinnedItems(projectId: project.id),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -1647,49 +1674,147 @@ class _ChatScreenState extends State<ChatScreen> {
 
         final pinnedItems = snapshot.data ?? [];
 
-        if (pinnedItems.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.push_pin,
-                  size: 64,
-                  color: Colors.grey[600],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'No Pinned Items Yet',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[600],
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // Related Conversations Section
+            if (relatedConversations.isNotEmpty) ...[
+              Row(
+                children: [
+                  Icon(Icons.chat_bubble_outline, size: 20, color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Related Conversations',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
+                ],
+              ),
+              const SizedBox(height: 12),
+              ...relatedConversations.map((conversation) {
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    leading: Icon(
+                      Icons.forum,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    title: Text(
+                      conversation.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Text(
+                      _formatDate(conversation.createdAt),
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () async {
+                      chatProvider.setLoading(true);
+                      
+                      try {
+                        final conversationData = await authProvider.apiService.getConversation(conversation.id);
+                        
+                        final messages = (conversationData['messages'] as List).map((m) => Message(
+                          id: m['id'],
+                          role: m['role'],
+                          content: m['content'],
+                          createdAt: DateTime.parse(m['created_at']),
+                          messageMetadata: m['message_metadata'] as Map<String, dynamic>?,
+                        )).toList();
+                        
+                        chatProvider.setCurrentConversation(conversation.id);
+                        chatProvider.setMessages(messages);
+                        
+                        setState(() {
+                          _currentView = ViewState.chat;
+                        });
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Error loading conversation: $e')),
+                          );
+                        }
+                      } finally {
+                        chatProvider.setLoading(false);
+                      }
+                    },
+                  ),
+                );
+              }).toList(),
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 16),
+            ],
+            
+            // Pinned Items Section
+            Row(
+              children: [
+                Icon(Icons.push_pin, size: 20, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 8),
                 Text(
-                  'Pin important responses from the chat to keep them handy',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[500],
+                  'Pinned Items',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
             ),
-          );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: pinnedItems.length,
-          itemBuilder: (context, index) {
-            final item = pinnedItems[index];
-            return _buildPinListItem(item);
-          },
+            const SizedBox(height: 12),
+            
+            if (pinnedItems.isEmpty)
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32.0),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.push_pin,
+                        size: 48,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'No pinned items yet',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Pin important responses from chat',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              ...pinnedItems.map((item) => _buildPinListItem(item)).toList(),
+          ],
         );
       },
     );
+  }
+  
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final diff = now.difference(date);
+    
+    if (diff.inDays == 0) {
+      return 'Today ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+    } else if (diff.inDays == 1) {
+      return 'Yesterday';
+    } else if (diff.inDays < 7) {
+      return '${diff.inDays} days ago';
+    } else {
+      return '${date.month}/${date.day}/${date.year}';
+    }
   }
 
   Widget _buildPinListItem(Map<String, dynamic> item) {

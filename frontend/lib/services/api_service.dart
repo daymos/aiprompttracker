@@ -247,6 +247,19 @@ class ApiService {
       throw Exception('Failed to delete conversation');
     }
   }
+
+  Future<Map<String, dynamic>> deleteAllConversations() async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/chat/conversations/all'),
+      headers: _headers(),
+    );
+    
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to delete all conversations');
+    }
+  }
   
   Future<Map<String, dynamic>> analyzeProjectBacklinks(String projectId, {bool refresh = false}) async {
     final uri = Uri.parse('$baseUrl/backlinks/project/$projectId/analyze').replace(
