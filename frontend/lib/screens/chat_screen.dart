@@ -32,7 +32,6 @@ class _ChatScreenState extends State<ChatScreen> {
   ViewState _currentView = ViewState.chat;
   ProjectViewState _projectViewState = ProjectViewState.list;
   ProjectTab _selectedProjectTab = ProjectTab.keywords;
-  String? _lastProjectId; // Track project changes to send initial messages
 
   @override
   void initState() {
@@ -1075,77 +1074,12 @@ class _ChatScreenState extends State<ChatScreen> {
     final projectProvider = context.watch<ProjectProvider>();
     final currentProjectId = projectProvider.selectedProject?.id;
 
-    // Send initial project message if project changed and no messages exist
-    if (currentProjectId != null &&
-        chatProvider.messages.isEmpty &&
-        currentProjectId != _lastProjectId &&
-        !chatProvider.isLoading) {
-      _lastProjectId = currentProjectId;
-      final project = projectProvider.selectedProject!;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _sendInitialProjectMessage(project);
-      });
-    }
 
     return Column(
         children: [
-          // Project context header (if project selected)
-          if (currentProjectId != null)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
-                border: Border(
-                  bottom: BorderSide(
-                    color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
-                  ),
-                ),
-              ),
-              child: Row(
-                children: [
-                  FaviconWidget(
-                    url: projectProvider.selectedProject!.targetUrl,
-                    size: 32,
-                    apiService: Provider.of<AuthProvider>(context, listen: false).apiService,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Discussing: ${projectProvider.selectedProject!.name}',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Text(
-                          projectProvider.selectedProject!.targetUrl,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () {
-                      setState(() {
-                        _currentView = ViewState.projects;
-                      });
-                    },
-                    icon: const Icon(Icons.close, size: 20),
-                    tooltip: 'Close project context',
-                  ),
-                ],
-              ),
-            ),
-
           // Messages and Input
           Expanded(
-            child: chatProvider.messages.isEmpty && !chatProvider.isLoading && currentProjectId == null
+            child: chatProvider.messages.isEmpty && !chatProvider.isLoading
                 ? _buildEmptyStateWithInput()
                 : Column(
                     children: [
@@ -1208,8 +1142,8 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                       ),
 
-                      // Input area (bottom) - only show when there are messages or project context
-                      if (chatProvider.messages.isNotEmpty || currentProjectId != null || chatProvider.isLoading)
+                      // Input area (bottom) - show when there are messages or loading
+                      if (chatProvider.messages.isNotEmpty || chatProvider.isLoading)
                         _buildInputArea(),
                     ],
                   ),
@@ -1532,8 +1466,18 @@ class _ChatScreenState extends State<ChatScreen> {
                       // Chat button
                       IconButton(
                         onPressed: () {
+                          // Start a new conversation with project context
+                          final chatProvider = context.read<ChatProvider>();
+                          final project = projectProvider.selectedProject!;
+                          chatProvider.startNewConversation();
+                          MessageBubble.clearAnimationCache();
                           setState(() {
                             _currentView = ViewState.chat;
+                          });
+                          // Send a simple project-aware message after the UI updates
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            _messageController.text = "Let's work on my ${project.name} project (${project.targetUrl}).";
+                            _sendMessage();
                           });
                         },
                         icon: const Icon(Icons.chat_bubble_outline),
@@ -2837,12 +2781,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  void _sendInitialProjectMessage(Project project) {
-    // Set initial message about the project
-    _messageController.text = "I'm working on my SEO project for ${project.name} (${project.targetUrl}). What suggestions do you have to improve my search rankings?";
-    // Send the message
-    _sendMessage();
-  }
 
   String _formatLastUpdated(List<TrackedKeyword> keywords) {
     if (keywords.isEmpty) {

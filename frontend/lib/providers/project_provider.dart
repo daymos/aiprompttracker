@@ -193,5 +193,10 @@ class ProjectProvider with ChangeNotifier {
       notifyListeners();
     }
   }
+
+  void clearSelectedProject() {
+    _selectedProject = null;
+    notifyListeners();
+  }
 }
 
