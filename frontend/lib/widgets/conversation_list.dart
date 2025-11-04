@@ -352,61 +352,41 @@ class _ConversationListState extends State<ConversationList> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: Theme.of(context).scaffoldBackgroundColor,
         border: Border(
           right: BorderSide(
-            color: Theme.of(context).dividerColor,
+            color: Theme.of(context).dividerColor.withOpacity(0.15),
+            width: 1,
           ),
         ),
       ),
       child: Column(
         children: [
-          // Header - changes based on selection mode
-          if (!_selectionMode)
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  const Text(
-                    'Conversations',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.refresh),
-                    onPressed: _loadConversations,
-                    tooltip: 'Refresh',
-                  ),
-                ],
-              ),
-            )
-          else
+          // Header - only show in selection mode
+          if (_selectionMode)
             Container(
-              color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.2),
+              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(Icons.close, size: 20),
                     onPressed: _toggleSelectionMode,
                     tooltip: 'Cancel',
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 4),
                   Text(
                     '${_selectedConversations.length} selezionati',
                     style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   const Spacer(),
                   if (_selectedConversations.length < chatProvider.conversations.length)
                     TextButton(
                       onPressed: _selectAll,
-                      child: const Text('Seleziona'),
+                      child: const Text('Seleziona', style: TextStyle(fontSize: 13)),
                     )
                   else
                     TextButton(
@@ -415,11 +395,10 @@ class _ConversationListState extends State<ConversationList> {
                           _selectedConversations.clear();
                         });
                       },
-                      child: const Text('Deseleziona'),
+                      child: const Text('Deseleziona', style: TextStyle(fontSize: 13)),
                     ),
-                  const SizedBox(width: 8),
                   IconButton(
-                    icon: const Icon(Icons.delete_outline),
+                    icon: const Icon(Icons.delete_outline, size: 20),
                     onPressed: _selectedConversations.isEmpty ? null : _deleteSelectedConversations,
                     tooltip: 'Delete selected',
                     color: Colors.red[400],
@@ -427,7 +406,6 @@ class _ConversationListState extends State<ConversationList> {
                 ],
               ),
             ),
-          const Divider(height: 1),
           Expanded(
             child: chatProvider.conversations.isEmpty
                 ? const Center(
@@ -453,102 +431,153 @@ class _ConversationListState extends State<ConversationList> {
                             _hoveredConversationId = null;
                           });
                         },
-                        child: ListTile(
-                          // Always reserve space for checkbox with fade animation
-                          leading: SizedBox(
-                            width: 40,
-                            child: AnimatedOpacity(
-                              opacity: showCheckbox ? 1.0 : 0.0,
-                              duration: const Duration(milliseconds: 200),
-                              child: Checkbox(
-                                value: isChecked,
-                                onChanged: showCheckbox 
-                                    ? (_) => _toggleConversationSelection(conversation.id)
-                                    : null,
-                              ),
-                            ),
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: !_selectionMode && isSelected 
+                                ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3)
+                                : (isHovered ? Theme.of(context).hoverColor.withOpacity(0.05) : Colors.transparent),
+                            borderRadius: BorderRadius.circular(8),
+                            border: !_selectionMode && !isSelected
+                                ? Border.all(
+                                    color: Theme.of(context).dividerColor.withOpacity(0.2),
+                                    width: 1,
+                                  )
+                                : null,
                           ),
-                          title: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  conversation.title,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                          child: ListTile(
+                            dense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            // Always reserve space for checkbox with fade animation
+                            leading: SizedBox(
+                              width: 32,
+                              height: 32,
+                              child: AnimatedOpacity(
+                                opacity: showCheckbox ? 1.0 : 0.0,
+                                duration: const Duration(milliseconds: 150),
+                                child: Transform.scale(
+                                  scale: 0.85,
+                                  child: Checkbox(
+                                    value: isChecked,
+                                    onChanged: showCheckbox 
+                                        ? (_) => _toggleConversationSelection(conversation.id)
+                                        : null,
+                                  ),
                                 ),
                               ),
-                              if (conversation.projectNames.isNotEmpty) ...[
-                                const SizedBox(width: 8),
-                                ...conversation.projectNames.map((projectName) {
-                                  return Padding(
-                                    padding: const EdgeInsets.only(left: 4),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(context).colorScheme.primaryContainer,
-                                        borderRadius: BorderRadius.circular(8),
+                            ),
+                            title: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              conversation.title,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: !_selectionMode && isSelected ? FontWeight.w500 : FontWeight.normal,
+                                              ),
+                                            ),
+                                          ),
+                                          if (conversation.projectNames.isNotEmpty) ...[
+                                            const SizedBox(width: 6),
+                                            ...conversation.projectNames.map((projectName) {
+                                              return Padding(
+                                                padding: const EdgeInsets.only(left: 3),
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                    color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.6),
+                                                    borderRadius: BorderRadius.circular(6),
+                                                  ),
+                                                  child: Text(
+                                                    projectName,
+                                                    style: TextStyle(
+                                                      fontSize: 9,
+                                                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            }).toList(),
+                                          ],
+                                        ],
                                       ),
-                                      child: Text(
-                                        projectName,
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Last message at ${_formatDate(conversation.createdAt)}',
                                         style: TextStyle(
-                                          fontSize: 10,
-                                          color: Theme.of(context).colorScheme.onPrimaryContainer,
-                                          fontWeight: FontWeight.w500,
+                                          fontSize: 11,
+                                          color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.6),
                                         ),
                                       ),
-                                    ),
-                                  );
-                                }).toList(),
+                                    ],
+                                  ),
+                                ),
                               ],
-                            ],
-                          ),
-                          subtitle: Text(
-                            _formatDate(conversation.createdAt),
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                          trailing: !_selectionMode && isHovered
-                              ? PopupMenuButton<String>(
-                                  icon: const Icon(Icons.more_horiz, size: 20),
-                                  tooltip: 'More actions',
-                                  onSelected: (value) {
-                                    if (value == 'rename') {
-                                      _renameConversation(conversation.id, conversation.title);
-                                    } else if (value == 'delete') {
-                                      _deleteConversation(conversation.id, conversation.title);
-                                    }
-                                  },
-                                  itemBuilder: (context) => [
-                                    const PopupMenuItem(
-                                      value: 'rename',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.edit, size: 18),
-                                          SizedBox(width: 12),
-                                          Text('Rename'),
-                                        ],
+                            ),
+                            trailing: !_selectionMode && isHovered
+                                ? SizedBox(
+                                    width: 32,
+                                    height: 32,
+                                    child: PopupMenuButton<String>(
+                                      padding: EdgeInsets.zero,
+                                      icon: Icon(
+                                        Icons.more_horiz, 
+                                        size: 18,
+                                        color: Theme.of(context).textTheme.bodySmall?.color,
                                       ),
+                                      tooltip: 'More actions',
+                                      onSelected: (value) {
+                                        if (value == 'rename') {
+                                          _renameConversation(conversation.id, conversation.title);
+                                        } else if (value == 'delete') {
+                                          _deleteConversation(conversation.id, conversation.title);
+                                        }
+                                      },
+                                      itemBuilder: (context) => [
+                                        const PopupMenuItem(
+                                          value: 'rename',
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(Icons.edit, size: 16),
+                                              SizedBox(width: 8),
+                                              Text('Rename', style: TextStyle(fontSize: 14)),
+                                            ],
+                                          ),
+                                        ),
+                                        const PopupMenuItem(
+                                          value: 'delete',
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(Icons.delete_outline, size: 16, color: Colors.red),
+                                              SizedBox(width: 8),
+                                              Text('Delete', style: TextStyle(color: Colors.red, fontSize: 14)),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    const PopupMenuItem(
-                                      value: 'delete',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.delete_outline, size: 18, color: Colors.red),
-                                          SizedBox(width: 12),
-                                          Text('Delete', style: TextStyle(color: Colors.red)),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              : null,
-                          selected: !_selectionMode && isSelected,
-                          onTap: () {
-                            if (showCheckbox) {
-                              _toggleConversationSelection(conversation.id);
-                            } else {
-                              widget.onConversationSelected(conversation.id);
-                            }
-                          },
+                                  )
+                                : const SizedBox(width: 32, height: 32),
+                            onTap: () {
+                              if (_selectionMode) {
+                                _toggleConversationSelection(conversation.id);
+                              } else {
+                                widget.onConversationSelected(conversation.id);
+                              }
+                            },
+                          ),
                         ),
                       );
                     },
