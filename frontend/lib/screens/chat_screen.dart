@@ -1594,103 +1594,17 @@ class _ChatScreenState extends State<ChatScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  // Project summary
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        // Keywords count
-                        Expanded(
-                          child: Column(
-                            children: [
-                              Text(
-                                keywords.length.toString(),
-                                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              ),
-                              Text(
-                                'Tracked Keywords',
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Colors.grey[600],
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          height: 40,
-                          width: 1,
-                          color: Colors.grey[300],
-                        ),
-                        // Backlinks count
-                        Expanded(
-                          child: Column(
-                            children: [
-                              Text(
-                                (projectProvider.backlinksData?['total_backlinks'] ?? 0).toString(),
-                                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              ),
-                              Text(
-                                'Backlinks',
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Colors.grey[600],
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          height: 40,
-                          width: 1,
-                          color: Colors.grey[300],
-                        ),
-                        // Last updated
-                        Expanded(
-                          child: Column(
-                            children: [
-                              Text(
-                                _formatLastUpdated(keywords),
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              Text(
-                                'Last Updated',
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Colors.grey[600],
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  // Tabs
+                  // Tabs with counts
                   TabBar(
                     onTap: (index) {
                       setState(() {
                         _selectedProjectTab = ProjectTab.values[index];
                       });
                     },
-                    tabs: const [
-                      Tab(text: 'Pinboard'),
-                      Tab(text: 'Keywords'),
-                      Tab(text: 'Backlinks'),
+                    tabs: [
+                      const Tab(text: 'Pinboard'),
+                      Tab(text: 'Keywords (${keywords.length})'),
+                      Tab(text: 'Backlinks (${projectProvider.backlinksData?['total_backlinks'] ?? 0})'),
                     ],
                   ),
                 ],
@@ -2107,26 +2021,6 @@ class _ChatScreenState extends State<ChatScreen> {
                                 padding: const EdgeInsets.all(16.0),
                                 child: Row(
                                   children: [
-                                    // Position badge
-                                    Container(
-                                      width: 48,
-                                      height: 48,
-                                      decoration: BoxDecoration(
-                                        color: _getPositionColor(keyword.currentPosition).withOpacity(0.2),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          keyword.currentPosition?.toString() ?? '101+',
-                                          style: TextStyle(
-                                            color: _getPositionColor(keyword.currentPosition),
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 18,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
                                     // Keyword info
                                     Expanded(
                                       child: Column(
@@ -2173,54 +2067,62 @@ class _ChatScreenState extends State<ChatScreen> {
                                         ],
                                       ),
                                     ),
-                                    // Progress indicator
+                                    const SizedBox(width: 16),
+                                    // Sparkline chart
                                     FutureBuilder<Map<String, dynamic>>(
                                       future: Provider.of<AuthProvider>(context, listen: false).apiService.getKeywordHistory(keyword.id),
                                       builder: (context, snapshot) {
                                         if (snapshot.hasData && snapshot.data?['history'] != null) {
                                           final history = snapshot.data!['history'] as List;
-                                          if (history.isNotEmpty) {
-                                            // Get first and last positions
-                                            final firstEntry = history.first as Map<String, dynamic>;
-                                            final lastEntry = history.last as Map<String, dynamic>;
-                                            final initialPosition = firstEntry['position'] as int?;
-                                            final currentPosition = lastEntry['position'] as int?;
+                                          if (history.length >= 2) {
+                                            // Extract positions for sparkline
+                                            final positions = history
+                                                .map((e) => (e as Map<String, dynamic>)['position'] as int?)
+                                                .where((p) => p != null)
+                                                .map((p) => p!.toDouble())
+                                                .toList();
 
-                                            if (initialPosition != null && currentPosition != null && initialPosition != currentPosition) {
-                                              final change = initialPosition - currentPosition;
-                                              final isPositive = change > 0;
+                                            if (positions.length >= 2) {
+                                              final firstPos = positions.first;
+                                              final lastPos = positions.last;
+                                              final change = firstPos - lastPos;
+                                              final isImproving = change > 0;
 
-                                              return Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                                decoration: BoxDecoration(
-                                                  color: isPositive ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2),
-                                                  borderRadius: BorderRadius.circular(12),
-                                                ),
-                                                child: Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    Icon(
-                                                      isPositive ? Icons.trending_up : Icons.trending_down,
-                                                      size: 14,
-                                                      color: isPositive ? Colors.green : Colors.red,
-                                                    ),
-                                                    const SizedBox(width: 2),
-                                                    Text(
-                                                      change.abs().toString(),
-                                                      style: TextStyle(
-                                                        fontSize: 12,
-                                                        fontWeight: FontWeight.w600,
-                                                        color: isPositive ? Colors.green : Colors.red,
-                                                      ),
-                                                    ),
-                                                  ],
+                                              return SizedBox(
+                                                width: 80,
+                                                height: 40,
+                                                child: CustomPaint(
+                                                  painter: SparklinePainter(
+                                                    positions,
+                                                    isImproving ? Colors.green : Colors.red,
+                                                  ),
                                                 ),
                                               );
                                             }
                                           }
                                         }
-                                        return const SizedBox.shrink();
+                                        return const SizedBox(width: 80, height: 40);
                                       },
+                                    ),
+                                    const SizedBox(width: 12),
+                                    // Position badge
+                                    Container(
+                                      width: 48,
+                                      height: 48,
+                                      decoration: BoxDecoration(
+                                        color: _getPositionColor(keyword.currentPosition).withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          keyword.currentPosition?.toString() ?? '101+',
+                                          style: TextStyle(
+                                            color: _getPositionColor(keyword.currentPosition),
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 18,
+                                          ),
+                                        ),
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -2689,6 +2591,61 @@ class _ChatScreenState extends State<ChatScreen> {
     } else {
       return 'Just now';
     }
+  }
+}
+
+// Sparkline painter for keyword ranking history
+class SparklinePainter extends CustomPainter {
+  final List<double> positions;
+  final Color lineColor;
+
+  SparklinePainter(this.positions, this.lineColor);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (positions.length < 2) return;
+
+    final paint = Paint()
+      ..color = lineColor
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+
+    // Find min and max for scaling (remember lower position is better)
+    final minPos = positions.reduce((a, b) => a < b ? a : b);
+    final maxPos = positions.reduce((a, b) => a > b ? a : b);
+    final range = maxPos - minPos;
+
+    if (range == 0) {
+      // All positions are the same, draw a flat line
+      final y = size.height / 2;
+      canvas.drawLine(
+        Offset(0, y),
+        Offset(size.width, y),
+        paint,
+      );
+      return;
+    }
+
+    final path = Path();
+    for (int i = 0; i < positions.length; i++) {
+      final x = (i / (positions.length - 1)) * size.width;
+      // Invert Y because lower ranking position is better (should be higher on graph)
+      final normalizedPos = (maxPos - positions[i]) / range;
+      final y = normalizedPos * size.height;
+
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(SparklinePainter oldDelegate) {
+    return oldDelegate.positions != positions || oldDelegate.lineColor != lineColor;
   }
 }
 
