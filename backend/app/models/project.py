@@ -16,6 +16,7 @@ class Project(Base):
     
     tracked_keywords = relationship("TrackedKeyword", back_populates="project")
     backlink_submissions = relationship("BacklinkSubmission", back_populates="project")
+    backlink_analysis = relationship("BacklinkAnalysis", back_populates="project", uselist=False, cascade="all, delete-orphan")
     user = relationship("User", back_populates="projects")
 
 class TrackedKeyword(Base):

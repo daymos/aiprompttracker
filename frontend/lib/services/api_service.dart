@@ -248,17 +248,21 @@ class ApiService {
     }
   }
   
-  Future<Map<String, dynamic>> getProjectBacklinks(String projectId) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/backlinks/project/$projectId/submissions'),
-      headers: _headers(),
+  Future<Map<String, dynamic>> analyzeProjectBacklinks(String projectId, {bool refresh = false}) async {
+    final uri = Uri.parse('$baseUrl/backlinks/project/$projectId/analyze').replace(
+      queryParameters: {'refresh': refresh.toString()},
     );
     
-    if (response.statusCode != 200) {
-      throw Exception('Failed to fetch backlinks');
+    final response = await http.get(
+      uri,
+      headers: _headers(),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to analyze backlinks: ${response.body}');
     }
-    
-    return json.decode(response.body);
   }
 
   Future<void> deleteProject(String projectId) async {
@@ -270,47 +274,6 @@ class ApiService {
     if (response.statusCode != 200) {
       throw Exception('Failed to delete project');
     }
-  }
-
-  Future<void> updateBacklinkSubmission(String submissionId, String status, {String? notes}) async {
-    final response = await http.patch(
-      Uri.parse('$baseUrl/backlinks/submission/$submissionId'),
-      headers: _headers(),
-      body: jsonEncode({
-        'status': status,
-        if (notes != null && notes.isNotEmpty) 'notes': notes,
-      }),
-    );
-    
-    if (response.statusCode != 200) {
-      throw Exception('Failed to update submission');
-    }
-  }
-
-  Future<Map<String, dynamic>> verifyBacklinkSubmission(String submissionId) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/backlinks/submission/$submissionId/verify'),
-      headers: _headers(),
-    );
-    
-    if (response.statusCode != 200) {
-      throw Exception('Failed to verify submission');
-    }
-    
-    return json.decode(response.body);
-  }
-
-  Future<Map<String, dynamic>> verifyAllBacklinks(String projectId) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/backlinks/project/$projectId/verify-all'),
-      headers: _headers(),
-    );
-
-    if (response.statusCode != 200) {
-      throw Exception('Failed to verify backlinks');
-    }
-
-    return json.decode(response.body);
   }
 
   Future<Map<String, dynamic>> pinItem({

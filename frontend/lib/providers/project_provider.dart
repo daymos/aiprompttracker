@@ -40,12 +40,14 @@ class ProjectProvider with ChangeNotifier {
   Project? _selectedProject; // Currently viewing project
   List<Project> _allProjects = [];
   List<TrackedKeyword> _trackedKeywords = [];
+  Map<String, dynamic>? _backlinksData; // Backlinks data for selected project
   bool _isLoading = false;
 
   Project? get activeProject => _activeProject;
   Project? get selectedProject => _selectedProject;
   List<Project> get allProjects => _allProjects;
   List<TrackedKeyword> get trackedKeywords => _trackedKeywords;
+  Map<String, dynamic>? get backlinksData => _backlinksData;
   bool get isLoading => _isLoading;
 
   Future<void> loadActiveProject(ApiService apiService) async {
@@ -83,7 +85,13 @@ class ProjectProvider with ChangeNotifier {
   
   Future<void> selectProject(ApiService apiService, Project project) async {
     _selectedProject = project;
+    _backlinksData = null; // Clear previous backlinks data
     await loadTrackedKeywords(apiService, project.id);
+    // Load backlinks data in background
+    loadBacklinksData(apiService, project.id).catchError((e) {
+      // Silently handle errors for background loading
+      print('Error loading backlinks data: $e');
+    });
   }
   
   Future<void> loadAllProjects(ApiService apiService) async {
@@ -196,7 +204,31 @@ class ProjectProvider with ChangeNotifier {
 
   void clearSelectedProject() {
     _selectedProject = null;
+    _backlinksData = null; // Clear backlinks data too
     notifyListeners();
+  }
+
+  Future<void> loadBacklinksData(ApiService apiService, String projectId, {bool refresh = false}) async {
+    try {
+      _backlinksData = await apiService.analyzeProjectBacklinks(projectId, refresh: refresh);
+      notifyListeners();
+    } catch (e) {
+      _backlinksData = null;
+      rethrow;
+    }
+  }
+
+  Future<void> refreshBacklinks(ApiService apiService, String projectId) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      // Fetch fresh data from RapidAPI (not cached)
+      await loadBacklinksData(apiService, projectId, refresh: true);
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 }
 

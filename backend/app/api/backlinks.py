@@ -13,13 +13,16 @@ from app.database import get_db
 from app.models.user import User
 from app.models.project import Project
 from app.models.backlink import BacklinkSubmission
+from app.models.backlink_analysis import BacklinkAnalysis
 from app.services.backlink_service import BacklinkService
+from app.services.rapidapi_backlinks_service import RapidAPIBacklinkService
 from app.services.backlink_verifier import BacklinkVerifier
 from app.config import get_settings
 
 router = APIRouter(prefix="/api/v1/backlinks", tags=["backlinks"])
 logger = logging.getLogger(__name__)
 backlink_service = BacklinkService()
+rapidapi_backlink_service = RapidAPIBacklinkService()
 backlink_verifier = BacklinkVerifier()
 settings = get_settings()
 
@@ -27,6 +30,114 @@ settings = get_settings()
 class UpdateSubmissionRequest(BaseModel):
     status: str  # pending, submitted, approved, rejected, indexed
     notes: Optional[str] = None
+
+
+@router.get("/project/{project_id}/analyze")
+async def get_project_backlink_analysis(
+    project_id: str,
+    refresh: bool = False,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """Get backlink analysis for a project (cached or fresh from RapidAPI)
+    
+    Args:
+        project_id: Project ID
+        refresh: If True, fetch fresh data from RapidAPI. If False, return cached data if available.
+    """
+    
+    # Verify token and get user
+    try:
+        token = authorization.replace("Bearer ", "")
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=["HS256"])
+        user_id = payload.get("user_id")
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid authentication")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid authentication")
+    
+    # Get project and verify ownership
+    project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.user_id == user_id
+    ).first()
+    
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Check if we have cached data and user doesn't want refresh
+    if not refresh:
+        existing_analysis = db.query(BacklinkAnalysis).filter(
+            BacklinkAnalysis.project_id == project_id
+        ).first()
+        
+        if existing_analysis:
+            logger.info(f"Returning cached backlink analysis for project {project_id}")
+            return existing_analysis.to_dict()
+    
+    # Need to fetch fresh data from RapidAPI
+    # Extract domain from project URL
+    from urllib.parse import urlparse
+    parsed = urlparse(project.target_url)
+    domain = parsed.netloc or parsed.path
+    domain = domain.replace('www.', '')
+    
+    # Check backlink quota
+    if user.backlink_rows_used >= user.backlink_rows_limit:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Backlink limit reached ({user.backlink_rows_limit}/month)"
+        )
+    
+    # Fetch backlinks from RapidAPI
+    try:
+        logger.info(f"Fetching fresh backlink data for {domain}")
+        backlink_data = await rapidapi_backlink_service.get_backlinks(domain, limit=50)
+        
+        if backlink_data and not backlink_data.get("error"):
+            # Increment usage counter
+            user.backlink_rows_used += 1
+            
+            # Store/update in database
+            existing = db.query(BacklinkAnalysis).filter(
+                BacklinkAnalysis.project_id == project_id
+            ).first()
+            
+            if existing:
+                # Update existing record
+                existing.total_backlinks = backlink_data.get("total_backlinks", 0)
+                existing.referring_domains = backlink_data.get("referring_domains", 0)
+                existing.domain_authority = backlink_data.get("domain_authority", 0)
+                existing.raw_data = backlink_data
+                existing.analyzed_at = datetime.utcnow()
+                analysis = existing
+            else:
+                # Create new record
+                analysis = BacklinkAnalysis(
+                    project_id=project_id,
+                    total_backlinks=backlink_data.get("total_backlinks", 0),
+                    referring_domains=backlink_data.get("referring_domains", 0),
+                    domain_authority=backlink_data.get("domain_authority", 0),
+                    raw_data=backlink_data,
+                    analyzed_at=datetime.utcnow()
+                )
+                db.add(analysis)
+            
+            db.commit()
+            db.refresh(analysis)
+            
+            logger.info(f"Stored backlink analysis: {analysis.total_backlinks} backlinks from {analysis.referring_domains} domains")
+            
+            return analysis.to_dict()
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail=backlink_data.get("error", "Failed to fetch backlinks")
+            )
+    except Exception as e:
+        logger.error(f"Error analyzing backlinks for {domain}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/project/{project_id}/submissions")

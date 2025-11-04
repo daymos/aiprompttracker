@@ -1515,10 +1515,10 @@ class _ChatScreenState extends State<ChatScreen> {
                                 ? null
                                 : () async {
                                     try {
-                                      await authProvider.apiService.verifyAllBacklinks(project.id);
+                                      await projectProvider.refreshBacklinks(authProvider.apiService, project.id);
                                       if (mounted) {
                                         ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Backlinks verified!')),
+                                          const SnackBar(content: Text('Backlinks refreshed!')),
                                         );
                                       }
                                     } catch (e) {
@@ -1631,29 +1631,23 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                         // Backlinks count
                         Expanded(
-                          child: FutureBuilder<Map<String, dynamic>>(
-                            future: authProvider.apiService.getProjectBacklinks(project.id),
-                            builder: (context, snapshot) {
-                              final backlinksCount = snapshot.data?['submissions']?.length ?? 0;
-                              return Column(
-                                children: [
-                                  Text(
-                                    backlinksCount.toString(),
-                                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      color: Theme.of(context).colorScheme.primary,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Backlinks',
-                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: Colors.grey[600],
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
-                              );
-                            },
+                          child: Column(
+                            children: [
+                              Text(
+                                (projectProvider.backlinksData?['total_backlinks'] ?? 0).toString(),
+                                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                              Text(
+                                'Backlinks',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Colors.grey[600],
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
                           ),
                         ),
                         Container(
@@ -2237,341 +2231,197 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildBacklinksTab(Project project) {
-    return FutureBuilder<Map<String, dynamic>>(
-      future: Provider.of<AuthProvider>(context, listen: false)
-          .apiService
-          .getProjectBacklinks(project.id),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        
-        if (snapshot.hasError) {
-          return Center(
-            child: Text('Error: ${snapshot.error}'),
-          );
-        }
-        
-        final data = snapshot.data;
-        final submissions = (data?['submissions'] as List?)?.cast<Map<String, dynamic>>() ?? [];
-        
-        if (submissions.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+    final projectProvider = context.watch<ProjectProvider>();
+    final authProvider = context.watch<AuthProvider>();
+
+    // Load backlinks data if not loaded yet
+    if (projectProvider.backlinksData == null && !projectProvider.isLoading) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        projectProvider.loadBacklinksData(authProvider.apiService, project.id);
+      });
+    }
+
+    if (projectProvider.isLoading && projectProvider.backlinksData == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (projectProvider.backlinksData == null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton(
+              onPressed: () => projectProvider.loadBacklinksData(authProvider.apiService, project.id),
+              icon: const Icon(Icons.refresh),
+              tooltip: 'Load backlinks data',
+            ),
+            const SizedBox(height: 16),
+            const Text('Click to load backlinks data'),
+          ],
+        ),
+      );
+    }
+
+    final data = projectProvider.backlinksData;
+    final backlinks = (data?['backlinks'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    final totalBacklinks = data?['total_backlinks'] ?? 0;
+    final referringDomains = data?['referring_domains'] ?? 0;
+    final domainAuthority = data?['domain_authority'] ?? 0;
+    final analyzedAt = data?['analyzed_at'] as String?;
+
+    if (backlinks.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.link,
+                size: 64,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No Backlinks Analyzed Yet',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Click the button below to analyze backlinks for this project',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  await projectProvider.refreshBacklinks(authProvider.apiService, project.id);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Backlinks analyzed!')),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.refresh),
+                label: const Text('Analyze Backlinks'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        // Summary stats
+        Container(
+          padding: const EdgeInsets.all(16),
+          margin: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceVariant,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  Icon(
-                    Icons.link,
-                    size: 64,
-                    color: Colors.grey[600],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No Backlinks Yet',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Go to chat and say:',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey[500],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceVariant,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '"Submit ${project.name} to directories"',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontFamily: 'monospace',
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
+                  _buildStatusChip('Total Backlinks', totalBacklinks, Theme.of(context).colorScheme.primary),
+                  _buildStatusChip('Referring Domains', referringDomains, Theme.of(context).colorScheme.secondary),
+                  _buildStatusChip('Domain Authority', domainAuthority, Theme.of(context).colorScheme.tertiary),
                 ],
               ),
-            ),
-          );
-        }
-        
-        final statusBreakdown = data?['status_breakdown'] as Map<String, dynamic>?;
-        
-        return Column(
-          children: [
-            // Status summary and verify button
-            Container(
-              padding: const EdgeInsets.all(16),
-              margin: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceVariant,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+              if (analyzedAt != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Last analyzed: ${_formatAnalyzedDate(analyzedAt)}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+
+        // List of backlinks
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: backlinks.length,
+            itemBuilder: (context, index) {
+              final backlink = backlinks[index];
+              final sourceUrl = backlink['url_from'] as String?;
+              final targetUrl = backlink['url_to'] as String?;
+              final anchorText = backlink['anchor'] as String?;
+              final inlinkRank = backlink['inlink_rank'] as num?;
+              final isNofollow = backlink['nofollow'] == true;
+
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: isNofollow 
+                        ? Theme.of(context).colorScheme.surfaceVariant
+                        : Theme.of(context).colorScheme.primaryContainer,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      isNofollow ? Icons.link_off : Icons.link,
+                      color: isNofollow
+                        ? Theme.of(context).colorScheme.onSurfaceVariant
+                        : Theme.of(context).colorScheme.onPrimaryContainer,
+                      size: 20,
+                    ),
+                  ),
+                  title: Text(
+                    sourceUrl ?? 'Unknown source',
+                    style: const TextStyle(fontSize: 14),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildStatusChip('Submitted', statusBreakdown?['submitted'] ?? 0, Colors.green),
-                      _buildStatusChip('Pending', statusBreakdown?['pending'] ?? 0, Colors.orange),
-                      _buildStatusChip('Indexed', statusBreakdown?['indexed'] ?? 0, Colors.blue),
+                      if (anchorText != null && anchorText.isNotEmpty)
+                        Text(
+                          'Anchor: "$anchorText"',
+                          style: const TextStyle(fontSize: 12),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      if (inlinkRank != null)
+                        Text(
+                          'Link Quality: ${inlinkRank.toStringAsFixed(0)}',
+                          style: const TextStyle(fontSize: 12),
+                        ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  ElevatedButton.icon(
-                    onPressed: () async {
-                      try {
-                        final authProvider = Provider.of<AuthProvider>(context, listen: false);
-                        final result = await authProvider.apiService.verifyAllBacklinks(project.id);
-                        if (mounted) {
-                          final found = result['found'] ?? 0;
-                          final total = result['total'] ?? 0;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Verified $total submissions: $found backlinks found'),
-                              duration: const Duration(seconds: 3),
-                            ),
-                          );
-                          setState(() {}); // Refresh to show updated statuses
-                        }
-                      } catch (e) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Error: $e')),
-                          );
-                        }
-                      }
-                    },
-                    icon: const Icon(Icons.check_circle_outline),
-                    label: const Text('Verify All Backlinks'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[700],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // List of submissions
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: submissions.length,
-                itemBuilder: (context, index) {
-                  final submission = submissions[index];
-                  final submissionId = submission['id'] as String;
-                  final directory = submission['directory'] as Map<String, dynamic>?;
-                  final status = submission['status'] as String? ?? 'pending';
-                  final submissionUrl = submission['submission_url'] as String?;
-                  final notes = submission['notes'] as String?;
-                  
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: ExpansionTile(
-                      leading: _buildStatusIcon(status),
-                      title: Text(
-                        directory?['name'] ?? 'Unknown',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(directory?['category'] ?? ''),
-                          if (directory?['tier'] != null)
-                            Text('Tier: ${directory!['tier']} • DA: ${directory['domain_authority'] ?? 'N/A'}'),
-                        ],
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (submissionUrl != null)
-                            IconButton(
-                              icon: const Icon(Icons.open_in_new),
-                              onPressed: () {
-                                // Open URL in browser
-                                // In real app: url_launcher package
-                                print('Open: $submissionUrl');
-                              },
-                            ),
-                          const Icon(Icons.expand_more),
-                        ],
-                      ),
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Status dropdown
-                              Row(
-                                children: [
-                                  const Text('Status: ', style: TextStyle(fontWeight: FontWeight.bold)),
-                                  const SizedBox(width: 8),
-                                  DropdownButton<String>(
-                                    value: status,
-                                    items: const [
-                                      DropdownMenuItem(value: 'pending', child: Text('Pending')),
-                                      DropdownMenuItem(value: 'submitted', child: Text('Submitted')),
-                                      DropdownMenuItem(value: 'approved', child: Text('Approved')),
-                                      DropdownMenuItem(value: 'rejected', child: Text('Rejected')),
-                                      DropdownMenuItem(value: 'indexed', child: Text('Indexed')),
-                                    ],
-                                    onChanged: (newStatus) async {
-                                      if (newStatus != null && newStatus != status) {
-                                        try {
-                                          final authProvider = Provider.of<AuthProvider>(context, listen: false);
-                                          await authProvider.apiService.updateBacklinkSubmission(submissionId, newStatus);
-                                          if (mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(content: Text('Status updated to $newStatus')),
-                                            );
-                                            // Refresh the backlinks tab
-                                            setState(() {});
-                                          }
-                                        } catch (e) {
-                                          if (mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(content: Text('Error: $e')),
-                                            );
-                                          }
-                                        }
-                                      }
-                                    },
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              // Notes section
-                              if (notes != null && notes.isNotEmpty) ...[
-                                const Text('Notes:', style: TextStyle(fontWeight: FontWeight.bold)),
-                                const SizedBox(height: 4),
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[800],
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(notes, style: const TextStyle(fontSize: 12)),
-                                ),
-                                const SizedBox(height: 8),
-                              ],
-                              // Action buttons
-                              Row(
-                                children: [
-                                  // Verify button
-                                  TextButton.icon(
-                                    onPressed: () async {
-                                      try {
-                                        final authProvider = Provider.of<AuthProvider>(context, listen: false);
-                                        final result = await authProvider.apiService.verifyBacklinkSubmission(submissionId);
-                                        if (mounted) {
-                                          final found = result['verification']?['found'] ?? false;
-                                          final newStatus = result['new_status'] ?? status;
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                found 
-                                                  ? 'Backlink verified! Status updated to $newStatus'
-                                                  : 'Backlink not found on directory page yet'
-                                              ),
-                                              duration: const Duration(seconds: 3),
-                                            ),
-                                          );
-                                          setState(() {}); // Refresh
-                                        }
-                                      } catch (e) {
-                                        if (mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(content: Text('Error: $e')),
-                                          );
-                                        }
-                                      }
-                                    },
-                                    icon: const Icon(Icons.check_circle_outline),
-                                    label: const Text('Verify'),
-                                    style: TextButton.styleFrom(
-                                      foregroundColor: Colors.blue,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  // Add note button
-                                  TextButton.icon(
-                                    onPressed: () async {
-                                      final controller = TextEditingController();
-                                      final newNote = await showDialog<String>(
-                                        context: context,
-                                        builder: (context) => AlertDialog(
-                                          title: const Text('Add Note'),
-                                          content: TextField(
-                                            controller: controller,
-                                            decoration: const InputDecoration(
-                                              hintText: 'e.g., Got approval email, backlink is live',
-                                            ),
-                                            maxLines: 3,
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () => Navigator.pop(context),
-                                              child: const Text('Cancel'),
-                                            ),
-                                            TextButton(
-                                              onPressed: () => Navigator.pop(context, controller.text),
-                                              child: const Text('Add'),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                      
-                                      if (newNote != null && newNote.isNotEmpty) {
-                                        try {
-                                          final authProvider = Provider.of<AuthProvider>(context, listen: false);
-                                          await authProvider.apiService.updateBacklinkSubmission(
-                                            submissionId,
-                                            status,
-                                            notes: newNote,
-                                          );
-                                          if (mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(content: Text('Note added')),
-                                            );
-                                            setState(() {});
-                                          }
-                                        } catch (e) {
-                                          if (mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(content: Text('Error: $e')),
-                                            );
-                                          }
-                                        }
-                                      }
-                                    },
-                                    icon: const Icon(Icons.add_comment),
-                                    label: const Text('Add Note'),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        );
-      },
+                  trailing: isNofollow
+                      ? const Chip(
+                          label: Text('NOFOLLOW', style: TextStyle(fontSize: 10)),
+                          padding: EdgeInsets.symmetric(horizontal: 4),
+                        )
+                      : null,
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
   
@@ -2595,6 +2445,23 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
       ],
     );
+  }
+
+  Color _getStatusColor(String? status) {
+    switch (status) {
+      case 'submitted':
+        return Colors.green;
+      case 'pending':
+        return Colors.orange;
+      case 'indexed':
+        return Colors.blue;
+      case 'approved':
+        return Colors.teal;
+      case 'rejected':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
   }
   
   Widget _buildStatusIcon(String status) {
@@ -2781,6 +2648,24 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+
+  String _formatAnalyzedDate(String isoDate) {
+    try {
+      final analyzed = DateTime.parse(isoDate);
+      final now = DateTime.now();
+      final difference = now.difference(analyzed);
+
+      if (difference.inDays > 0) {
+        return '${difference.inDays}d ago';
+      } else if (difference.inHours > 0) {
+        return '${difference.inHours}h ago';
+      } else {
+        return 'Just now';
+      }
+    } catch (e) {
+      return 'Unknown';
+    }
+  }
 
   String _formatLastUpdated(List<TrackedKeyword> keywords) {
     if (keywords.isEmpty) {
