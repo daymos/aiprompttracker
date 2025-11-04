@@ -513,30 +513,36 @@ class _ChatScreenState extends State<ChatScreen> {
                               items: [
                                 DropdownMenuItem(
                                   value: 'ask',
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.chat_bubble_outline,
-                                        size: 12,
-                                        color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      const Text('Ask'),
-                                    ],
+                                  child: Tooltip(
+                                    message: 'Ask Mode: You control the workflow - give direct commands',
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.chat_bubble_outline,
+                                          size: 12,
+                                          color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        const Text('Ask'),
+                                      ],
+                                    ),
                                   ),
                                 ),
                                 DropdownMenuItem(
                                   value: 'agent',
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.auto_awesome,
-                                        size: 12,
-                                        color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      const Text('Agent'),
-                                    ],
+                                  child: Tooltip(
+                                    message: 'Agent Mode: Strategic SEO guidance with proactive recommendations',
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.auto_awesome,
+                                          size: 12,
+                                          color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        const Text('Agent'),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ],
@@ -870,30 +876,36 @@ class _ChatScreenState extends State<ChatScreen> {
                           items: [
                             DropdownMenuItem(
                               value: 'ask',
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.chat_bubble_outline,
-                                    size: 12,
-                                    color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  const Text('Ask'),
-                                ],
+                              child: Tooltip(
+                                message: 'Ask Mode: You control the workflow - give direct commands',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.chat_bubble_outline,
+                                      size: 12,
+                                      color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    const Text('Ask'),
+                                  ],
+                                ),
                               ),
                             ),
                             DropdownMenuItem(
                               value: 'agent',
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.auto_awesome,
-                                    size: 12,
-                                    color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  const Text('Agent'),
-                                ],
+                              child: Tooltip(
+                                message: 'Agent Mode: Strategic SEO guidance with proactive recommendations',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.auto_awesome,
+                                      size: 12,
+                                      color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    const Text('Agent'),
+                                  ],
+                                ),
                               ),
                             ),
                           ],

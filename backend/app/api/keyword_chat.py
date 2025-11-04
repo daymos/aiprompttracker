@@ -45,6 +45,7 @@ class ConversationListItem(BaseModel):
     title: str
     created_at: str
     message_count: int
+    project_names: List[str] = []
 
 async def send_sse_event(event_type: str, data: dict) -> str:
     """Format data as Server-Sent Event"""
@@ -1421,11 +1422,59 @@ async def get_conversations(
             Message.conversation_id == conv.id
         ).count()
         
+        # Extract project IDs from messages in this conversation
+        messages = db.query(Message).filter(
+            Message.conversation_id == conv.id
+        ).all()
+        
+        project_ids = set()
+        
+        # 1. Check message metadata for explicit project_id
+        for msg in messages:
+            if msg.message_metadata and isinstance(msg.message_metadata, dict):
+                if 'project_id' in msg.message_metadata:
+                    project_ids.add(msg.message_metadata['project_id'])
+        
+        # 2. If no explicit project_id, try to match by project name/URL in title and messages
+        if not project_ids:
+            # Get all user's projects
+            user_projects = db.query(Project).filter(
+                Project.user_id == user.id
+            ).all()
+            
+            # Build search text from title and messages
+            search_text = (conv.title or "").lower()
+            for msg in messages[:5]:  # Check first 5 messages only for performance
+                search_text += " " + msg.content.lower()
+            
+            # Check if any project name or URL appears in the text
+            for project in user_projects:
+                # Check project name
+                if project.name and project.name.lower() in search_text:
+                    project_ids.add(project.id)
+                # Check project URL (extract domain)
+                elif project.target_url:
+                    from urllib.parse import urlparse
+                    parsed = urlparse(project.target_url)
+                    domain = parsed.netloc or parsed.path
+                    domain = domain.replace('www.', '').replace('https://', '').replace('http://', '')
+                    if domain and domain in search_text:
+                        project_ids.add(project.id)
+        
+        # Get project names
+        project_names = []
+        if project_ids:
+            projects = db.query(Project).filter(
+                Project.id.in_(project_ids)
+            ).all()
+            project_names = [p.name for p in projects if p.name]
+        
         result.append(ConversationListItem(
             id=conv.id,
             title=conv.title or "Untitled Conversation",
             created_at=conv.created_at.isoformat(),
-            message_count=message_count
+            message_count=message_count,
+            project_names=project_names
         ))
     
     return result
@@ -1462,7 +1511,8 @@ async def get_conversation(
                 "id": msg.id,
                 "role": msg.role,
                 "content": msg.content,
-                "created_at": msg.created_at.isoformat()
+                "created_at": msg.created_at.isoformat(),
+                "message_metadata": msg.message_metadata
             }
             for msg in messages
         ]
@@ -1497,6 +1547,72 @@ async def delete_conversation(
     db.commit()
     
     return {"message": "Conversation deleted successfully"}
+
+class RenameConversationRequest(BaseModel):
+    title: str
+
+@router.put("/conversation/{conversation_id}/rename")
+async def rename_conversation(
+    conversation_id: str,
+    request: RenameConversationRequest,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """Rename a conversation"""
+    
+    token = authorization.replace("Bearer ", "")
+    user = get_current_user(token, db)
+    
+    conversation = db.query(Conversation).filter(
+        Conversation.id == conversation_id,
+        Conversation.user_id == user.id
+    ).first()
+    
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    # Update the title
+    conversation.title = request.title
+    db.commit()
+    
+    return {"message": "Conversation renamed successfully", "title": conversation.title}
+
+@router.delete("/conversations/all")
+async def delete_all_conversations(
+    authorization: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """Delete all conversations for the current user"""
+    
+    token = authorization.replace("Bearer ", "")
+    user = get_current_user(token, db)
+    
+    # Get all user's conversations
+    conversations = db.query(Conversation).filter(
+        Conversation.user_id == user.id
+    ).all()
+    
+    conversation_ids = [conv.id for conv in conversations]
+    
+    if not conversation_ids:
+        return {"message": "No conversations to delete", "count": 0}
+    
+    # Delete all messages for these conversations
+    deleted_messages = db.query(Message).filter(
+        Message.conversation_id.in_(conversation_ids)
+    ).delete(synchronize_session=False)
+    
+    # Delete all conversations
+    deleted_conversations = db.query(Conversation).filter(
+        Conversation.user_id == user.id
+    ).delete(synchronize_session=False)
+    
+    db.commit()
+    
+    return {
+        "message": f"Deleted {deleted_conversations} conversations and {deleted_messages} messages",
+        "count": deleted_conversations
+    }
 
 def should_fetch_keyword_data(message: str) -> bool:
     """Determine if we should fetch keyword data based on the message"""

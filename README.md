@@ -4,11 +4,31 @@ Simple conversational keyword research tool. Stop paying $65/month for Mangools 
 
 ## Features
 
-- 💬 Chat-based keyword research
-- 🔍 Real keyword data from RapidAPI
-- 🤖 AI-powered recommendations
-- 📊 Conversation history
-- 🔐 Google Sign-In authentication
+- 💬 **Chat-based keyword research** - Natural language interface for SEO
+- 🤖 **Intelligent Agent Mode** - Strategic SEO guidance with chain-of-thought reasoning
+- 🔍 **Real keyword data** - Search volume, competition, and SERP analysis
+- 🎯 **Opportunity keywords** - Find low-competition, high-potential targets
+- 📊 **Comprehensive analysis** - Website crawling, backlink analysis, rank tracking
+- 📌 **Pinboard** - Save important insights and strategies
+- 🗂️ **Project tracking** - Monitor multiple sites and keywords
+- 📈 **Conversation history** - Access past research and recommendations
+- 🔐 **Secure auth** - Google Sign-In authentication
+
+### 🤖 Agent Mode vs Ask Mode
+
+**Ask Mode (Default):** You control the workflow - give direct commands
+- "Research keywords for AI chatbots"
+- "Check my ranking for [keyword]"
+- "Analyze example.com"
+
+**Agent Mode (Strategic):** AI-guided SEO strategy with proactive recommendations
+- Deep chain-of-thought analysis
+- Opinionated, data-driven guidance
+- 3-tier keyword prioritization (Quick Wins → Authority → Long-term)
+- Competitive intelligence and content strategy
+- Comprehensive SEO roadmaps
+
+See [AGENT_MODE_GUIDE.md](AGENT_MODE_GUIDE.md) for detailed documentation and [AGENT_MODE_EXAMPLES.md](AGENT_MODE_EXAMPLES.md) for real examples.
 
 ## Tech Stack
 
