@@ -22,6 +22,7 @@ class TrackedKeyword {
   final String? competition;
   final int? currentPosition;
   final int targetPosition;
+  final String source; // "manual" or "auto_detected"
   final DateTime createdAt;
 
   TrackedKeyword({
@@ -31,6 +32,7 @@ class TrackedKeyword {
     this.competition,
     this.currentPosition,
     required this.targetPosition,
+    this.source = 'manual', // Default for backward compatibility
     required this.createdAt,
   });
 }
@@ -127,8 +129,10 @@ class ProjectProvider with ChangeNotifier {
       
       _activeProject = newProject;
       _selectedProject = newProject; // Auto-select the new project
-      _trackedKeywords = [];
       await loadAllProjects(apiService); // Refresh all projects list
+      
+      // Load any auto-detected keywords that were created
+      await loadTrackedKeywords(apiService, newProject.id);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -146,6 +150,7 @@ class ProjectProvider with ChangeNotifier {
         competition: k['competition'],
         currentPosition: k['current_position'],
         targetPosition: k['target_position'],
+        source: k['source'] ?? 'manual', // Default to manual if not present
         createdAt: DateTime.parse(k['created_at']),
       )).toList();
       
@@ -174,6 +179,7 @@ class ProjectProvider with ChangeNotifier {
         competition: response['competition'],
         currentPosition: response['current_position'],
         targetPosition: response['target_position'],
+        source: response['source'] ?? 'manual', // Default to manual if not present
         createdAt: DateTime.parse(response['created_at']),
       );
 
@@ -182,6 +188,48 @@ class ProjectProvider with ChangeNotifier {
         _trackedKeywords.add(newKeyword);
       }
       notifyListeners();
+    } catch (e) {
+      rethrow;
+    }
+  }
+  
+  Future<void> deleteKeyword(ApiService apiService, String keywordId) async {
+    try {
+      await apiService.deleteKeyword(keywordId);
+      
+      // Remove from local list
+      _trackedKeywords.removeWhere((k) => k.id == keywordId);
+      notifyListeners();
+    } catch (e) {
+      rethrow;
+    }
+  }
+  
+  Future<void> deleteMultipleKeywords(ApiService apiService, List<String> keywordIds) async {
+    if (keywordIds.isEmpty) return;
+    
+    try {
+      // Delete keywords one by one to handle partial failures better
+      final errors = <String>[];
+      for (final id in keywordIds) {
+        try {
+          await apiService.deleteKeyword(id);
+        } catch (e) {
+          errors.add(id);
+        }
+      }
+      
+      // Remove successfully deleted keywords from local list
+      final successfullyDeleted = keywordIds.where((id) => !errors.contains(id)).toList();
+      if (successfullyDeleted.isNotEmpty) {
+        _trackedKeywords.removeWhere((k) => successfullyDeleted.contains(k.id));
+        notifyListeners();
+      }
+      
+      // If there were errors, throw with details
+      if (errors.isNotEmpty) {
+        throw Exception('Failed to delete ${errors.length} keyword(s)');
+      }
     } catch (e) {
       rethrow;
     }

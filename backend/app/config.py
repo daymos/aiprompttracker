@@ -6,6 +6,10 @@ class Settings(BaseSettings):
     RAPIDAPI_KEY: str = ""
     GROQ_API_KEY: str = ""
     
+    # DataForSEO API (for rank checking)
+    DATAFORSEO_LOGIN: str = ""
+    DATAFORSEO_PASSWORD: str = ""
+    
     # Auth
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"

@@ -13,7 +13,6 @@ from urllib.parse import urljoin, urlparse
 from ..database import get_db
 from ..models.user import User
 from ..models.project import Project, TrackedKeyword, KeywordRanking
-from ..models.backlink import BacklinkSubmission, BacklinkCampaign
 from ..models.pin import PinnedItem
 from ..services.rank_checker import RankCheckerService
 from .auth import get_current_user

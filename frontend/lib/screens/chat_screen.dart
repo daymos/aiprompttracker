@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/chat_provider.dart';
 import '../providers/project_provider.dart';
+import '../services/api_service.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/conversation_list.dart';
 import '../widgets/theme_switcher.dart';
@@ -1717,7 +1718,14 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                   const SizedBox(height: 16),
                 ],
-                // Key Metrics Cards
+                // Backlink Profile Metrics
+                Text(
+                  'Backlink Profile',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
                 Row(
                   children: [
                     Expanded(
@@ -1753,14 +1761,19 @@ class _ChatScreenState extends State<ChatScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: _buildMetricCard(
-                        'New/Lost (7d)',
-                        _getNewLostSummary(newAndLost),
-                        Icons.trending_up,
-                        Colors.green[400]!,
+                        'Spam Score',
+                        _getSpamScore(backlinksData),
+                        Icons.security,
+                        _getSpamScoreColor(backlinksData),
                       ),
                     ),
                   ],
                 ),
+                
+                const SizedBox(height: 24),
+                
+                // Keyword Visibility Section
+                _buildKeywordVisibilitySection(projectProvider),
                 
                 const SizedBox(height: 24),
                 
@@ -1788,55 +1801,11 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                ],
-                
-                // Backlinks Growth Chart
-                if (overtime.isNotEmpty) ...[
-                  Text(
-                    'Backlinks Growth',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 8),
-                          SizedBox(
-                            height: 200,
-                            child: _buildBacklinksChart(overtime),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                ],
-                
-                // Recent Activity
-                if (newAndLost.isNotEmpty) ...[
-                  Text(
-                    'Recent Activity (Last 30 Days)',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: _buildActivityList(newAndLost.take(10).toList()),
-                    ),
-                  ),
                 ],
                 
                 // If no data
-                if (overtime.isEmpty && newAndLost.isEmpty) ...[
+                if (overtime.isEmpty && totalBacklinks == 0) ...[
+                  const SizedBox(height: 24),
                   Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -1848,7 +1817,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'No Data Yet',
+                          'No Backlink Data Yet',
                           style: TextStyle(
                             fontSize: 20,
                             color: Colors.grey[600],
@@ -1922,23 +1891,41 @@ class _ChatScreenState extends State<ChatScreen> {
     return number.toString();
   }
   
-  String _getNewLostSummary(List newAndLost) {
-    if (newAndLost.isEmpty) return '0/0';
+  String _getSpamScore(Map<String, dynamic>? backlinksData) {
+    if (backlinksData == null) return 'N/A';
     
-    int totalNew = 0;
-    int totalLost = 0;
+    // Try to get spam score from backlinks data
+    final backlinks = backlinksData['backlinks'] as List?;
+    if (backlinks == null || backlinks.isEmpty) return 'N/A';
     
-    // Last 7 days
-    final recentData = newAndLost.take(7).toList();
-    for (var day in recentData) {
-      totalNew += (day['new_backlinks'] ?? 0) as int;
-      totalLost += (day['lost_backlinks'] ?? 0) as int;
+    // Calculate average spam score from backlinks
+    int totalSpam = 0;
+    int count = 0;
+    for (var link in backlinks) {
+      final spam = link['spam_score'];
+      if (spam != null) {
+        totalSpam += spam as int;
+        count++;
+      }
     }
     
-    final newStr = totalNew > 0 ? '+${_formatNumber(totalNew)}' : '0';
-    final lostStr = totalLost > 0 ? '-${_formatNumber(totalLost)}' : '0';
+    if (count == 0) return 'N/A';
+    final avgSpam = (totalSpam / count).round();
+    return '$avgSpam%';
+  }
+  
+  Color _getSpamScoreColor(Map<String, dynamic>? backlinksData) {
+    if (backlinksData == null) return Colors.grey[600]!;
     
-    return '$newStr / $lostStr';
+    final scoreStr = _getSpamScore(backlinksData);
+    if (scoreStr == 'N/A') return Colors.grey[600]!;
+    
+    final score = int.tryParse(scoreStr.replaceAll('%', '')) ?? 0;
+    
+    if (score >= 60) return Colors.red[600]!;
+    if (score >= 30) return Colors.orange[600]!;
+    if (score >= 10) return Colors.yellow[700]!;
+    return Colors.green[600]!;
   }
   
   Widget _buildHistoricalChart(List overtime) {
@@ -1956,77 +1943,181 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
   
-  Widget _buildBacklinksChart(List overtime) {
-    // Simple line chart for backlinks
-    final data = overtime.take(30).toList().reversed.toList();
+  Widget _buildKeywordVisibilitySection(ProjectProvider projectProvider) {
+    final keywords = projectProvider.trackedKeywords;
     
-    return CustomPaint(
-      painter: LineChartPainter(
-        data: data,
-        color: Colors.blue[400]!,
-        dataKey: 'backlinks',
-        labelFormatter: (value) => _formatNumber(value.toInt()),
-      ),
-      child: Container(),
+    if (keywords.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Keyword Visibility',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Center(
+                child: Text(
+                  'No tracked keywords yet',
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+    
+    // Calculate stats
+    int totalKeywords = keywords.length;
+    int top3Keywords = keywords.where((k) => k.currentPosition != null && k.currentPosition! <= 3).length;
+    int top10Keywords = keywords.where((k) => k.currentPosition != null && k.currentPosition! <= 10).length;
+    
+    // Calculate average position
+    final rankedKeywords = keywords.where((k) => k.currentPosition != null).toList();
+    double avgPosition = 0;
+    if (rankedKeywords.isNotEmpty) {
+      avgPosition = rankedKeywords.map((k) => k.currentPosition!).reduce((a, b) => a + b) / rankedKeywords.length;
+    }
+    
+    // Calculate not ranking vs ranking
+    int ranking = rankedKeywords.length;
+    int notRanking = totalKeywords - ranking;
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Keyword Visibility',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildMetricCard(
+                'Total Keywords',
+                totalKeywords.toString(),
+                Icons.key,
+                Colors.indigo[400]!,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildMetricCard(
+                'Top 3 Rankings',
+                top3Keywords.toString(),
+                Icons.emoji_events,
+                Colors.amber[600]!,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildMetricCard(
+                'Top 10 Rankings',
+                top10Keywords.toString(),
+                Icons.trending_up,
+                Colors.green[600]!,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildMetricCard(
+                'Avg Position',
+                rankedKeywords.isEmpty ? 'N/A' : avgPosition.toStringAsFixed(1),
+                Icons.analytics_outlined,
+                _getAvgPositionColor(avgPosition),
+              ),
+            ),
+          ],
+        ),
+        if (totalKeywords > 0) ...[
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  Column(
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.visibility, color: Colors.green[600], size: 20),
+                          const SizedBox(width: 4),
+                          Text(
+                            '$ranking',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Ranking',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (notRanking > 0)
+                    Column(
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.visibility_off, color: Colors.grey[600], size: 20),
+                            const SizedBox(width: 4),
+                            Text(
+                              '$notRanking',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Not Ranking',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
   
-  Widget _buildActivityList(List newAndLost) {
-    return Column(
-      children: newAndLost.map((day) {
-        final date = day['date'] ?? 'Unknown';
-        final newLinks = day['new_backlinks'] ?? 0;
-        final lostLinks = day['lost_backlinks'] ?? 0;
-        
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0),
-          child: Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: Text(
-                  date,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ),
-              Expanded(
-                child: Row(
-                  children: [
-                    Icon(Icons.add, size: 16, color: Colors.green[600]),
-                    const SizedBox(width: 4),
-                    Text(
-                      newLinks.toString(),
-                      style: TextStyle(
-                        color: Colors.green[600],
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: Row(
-                  children: [
-                    Icon(Icons.remove, size: 16, color: Colors.red[600]),
-                    const SizedBox(width: 4),
-                    Text(
-                      lostLinks.toString(),
-                      style: TextStyle(
-                        color: Colors.red[600],
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      }).toList(),
-    );
+  Color _getAvgPositionColor(double avgPosition) {
+    if (avgPosition == 0) return Colors.grey[600]!;
+    if (avgPosition <= 3) return Colors.amber[600]!;
+    if (avgPosition <= 10) return Colors.green[600]!;
+    if (avgPosition <= 20) return Colors.blue[600]!;
+    if (avgPosition <= 50) return Colors.orange[600]!;
+    return Colors.grey[600]!;
   }
 
   Widget _buildPinboardTab(Project project) {
@@ -2465,6 +2556,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   // Selected keywords state
   final Set<String> _selectedKeywordIds = {};
+  bool _isDeletingKeywords = false;
 
   Widget _buildKeywordsTab(ProjectProvider projectProvider, List<TrackedKeyword> keywords) {
     return projectProvider.isLoading
@@ -2553,21 +2645,28 @@ class _ChatScreenState extends State<ChatScreen> {
                           ),
                           const SizedBox(width: 8),
                           TextButton.icon(
-                            onPressed: () async {
+                            onPressed: (_isDeletingKeywords || _selectedKeywordIds.isEmpty) ? null : () async {
+                              // Capture everything we need before any async operations
+                              final scaffoldMessenger = ScaffoldMessenger.of(context);
+                              final apiService = context.read<ApiService>();
+                              final projectProvider = context.read<ProjectProvider>();
+                              final keywordIds = _selectedKeywordIds.toList();
+                              final count = keywordIds.length;
+                              
                               final confirm = await showDialog<bool>(
                                 context: context,
-                                builder: (context) => AlertDialog(
+                                builder: (dialogContext) => AlertDialog(
                                   title: const Text('Remove Keywords'),
-                                  content: Text('Permanently remove ${_selectedKeywordIds.length} keyword(s)?'),
+                                  content: Text('Permanently remove $count keyword(s)?'),
                                   actions: [
                                     TextButton(
-                                      onPressed: () => Navigator.pop(context, false),
+                                      onPressed: () => Navigator.pop(dialogContext, false),
                                       child: const Text('Cancel'),
                                     ),
                                     FilledButton(
-                                      onPressed: () => Navigator.pop(context, true),
+                                      onPressed: () => Navigator.pop(dialogContext, true),
                                       style: FilledButton.styleFrom(
-                                        backgroundColor: Theme.of(context).colorScheme.error,
+                                        backgroundColor: Theme.of(dialogContext).colorScheme.error,
                                       ),
                                       child: const Text('Remove'),
                                     ),
@@ -2575,20 +2674,58 @@ class _ChatScreenState extends State<ChatScreen> {
                                 ),
                               );
                               
-                              if (confirm == true && mounted) {
-                                // TODO: Implement remove keywords API call
+                              if (confirm != true) return;
+                              if (!mounted) return;
+                              if (_isDeletingKeywords) return; // Prevent double-tap
+                              
+                              setState(() {
+                                _isDeletingKeywords = true;
+                              });
+                              
+                              try {
+                                // Delete keywords
+                                await projectProvider.deleteMultipleKeywords(
+                                  apiService,
+                                  keywordIds,
+                                );
+                                
+                                if (!mounted) return;
+                                
+                                // Clear selection after successful deletion
                                 setState(() {
                                   _selectedKeywordIds.clear();
+                                  _isDeletingKeywords = false;
                                 });
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Keywords removed')),
-                                  );
-                                }
+                                
+                                scaffoldMessenger.showSnackBar(
+                                  SnackBar(
+                                    content: Text('$count keyword(s) removed'),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                              } catch (e) {
+                                if (!mounted) return;
+                                
+                                setState(() {
+                                  _isDeletingKeywords = false;
+                                });
+                                
+                                scaffoldMessenger.showSnackBar(
+                                  SnackBar(
+                                    content: Text('Failed to remove keywords: $e'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
                               }
                             },
-                            icon: const Icon(Icons.delete_outline),
-                            label: const Text('Remove'),
+                            icon: _isDeletingKeywords 
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : const Icon(Icons.delete_outline),
+                            label: Text(_isDeletingKeywords ? 'Removing...' : 'Remove'),
                             style: TextButton.styleFrom(
                               foregroundColor: Theme.of(context).colorScheme.error,
                             ),
@@ -2666,11 +2803,45 @@ class _ChatScreenState extends State<ChatScreen> {
                                           child: Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              Text(
-                                                keyword.keyword,
-                                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                                  fontWeight: FontWeight.bold,
-                                                ),
+                                              Row(
+                                                children: [
+                                                  Expanded(
+                                                    child: Text(
+                                                      keyword.keyword,
+                                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                                        fontWeight: FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  if (keyword.source == 'auto_detected')
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.blue.withOpacity(0.1),
+                                                        borderRadius: BorderRadius.circular(12),
+                                                        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                                                      ),
+                                                      child: Row(
+                                                        mainAxisSize: MainAxisSize.min,
+                                                        children: [
+                                                          Icon(
+                                                            Icons.auto_awesome,
+                                                            size: 12,
+                                                            color: Colors.blue,
+                                                          ),
+                                                          const SizedBox(width: 4),
+                                                          Text(
+                                                            'Currently Targeting',
+                                                            style: TextStyle(
+                                                              fontSize: 10,
+                                                              fontWeight: FontWeight.w600,
+                                                              color: Colors.blue,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                ],
                                               ),
                                               const SizedBox(height: 4),
                                               Row(

@@ -213,6 +213,17 @@ class ApiService {
     }
   }
   
+  Future<void> deleteKeyword(String keywordId) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/project/keywords/$keywordId'),
+      headers: _headers(),
+    );
+    
+    if (response.statusCode != 200) {
+      throw Exception('Failed to delete keyword: ${response.body}');
+    }
+  }
+  
   Future<void> refreshRankings(String projectId) async {
     final response = await http.post(
       Uri.parse('$baseUrl/project/$projectId/refresh'),
