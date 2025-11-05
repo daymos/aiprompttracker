@@ -11,24 +11,21 @@ settings = get_settings()
 class DataForSEOService:
     """Service for DataForSEO API - handles rank checking, SERP analysis, and keyword research
     
-    Two modes for rank checking:
-    1. Live API (instant, ~2 sec, $0.0125/keyword) - DEFAULT
-    2. Task API (20-25 sec, $0.0006/keyword) - For batch/premium features
+    All APIs use LIVE mode for instant results:
+    - Rank checking: ~2 sec, $0.0125/keyword (instant!)
+    - SERP analysis: ~2 sec, $0.0125/request (instant!)
+    - Keyword research: ~2 sec, $0.002/request (instant!)
     
-    Keyword research costs:
-    - Keywords for Keywords: ~$0.002 per request
-    - Search Volume: ~$0.001 per keyword
-    - No rate limits (40,000 req/min)
+    Rate limits: 40,000 requests/min (no bottleneck!)
     
     Docs: https://docs.dataforseo.com/
     """
     
-    def __init__(self, use_live_api: bool = True):
+    def __init__(self):
         self.base_url = "https://api.dataforseo.com/v3"
         # DataForSEO uses login:password for Basic Auth
         self.login = settings.DATAFORSEO_LOGIN
         self.password = settings.DATAFORSEO_PASSWORD
-        self.use_live_api = use_live_api  # Toggle between live/task API for rank checking
         
     def _get_location_code(self, location: str) -> int:
         """Convert location name to DataForSEO location code"""
@@ -330,25 +327,214 @@ class DataForSEOService:
         # Default to informational
         return 'informational'
     
-    # ==================== RANK CHECKING METHODS (keeping existing) ====================
+    # ==================== RANK CHECKING METHODS ====================
     
     async def check_ranking(self, keyword: str, target_domain: str, location: str = "United States") -> Optional[Dict[str, Any]]:
-        """Check keyword ranking - uses task API (working with your credentials)"""
-        # Note: Full implementation available if needed
-        # For now, returning None to not break existing code
-        logger.warning("check_ranking not fully implemented yet - returning None")
-        return None
+        """
+        Check keyword ranking using DataForSEO SERP API (live/instant)
+        
+        Cost: ~$0.0125 per keyword
+        Time: ~2 seconds (instant results!)
+        
+        Args:
+            keyword: Keyword to check
+            target_domain: Domain to check ranking for (e.g., "keywords.chat")
+            location: Location name or code
+            
+        Returns:
+            {
+                "position": 5,  # Ranking position (1-100, None if not found)
+                "url": "https://keywords.chat/...",  # URL that ranked
+                "title": "Page Title",
+                "description": "Meta description",
+                "competitiveness": 0.75,  # 0-1 scale
+                "total_results": 1500000
+            }
+        """
+        logger.info(f"🔍 Checking ranking for '{keyword}' targeting {target_domain}")
+        
+        if not self.login or not self.password:
+            logger.error("DataForSEO credentials not configured")
+            return None
+        
+        try:
+            location_code = self._get_location_code(location)
+            
+            # Clean target domain (remove protocol, www, trailing slash)
+            clean_domain = target_domain.lower()
+            for prefix in ['https://', 'http://', 'www.']:
+                clean_domain = clean_domain.replace(prefix, '')
+            clean_domain = clean_domain.rstrip('/')
+            
+            # Use Live API for instant results
+            live_endpoint = f"{self.base_url}/serp/google/organic/live/advanced"
+            
+            payload = [{
+                "keyword": keyword,
+                "location_code": location_code,
+                "language_code": "en",
+                "device": "desktop",
+                "os": "windows",
+                "depth": 100  # Check top 100 results
+            }]
+            
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    live_endpoint,
+                    json=payload,
+                    auth=(self.login, self.password)
+                )
+                
+                if response.status_code != 200:
+                    logger.error(f"Live API failed: {response.status_code} - {response.text}")
+                    return None
+                
+                result = response.json()
+                
+                if result.get("status_code") != 20000:
+                    logger.error(f"API error: {result.get('status_message')}")
+                    return None
+                
+                # Parse results
+                tasks = result.get('tasks', [])
+                if not tasks or not tasks[0].get('result'):
+                    logger.warning("No results returned from live API")
+                    return None
+                
+                task_result = tasks[0]['result'][0]
+                items = task_result.get('items', [])
+                
+                # Find our domain in results
+                position = None
+                ranked_url = None
+                title = None
+                description = None
+                
+                for item in items:
+                    if item.get('type') == 'organic':
+                        item_url = item.get('url', '')
+                        # Check if this result is from our domain
+                        if clean_domain in item_url.lower():
+                            position = item.get('rank_absolute')
+                            ranked_url = item_url
+                            title = item.get('title', '')
+                            description = item.get('description', '')
+                            logger.info(f"✅ Found {target_domain} at position {position}")
+                            break
+                
+                if position is None:
+                    logger.info(f"❌ {target_domain} not found in top 100 for '{keyword}'")
+                
+                return {
+                    "position": position,
+                    "url": ranked_url,
+                    "title": title,
+                    "description": description,
+                    "competitiveness": task_result.get('se_results_count', 0) / 10000000,  # Rough estimate
+                    "total_results": task_result.get('se_results_count', 0)
+                }
+                
+        except Exception as e:
+            logger.error(f"Error checking ranking: {e}")
+            return None
     
     async def check_multiple_rankings(self, keywords: List[str], target_domain: str, location: str = "United States") -> Dict[str, Dict[str, Any]]:
-        """Batch check rankings"""
-        # Note: Full implementation available if needed
-        # For now, returning empty dict to not break existing code
-        logger.warning("check_multiple_rankings not fully implemented yet - returning empty dict")
-        return {}
+        """
+        Batch check rankings for multiple keywords (parallel processing)
+        
+        Cost: ~$0.0125 per keyword
+        Time: ~2 seconds total (all checked in parallel!)
+        """
+        logger.info(f"🔍 Batch checking {len(keywords)} keywords for {target_domain}")
+        
+        # Process all keywords in parallel
+        tasks = [
+            self.check_ranking(keyword, target_domain, location)
+            for keyword in keywords
+        ]
+        
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Build result dict
+        result_dict = {}
+        for keyword, result in zip(keywords, results):
+            if isinstance(result, Exception):
+                logger.error(f"Error checking '{keyword}': {result}")
+                result_dict[keyword] = None
+            else:
+                result_dict[keyword] = result
+        
+        logger.info(f"✅ Batch check complete: {sum(1 for r in result_dict.values() if r)} successful")
+        
+        return result_dict
     
     async def get_serp_analysis(self, keyword: str, location: str = "United States") -> Optional[Dict[str, Any]]:
-        """Get SERP analysis"""
-        # Note: Full implementation available if needed  
-        # For now, returning None to not break existing code
-        logger.warning("get_serp_analysis not fully implemented yet - returning None")
-        return None
+        """
+        Get SERP analysis (competitive analysis, featured snippets, etc.)
+        
+        Uses live API for instant results
+        Returns detailed SERP data including top 10 results
+        """
+        logger.info(f"🔍 Getting SERP analysis for '{keyword}'")
+        
+        if not self.login or not self.password:
+            logger.error("DataForSEO credentials not configured")
+            return None
+        
+        try:
+            location_code = self._get_location_code(location)
+            
+            # Use Live API
+            live_endpoint = f"{self.base_url}/serp/google/organic/live/advanced"
+            
+            payload = [{
+                "keyword": keyword,
+                "location_code": location_code,
+                "language_code": "en",
+                "device": "desktop",
+                "os": "windows",
+                "depth": 10  # Top 10 for analysis
+            }]
+            
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    live_endpoint,
+                    json=payload,
+                    auth=(self.login, self.password)
+                )
+                
+                if response.status_code != 200:
+                    logger.error(f"Live API failed: {response.status_code}")
+                    return None
+                
+                result = response.json()
+                
+                if result.get("status_code") != 20000:
+                    logger.error(f"API error: {result.get('status_message')}")
+                    return None
+                
+                tasks = result.get('tasks', [])
+                if not tasks or not tasks[0].get('result'):
+                    return None
+                
+                task_result = tasks[0]['result'][0]
+                
+                return {
+                    "keyword": keyword,
+                    "total_results": task_result.get('se_results_count', 0),
+                    "top_results": [
+                        {
+                            "position": item.get('rank_absolute'),
+                            "url": item.get('url'),
+                            "domain": item.get('domain'),
+                            "title": item.get('title'),
+                            "description": item.get('description')
+                        }
+                        for item in task_result.get('items', [])
+                        if item.get('type') == 'organic'
+                    ][:10]
+                }
+                
+        except Exception as e:
+            logger.error(f"Error getting SERP analysis: {e}")
+            return None

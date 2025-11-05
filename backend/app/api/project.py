@@ -31,6 +31,7 @@ class AddKeywordRequest(BaseModel):
     keyword: str
     search_volume: Optional[int] = None
     competition: Optional[str] = None
+    target_page: Optional[str] = None  # Specific page to track (e.g., "/blog/seo-tips")
 
 class ProjectResponse(BaseModel):
     id: str
@@ -45,6 +46,9 @@ class TrackedKeywordResponse(BaseModel):
     competition: Optional[str]
     current_position: Optional[int]
     target_position: int
+    target_page: Optional[str]  # Desired page to rank
+    ranking_page: Optional[str]  # Actual page currently ranking
+    is_correct_page: Optional[bool]  # True if ranking_page matches target_page (or any page if no target)
     created_at: str
 
 class PinItemRequest(BaseModel):
@@ -181,7 +185,8 @@ async def add_keyword_to_project(
         project_id=project_id,
         keyword=request.keyword,
         search_volume=request.search_volume,
-        competition=request.competition
+        competition=request.competition,
+        target_page=request.target_page
     )
     db.add(tracked_keyword)
     db.commit()
@@ -190,15 +195,27 @@ async def add_keyword_to_project(
     # Check initial ranking
     ranking_result = await rank_checker.check_ranking(request.keyword, project.target_url)
     
+    ranking_page = None
+    is_correct_page = None
+    
     if ranking_result:
+        ranking_page = ranking_result.get('url')
         initial_ranking = KeywordRanking(
             id=str(uuid.uuid4()),
             tracked_keyword_id=tracked_keyword.id,
             position=ranking_result.get('position'),
-            page_url=ranking_result.get('page_url')
+            page_url=ranking_page
         )
         db.add(initial_ranking)
         db.commit()
+        
+        # Check if correct page is ranking
+        if tracked_keyword.target_page:
+            # User specified a target page, check if it matches
+            is_correct_page = tracked_keyword.target_page in (ranking_page or '')
+        else:
+            # No target specified, any page from the domain is correct
+            is_correct_page = ranking_page is not None
     
     return TrackedKeywordResponse(
         id=tracked_keyword.id,
@@ -207,6 +224,9 @@ async def add_keyword_to_project(
         competition=tracked_keyword.competition,
         current_position=ranking_result.get('position') if ranking_result else None,
         target_position=tracked_keyword.target_position,
+        target_page=tracked_keyword.target_page,
+        ranking_page=ranking_page,
+        is_correct_page=is_correct_page,
         created_at=tracked_keyword.created_at.isoformat()
     )
 
@@ -239,6 +259,18 @@ async def get_project_keywords(
             KeywordRanking.tracked_keyword_id == kw.id
         ).order_by(KeywordRanking.checked_at.desc()).first()
         
+        # Determine ranking page and if it's correct
+        ranking_page = latest_ranking.page_url if latest_ranking else None
+        is_correct_page = None
+        
+        if latest_ranking and ranking_page:
+            if kw.target_page:
+                # Check if target page matches ranking page
+                is_correct_page = kw.target_page in ranking_page
+            else:
+                # No target specified, any page is correct
+                is_correct_page = True
+        
         result.append(TrackedKeywordResponse(
             id=kw.id,
             keyword=kw.keyword,
@@ -246,6 +278,9 @@ async def get_project_keywords(
             competition=kw.competition,
             current_position=latest_ranking.position if latest_ranking else None,
             target_position=kw.target_position,
+            target_page=kw.target_page,
+            ranking_page=ranking_page,
+            is_correct_page=is_correct_page,
             created_at=kw.created_at.isoformat()
         ))
     

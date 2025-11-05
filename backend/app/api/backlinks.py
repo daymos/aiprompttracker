@@ -12,11 +12,13 @@ from app.models.user import User
 from app.models.project import Project
 from app.models.backlink_analysis import BacklinkAnalysis
 from app.services.rapidapi_backlinks_service import RapidAPIBacklinkService
+from app.services.dataforseo_backlinks_service import DataForSEOBacklinksService
 from app.config import get_settings
 
 router = APIRouter(prefix="/api/v1/backlinks", tags=["backlinks"])
 logger = logging.getLogger(__name__)
 rapidapi_backlink_service = RapidAPIBacklinkService()
+dataforseo_backlink_service = DataForSEOBacklinksService()
 settings = get_settings()
 
 
@@ -24,14 +26,16 @@ settings = get_settings()
 async def get_project_backlink_analysis(
     project_id: str,
     refresh: bool = False,
+    provider: str = "dataforseo",  # "dataforseo" or "rapidapi"
     authorization: str = Header(...),
     db: Session = Depends(get_db)
 ):
-    """Get backlink analysis for a project (cached or fresh from RapidAPI)
+    """Get backlink analysis for a project
     
     Args:
         project_id: Project ID
-        refresh: If True, fetch fresh data from RapidAPI. If False, return cached data if available.
+        refresh: If True, fetch fresh data. If False, return cached data if available.
+        provider: "dataforseo" (default, trial active!) or "rapidapi" (old provider)
     """
     
     # Verify token and get user
@@ -71,19 +75,46 @@ async def get_project_backlink_analysis(
     domain = parsed.netloc or parsed.path
     domain = domain.replace('www.', '')
     
-    # Check backlink quota
-    if user.backlink_rows_used >= user.backlink_rows_limit:
+    # Check backlink quota (skip if using DataForSEO during trial)
+    if provider != "dataforseo" and user.backlink_rows_used >= user.backlink_rows_limit:
         raise HTTPException(
             status_code=429,
             detail=f"Backlink limit reached ({user.backlink_rows_limit}/month)"
         )
     
-    # Fetch backlinks from RapidAPI
+    # For DataForSEO trial, log usage but don't block
+    if provider == "dataforseo":
+        logger.info(f"🔥 DataForSEO trial mode - bypassing quota check")
+    
+    # Fetch backlinks from selected provider
     try:
-        logger.info(f"Fetching fresh backlink data for {domain}")
-        backlink_data = await rapidapi_backlink_service.get_backlinks(domain, limit=50)
+        logger.info(f"Fetching fresh backlink data for {domain} (provider: {provider})")
         
-        if backlink_data and not backlink_data.get("error"):
+        # Choose provider
+        if provider == "dataforseo":
+            # DataForSEO - Enterprise-grade data (trial active!)
+            backlink_data = await dataforseo_backlink_service.get_full_analysis(domain)
+            
+            # Transform DataForSEO response to our format
+            summary = backlink_data.get("summary", {})
+            formatted_data = {
+                "total_backlinks": summary.get("backlinks", 0),
+                "referring_domains": summary.get("referring_domains", 0),
+                "domain_authority": summary.get("domain_rank", 0),  # DataForSEO uses "rank"
+                "spam_score": summary.get("backlinks_spam_score", 0),
+                "broken_backlinks": summary.get("broken_backlinks", 0),
+                "referring_ips": summary.get("referring_ips", 0),
+                "backlinks": backlink_data.get("backlinks", []),
+                "referring_domains_list": backlink_data.get("referring_domains", []),
+                "anchors": backlink_data.get("anchors", []),
+                "provider": "dataforseo"
+            }
+        else:
+            # RapidAPI - Original provider
+            formatted_data = await rapidapi_backlink_service.get_backlinks(domain, limit=50)
+            formatted_data["provider"] = "rapidapi"
+        
+        if formatted_data and not formatted_data.get("error"):
             # Increment usage counter
             user.backlink_rows_used += 1
             
@@ -94,20 +125,20 @@ async def get_project_backlink_analysis(
             
             if existing:
                 # Update existing record
-                existing.total_backlinks = backlink_data.get("total_backlinks", 0)
-                existing.referring_domains = backlink_data.get("referring_domains", 0)
-                existing.domain_authority = backlink_data.get("domain_authority", 0)
-                existing.raw_data = backlink_data
+                existing.total_backlinks = formatted_data.get("total_backlinks", 0)
+                existing.referring_domains = formatted_data.get("referring_domains", 0)
+                existing.domain_authority = formatted_data.get("domain_authority", 0)
+                existing.raw_data = formatted_data
                 existing.analyzed_at = datetime.utcnow()
                 analysis = existing
             else:
                 # Create new record
                 analysis = BacklinkAnalysis(
                     project_id=project_id,
-                    total_backlinks=backlink_data.get("total_backlinks", 0),
-                    referring_domains=backlink_data.get("referring_domains", 0),
-                    domain_authority=backlink_data.get("domain_authority", 0),
-                    raw_data=backlink_data,
+                    total_backlinks=formatted_data.get("total_backlinks", 0),
+                    referring_domains=formatted_data.get("referring_domains", 0),
+                    domain_authority=formatted_data.get("domain_authority", 0),
+                    raw_data=formatted_data,
                     analyzed_at=datetime.utcnow()
                 )
                 db.add(analysis)
@@ -115,7 +146,7 @@ async def get_project_backlink_analysis(
             db.commit()
             db.refresh(analysis)
             
-            logger.info(f"Stored backlink analysis: {analysis.total_backlinks} backlinks from {analysis.referring_domains} domains")
+            logger.info(f"✅ Stored backlink analysis ({provider}): {analysis.total_backlinks} backlinks from {analysis.referring_domains} domains")
             
             return analysis.to_dict()
         else:

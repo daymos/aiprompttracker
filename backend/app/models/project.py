@@ -28,6 +28,7 @@ class TrackedKeyword(Base):
     search_volume = Column(Integer, nullable=True)
     competition = Column(String, nullable=True)  # LOW, MEDIUM, HIGH
     target_position = Column(Integer, default=10)  # Goal ranking position
+    target_page = Column(String, nullable=True)  # Specific page to track (e.g., "/blog/seo-tips")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     project = relationship("Project", back_populates="tracked_keywords")
