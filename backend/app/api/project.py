@@ -128,9 +128,10 @@ async def create_project(
 
 async def _auto_detect_keywords_background(project_id: str, target_url: str):
     """Background task to auto-detect keywords using LLM and fetch search volume"""
-    from ..database import SessionLocal  # Import here to avoid circular imports
+    from ..database import get_session_local  # Import here to avoid circular imports
     
     # Create a new database session for this background task
+    SessionLocal = get_session_local()
     db = SessionLocal()
     try:
         logger.info(f"[Background] Auto-detecting keywords for project {project_id} ({target_url})")

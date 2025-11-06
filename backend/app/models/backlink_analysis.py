@@ -44,5 +44,6 @@ class BacklinkAnalysis(Base):
             "domain": self.raw_data.get("domain") if self.raw_data else None,
             "trends": self.raw_data.get("trends") if self.raw_data else None,
             "anchor_texts": self.raw_data.get("anchor_texts") if self.raw_data else None,
+            "overtime": self.raw_data.get("overtime", []) if self.raw_data else [],
         }
 

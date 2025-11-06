@@ -124,7 +124,21 @@ async def get_project_backlink_analysis(
             ).first()
             
             if existing:
-                # Update existing record
+                # Update existing record and preserve/append overtime history
+                old_overtime = existing.raw_data.get("overtime", []) if existing.raw_data else []
+                
+                # Add current data point to overtime history
+                new_point = {
+                    "date": datetime.utcnow().strftime("%Y-%m-%d"),
+                    "da": formatted_data.get("domain_authority", 0),
+                    "backlinks": formatted_data.get("total_backlinks", 0),
+                    "referring_domains": formatted_data.get("referring_domains", 0)
+                }
+                
+                # Keep last 30 data points
+                old_overtime.append(new_point)
+                formatted_data["overtime"] = old_overtime[-30:]
+                
                 existing.total_backlinks = formatted_data.get("total_backlinks", 0)
                 existing.referring_domains = formatted_data.get("referring_domains", 0)
                 existing.domain_authority = formatted_data.get("domain_authority", 0)
@@ -132,7 +146,15 @@ async def get_project_backlink_analysis(
                 existing.analyzed_at = datetime.utcnow()
                 analysis = existing
             else:
-                # Create new record
+                # Create new record with initial overtime data point
+                initial_point = {
+                    "date": datetime.utcnow().strftime("%Y-%m-%d"),
+                    "da": formatted_data.get("domain_authority", 0),
+                    "backlinks": formatted_data.get("total_backlinks", 0),
+                    "referring_domains": formatted_data.get("referring_domains", 0)
+                }
+                formatted_data["overtime"] = [initial_point]
+                
                 analysis = BacklinkAnalysis(
                     project_id=project_id,
                     total_backlinks=formatted_data.get("total_backlinks", 0),
