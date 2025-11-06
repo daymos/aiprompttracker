@@ -3736,6 +3736,13 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ),
 
+        // Separator line
+        Divider(
+          height: 1,
+          thickness: 1,
+          color: Theme.of(context).dividerColor.withOpacity(0.3),
+        ),
+
         // List of backlinks
         Expanded(
           child: ListView.builder(
@@ -3749,87 +3756,114 @@ class _ChatScreenState extends State<ChatScreen> {
               final inlinkRank = backlink['inlink_rank'] as num?;
               final isNofollow = backlink['nofollow'] == true;
 
-              return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: Theme.of(context).dividerColor.withOpacity(0.3),
-                    width: 1,
+              return InkWell(
+                onTap: () async {
+                  if (sourceUrl != null) {
+                    final uri = Uri.parse(sourceUrl);
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    }
+                  }
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: Theme.of(context).dividerColor.withOpacity(0.3),
+                      width: 1,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-                  child: Row(
-                    children: [
-                      // Leading icon
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: isNofollow 
-                            ? Theme.of(context).colorScheme.surfaceVariant
-                            : Theme.of(context).colorScheme.primaryContainer,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          isNofollow ? Icons.link_off : Icons.link,
-                          color: isNofollow
-                            ? Theme.of(context).colorScheme.onSurfaceVariant
-                            : Theme.of(context).colorScheme.onPrimaryContainer,
-                          size: 18,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      
-                      // Main content
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              sourceUrl ?? 'Unknown source',
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            if (anchorText != null && anchorText.isNotEmpty) ...[
-                              const SizedBox(height: 4),
-                              Text(
-                                'Anchor: "$anchorText"',
-                                style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                            if (inlinkRank != null) ...[
-                              const SizedBox(height: 4),
-                              Text(
-                                'Quality: ${inlinkRank.toStringAsFixed(0)}',
-                                style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      
-                      // Trailing badge
-                      if (isNofollow)
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                    child: Row(
+                      children: [
+                        // Leading icon
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surfaceVariant,
-                            borderRadius: BorderRadius.circular(4),
+                            color: isNofollow 
+                              ? Theme.of(context).colorScheme.surfaceVariant
+                              : Theme.of(context).colorScheme.primaryContainer,
+                            shape: BoxShape.circle,
                           ),
-                          child: Text(
-                            'NOFOLLOW',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w500,
-                            ),
+                          child: Icon(
+                            isNofollow ? Icons.link_off : Icons.link,
+                            color: isNofollow
+                              ? Theme.of(context).colorScheme.onSurfaceVariant
+                              : Theme.of(context).colorScheme.onPrimaryContainer,
+                            size: 18,
                           ),
                         ),
-                    ],
+                        const SizedBox(width: 12),
+                        
+                        // Main content
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      sourceUrl ?? 'Unknown source',
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    Icons.open_in_new,
+                                    size: 14,
+                                    color: Colors.grey[600],
+                                  ),
+                                ],
+                              ),
+                              if (anchorText != null && anchorText.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Anchor: "$anchorText"',
+                                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                              if (inlinkRank != null) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Quality: ${inlinkRank.toStringAsFixed(0)}',
+                                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        
+                        // Trailing badge
+                        if (isNofollow)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surfaceVariant,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'NOFOLLOW',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               );
