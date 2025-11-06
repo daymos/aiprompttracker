@@ -12,6 +12,7 @@ import '../widgets/cli_spinner.dart';
 import '../widgets/favicon_widget.dart';
 import 'dart:html' as html;
 import 'dart:async';
+import 'package:url_launcher/url_launcher.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -1744,6 +1745,17 @@ class _ChatScreenState extends State<ChatScreen> {
     final hasError = backlinksData?['error'] != null;
     final errorMessage = backlinksData?['error'] as String?;
     
+    // Extract sparkline data from overtime
+    List<double>? daSparkline;
+    List<double>? backlinksSparkline;
+    List<double>? domainsSparkline;
+    
+    if (overtime.isNotEmpty) {
+      daSparkline = overtime.map<double>((point) => (point['da'] ?? 0).toDouble()).toList();
+      backlinksSparkline = overtime.map<double>((point) => (point['backlinks'] ?? 0).toDouble()).toList();
+      domainsSparkline = overtime.map<double>((point) => (point['referring_domains'] ?? 0).toDouble()).toList();
+    }
+    
     return projectProvider.isLoading
         ? const Center(child: CircularProgressIndicator())
         : SingleChildScrollView(
@@ -1796,6 +1808,8 @@ class _ChatScreenState extends State<ChatScreen> {
                         domainAuthority.toString(),
                         Icons.shield_outlined,
                         _getDomainAuthorityColor(domainAuthority),
+                        sparklineData: daSparkline,
+                        showSparklinePlaceholder: true,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -1805,6 +1819,8 @@ class _ChatScreenState extends State<ChatScreen> {
                         _formatNumber(totalBacklinks),
                         Icons.link,
                         Colors.blue[400]!,
+                        sparklineData: backlinksSparkline,
+                        showSparklinePlaceholder: true,
                       ),
                     ),
                   ],
@@ -1818,6 +1834,8 @@ class _ChatScreenState extends State<ChatScreen> {
                         _formatNumber(referringDomains),
                         Icons.language,
                         Colors.purple[400]!,
+                        sparklineData: domainsSparkline,
+                        showSparklinePlaceholder: true,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -1836,34 +1854,6 @@ class _ChatScreenState extends State<ChatScreen> {
                 
                 // Keyword Visibility Section
                 _buildKeywordVisibilitySection(projectProvider),
-                
-                const SizedBox(height: 24),
-                
-                // Historical Trend Chart
-                if (overtime.isNotEmpty) ...[
-                  Text(
-                    'Domain Authority Trend',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 8),
-                          SizedBox(
-                            height: 200,
-                            child: _buildHistoricalChart(overtime),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
                 
                 // If no data
                 if (overtime.isEmpty && totalBacklinks == 0) ...[
@@ -1901,7 +1891,10 @@ class _ChatScreenState extends State<ChatScreen> {
           );
   }
   
-  Widget _buildMetricCard(String title, String value, IconData icon, Color color) {
+  Widget _buildMetricCard(String title, String value, IconData icon, Color color, {List<double>? sparklineData, bool showSparklinePlaceholder = false}) {
+    final hasSparkline = sparklineData != null && sparklineData.length >= 2;
+    final showPlaceholder = !hasSparkline && showSparklinePlaceholder;
+    
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -1924,12 +1917,38 @@ class _ChatScreenState extends State<ChatScreen> {
               ],
             ),
             const SizedBox(height: 8),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (hasSparkline || showPlaceholder) ...[
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: SizedBox(
+                      height: 30,
+                      child: hasSparkline
+                          ? CustomPaint(
+                              painter: SparklinePainter(
+                                sparklineData!,
+                                color.withOpacity(0.6),
+                                invertY: false, // For metrics, higher is better
+                              ),
+                            )
+                          : CustomPaint(
+                              painter: NoDataSparklinePainter(
+                                color.withOpacity(0.3),
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ],
         ),
@@ -2050,6 +2069,24 @@ class _ChatScreenState extends State<ChatScreen> {
     int ranking = rankedKeywords.length;
     int notRanking = totalKeywords - ranking;
     
+    // Calculate average position over time for sparklines (if we have historical data)
+    List<double>? avgPositionSparkline;
+    if (rankedKeywords.isNotEmpty && rankedKeywords.any((k) => k.rankingHistory.length >= 2)) {
+      // Get max history length to align all data points
+      final maxHistoryLength = rankedKeywords.map((k) => k.rankingHistory.length).reduce((a, b) => a > b ? a : b);
+      
+      // Calculate average position at each time point
+      avgPositionSparkline = List.generate(maxHistoryLength, (index) {
+        final positions = rankedKeywords
+            .where((k) => k.rankingHistory.length > index && k.rankingHistory[index].position != null)
+            .map((k) => k.rankingHistory[index].position!.toDouble())
+            .toList();
+        
+        if (positions.isEmpty) return avgPosition;
+        return positions.reduce((a, b) => a + b) / positions.length;
+      });
+    }
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2099,6 +2136,8 @@ class _ChatScreenState extends State<ChatScreen> {
                 rankedKeywords.isEmpty ? 'N/A' : avgPosition.toStringAsFixed(1),
                 Icons.analytics_outlined,
                 _getAvgPositionColor(avgPosition),
+                sparklineData: avgPositionSparkline,
+                showSparklinePlaceholder: true,
               ),
             ),
           ],
@@ -2622,11 +2661,17 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isDeletingKeywords = false;
   String? _hoveredKeywordId; // Track which specific keyword is being hovered
   
-  // Sorting and filtering state
+  // Sorting and filtering state for keywords
   String _keywordSortBy = 'position'; // position, name, volume, status
   bool _keywordSortAscending = true;
   String _keywordFilter = 'all'; // all, tracking, suggestions
   String _keywordSearchQuery = ''; // Search query for keywords
+
+  // Sorting and filtering state for backlinks
+  String _backlinkSortBy = 'rank'; // rank, anchor, source
+  bool _backlinkSortAscending = false; // Default: highest rank first
+  String _backlinkFilter = 'all'; // all, follow, nofollow
+  String _backlinkSearchQuery = ''; // Search query for backlinks
 
   List<TrackedKeyword> _filterAndSortKeywords(List<TrackedKeyword> keywords) {
     // Apply search filter
@@ -2685,6 +2730,59 @@ class _ChatScreenState extends State<ChatScreen> {
       }
       
       return _keywordSortAscending ? comparison : -comparison;
+    });
+    
+    return filtered;
+  }
+
+  List<Map<String, dynamic>> _filterAndSortBacklinks(List<Map<String, dynamic>> backlinks) {
+    // Apply search filter (search in source URL and anchor text)
+    List<Map<String, dynamic>> filtered = backlinks;
+    if (_backlinkSearchQuery.isNotEmpty) {
+      final query = _backlinkSearchQuery.toLowerCase();
+      filtered = filtered.where((b) {
+        final sourceUrl = (b['url_from'] as String? ?? '').toLowerCase();
+        final anchorText = (b['anchor'] as String? ?? '').toLowerCase();
+        return sourceUrl.contains(query) || anchorText.contains(query);
+      }).toList();
+    }
+    
+    // Apply link type filter
+    switch (_backlinkFilter) {
+      case 'follow':
+        filtered = filtered.where((b) => b['nofollow'] != true).toList();
+        break;
+      case 'nofollow':
+        filtered = filtered.where((b) => b['nofollow'] == true).toList();
+        break;
+      default:
+        // Keep all
+        break;
+    }
+    
+    // Apply sorting
+    filtered.sort((a, b) {
+      int comparison;
+      switch (_backlinkSortBy) {
+        case 'anchor':
+          final aAnchor = (a['anchor'] as String? ?? '').toLowerCase();
+          final bAnchor = (b['anchor'] as String? ?? '').toLowerCase();
+          comparison = aAnchor.compareTo(bAnchor);
+          break;
+        case 'source':
+          final aSource = (a['url_from'] as String? ?? '').toLowerCase();
+          final bSource = (b['url_from'] as String? ?? '').toLowerCase();
+          comparison = aSource.compareTo(bSource);
+          break;
+        case 'rank':
+        default:
+          // Sort by inlink rank (higher is better)
+          final aRank = a['inlink_rank'] as num? ?? 0;
+          final bRank = b['inlink_rank'] as num? ?? 0;
+          comparison = bRank.compareTo(aRank); // Higher rank first by default
+      }
+      
+      return _backlinkSortAscending ? comparison : -comparison;
     });
     
     return filtered;
@@ -3447,13 +3545,14 @@ class _ChatScreenState extends State<ChatScreen> {
     }
 
     final data = projectProvider.backlinksData;
-    final backlinks = (data?['backlinks'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    final allBacklinks = (data?['backlinks'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    final filteredBacklinks = _filterAndSortBacklinks(allBacklinks);
     final totalBacklinks = data?['total_backlinks'] ?? 0;
     final referringDomains = data?['referring_domains'] ?? 0;
     final domainAuthority = data?['domain_authority'] ?? 0;
     final analyzedAt = data?['analyzed_at'] as String?;
 
-    if (backlinks.isEmpty) {
+    if (allBacklinks.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -3507,34 +3606,132 @@ class _ChatScreenState extends State<ChatScreen> {
 
     return Column(
       children: [
-        // Summary stats
-        Container(
-          padding: const EdgeInsets.all(16),
-          margin: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceVariant,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
+        // Search, Filter, and Sort Controls
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildStatusChip('Total Backlinks', totalBacklinks, Theme.of(context).colorScheme.primary),
-                  _buildStatusChip('Referring Domains', referringDomains, Theme.of(context).colorScheme.secondary),
-                  _buildStatusChip('Domain Authority', domainAuthority, Theme.of(context).colorScheme.tertiary),
-                ],
-              ),
-              if (analyzedAt != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Last analyzed: ${_formatAnalyzedDate(analyzedAt)}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+              // Search field
+              Expanded(
+                flex: 2,
+                child: SizedBox(
+                  height: 32,
+                  child: TextField(
+                    style: const TextStyle(fontSize: 13),
+                    decoration: InputDecoration(
+                      hintText: 'Search backlinks...',
+                      hintStyle: const TextStyle(fontSize: 13),
+                      prefixIcon: const Icon(Icons.search, size: 16),
+                      suffixIcon: _backlinkSearchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 16),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: () {
+                                setState(() => _backlinkSearchQuery = '');
+                              },
+                            )
+                          : null,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: BorderSide(color: Theme.of(context).dividerColor),
+                      ),
+                    ),
+                    onChanged: (value) {
+                      setState(() => _backlinkSearchQuery = value);
+                    },
                   ),
                 ),
-              ],
+              ),
+              const SizedBox(width: 8),
+              
+              // Filter chips
+              Wrap(
+                spacing: 4,
+                children: [
+                  ChoiceChip(
+                    label: const Text('All', style: TextStyle(fontSize: 12)),
+                    selected: _backlinkFilter == 'all',
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                    labelPadding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() => _backlinkFilter = 'all');
+                      }
+                    },
+                  ),
+                  const SizedBox(width: 2),
+                  ChoiceChip(
+                    label: const Text('Follow', style: TextStyle(fontSize: 12)),
+                    selected: _backlinkFilter == 'follow',
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                    labelPadding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() => _backlinkFilter = 'follow');
+                      }
+                    },
+                  ),
+                  const SizedBox(width: 2),
+                  ChoiceChip(
+                    label: const Text('Nofollow', style: TextStyle(fontSize: 12)),
+                    selected: _backlinkFilter == 'nofollow',
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                    labelPadding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() => _backlinkFilter = 'nofollow');
+                      }
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(width: 8),
+              
+              // Sort dropdown
+              Container(
+                height: 32,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Theme.of(context).dividerColor),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: DropdownButton<String>(
+                  value: _backlinkSortBy,
+                  underline: const SizedBox(),
+                  style: const TextStyle(fontSize: 13),
+                  isDense: true,
+                  items: const [
+                    DropdownMenuItem(value: 'rank', child: Text('Rank')),
+                    DropdownMenuItem(value: 'anchor', child: Text('Anchor')),
+                    DropdownMenuItem(value: 'source', child: Text('Source')),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() => _backlinkSortBy = value);
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: 4),
+              
+              // Sort direction
+              IconButton(
+                icon: Icon(
+                  _backlinkSortAscending ? Icons.arrow_upward : Icons.arrow_downward,
+                  size: 16,
+                ),
+                padding: const EdgeInsets.all(4),
+                constraints: const BoxConstraints(),
+                tooltip: _backlinkSortAscending ? 'Ascending' : 'Descending',
+                onPressed: () {
+                  setState(() => _backlinkSortAscending = !_backlinkSortAscending);
+                },
+              ),
             ],
           ),
         ),
@@ -3542,64 +3739,98 @@ class _ChatScreenState extends State<ChatScreen> {
         // List of backlinks
         Expanded(
           child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: backlinks.length,
+            padding: const EdgeInsets.only(left: 24.0, right: 24.0, top: 16.0),
+            itemCount: filteredBacklinks.length,
             itemBuilder: (context, index) {
-              final backlink = backlinks[index];
+              final backlink = filteredBacklinks[index];
               final sourceUrl = backlink['url_from'] as String?;
               final targetUrl = backlink['url_to'] as String?;
               final anchorText = backlink['anchor'] as String?;
               final inlinkRank = backlink['inlink_rank'] as num?;
               final isNofollow = backlink['nofollow'] == true;
 
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: isNofollow 
-                        ? Theme.of(context).colorScheme.surfaceVariant
-                        : Theme.of(context).colorScheme.primaryContainer,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      isNofollow ? Icons.link_off : Icons.link,
-                      color: isNofollow
-                        ? Theme.of(context).colorScheme.onSurfaceVariant
-                        : Theme.of(context).colorScheme.onPrimaryContainer,
-                      size: 20,
-                    ),
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: Theme.of(context).dividerColor.withOpacity(0.3),
+                    width: 1,
                   ),
-                  title: Text(
-                    sourceUrl ?? 'Unknown source',
-                    style: const TextStyle(fontSize: 14),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                  child: Row(
                     children: [
-                      if (anchorText != null && anchorText.isNotEmpty)
-                        Text(
-                          'Anchor: "$anchorText"',
-                          style: const TextStyle(fontSize: 12),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                      // Leading icon
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: isNofollow 
+                            ? Theme.of(context).colorScheme.surfaceVariant
+                            : Theme.of(context).colorScheme.primaryContainer,
+                          shape: BoxShape.circle,
                         ),
-                      if (inlinkRank != null)
-                        Text(
-                          'Link Quality: ${inlinkRank.toStringAsFixed(0)}',
-                          style: const TextStyle(fontSize: 12),
+                        child: Icon(
+                          isNofollow ? Icons.link_off : Icons.link,
+                          color: isNofollow
+                            ? Theme.of(context).colorScheme.onSurfaceVariant
+                            : Theme.of(context).colorScheme.onPrimaryContainer,
+                          size: 18,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      
+                      // Main content
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              sourceUrl ?? 'Unknown source',
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (anchorText != null && anchorText.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                'Anchor: "$anchorText"',
+                                style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                            if (inlinkRank != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                'Quality: ${inlinkRank.toStringAsFixed(0)}',
+                                style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      
+                      // Trailing badge
+                      if (isNofollow)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surfaceVariant,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            'NOFOLLOW',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                         ),
                     ],
                   ),
-                  trailing: isNofollow
-                      ? const Chip(
-                          label: Text('NOFOLLOW', style: TextStyle(fontSize: 10)),
-                          padding: EdgeInsets.symmetric(horizontal: 4),
-                        )
-                      : null,
                 ),
               );
             },
@@ -3609,28 +3840,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
   
-  Widget _buildStatusChip(String label, int count, Color color) {
-    return Column(
-      children: [
-        Text(
-          '$count',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
-        ),
-      ],
-    );
-  }
-
   Color _getStatusColor(String? status) {
     switch (status) {
       case 'submitted':
@@ -3914,8 +4123,9 @@ class NoDataSparklinePainter extends CustomPainter {
 class SparklinePainter extends CustomPainter {
   final List<double> positions;
   final Color lineColor;
+  final bool invertY; // If true, lower values are better (rankings). If false, higher is better (metrics)
 
-  SparklinePainter(this.positions, this.lineColor);
+  SparklinePainter(this.positions, this.lineColor, {this.invertY = true});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -3926,7 +4136,7 @@ class SparklinePainter extends CustomPainter {
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
 
-    // Find min and max for scaling (remember lower position is better)
+    // Find min and max for scaling
     final minPos = positions.reduce((a, b) => a < b ? a : b);
     final maxPos = positions.reduce((a, b) => a > b ? a : b);
     final range = maxPos - minPos;
@@ -3945,10 +4155,13 @@ class SparklinePainter extends CustomPainter {
     final path = Path();
     for (int i = 0; i < positions.length; i++) {
       final x = (i / (positions.length - 1)) * size.width;
-      // Lower ranking position (1) is better and should be higher on graph (smaller Y)
-      // Higher ranking position (100) is worse and should be lower on graph (larger Y)
       final normalizedPos = (positions[i] - minPos) / range;
-      final y = normalizedPos * size.height;
+      
+      // For invertY=true (rankings): lower position (1) should be at top (small Y)
+      // For invertY=false (metrics): higher value should be at top (small Y)
+      final y = invertY 
+          ? normalizedPos * size.height  // Lower value = top
+          : (1 - normalizedPos) * size.height;  // Higher value = top
 
       if (i == 0) {
         path.moveTo(x, y);
