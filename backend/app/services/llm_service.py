@@ -102,6 +102,85 @@ Be specific but brief. Capture what was discussed or accomplished."""
                     logger.error(f"All {max_retries} attempts failed to summarize conversation")
                     raise RuntimeError(f"Failed to generate conversation summary after {max_retries} attempts: {e}")
 
+    async def extract_keywords_from_website(self, website_data: dict, max_keywords: int = 20) -> list[str]:
+        """
+        Use LLM to intelligently extract relevant SEO keywords from website content.
+        Returns a list of 2-4 word keyword phrases.
+        """
+        if self.client is None:
+            raise RuntimeError("LLM client not available - GROQ_API_KEY not configured")
+        
+        # Build context from website data
+        context_parts = []
+        
+        if website_data.get('title'):
+            context_parts.append(f"Page Title: {website_data['title']}")
+        
+        if website_data.get('meta_description'):
+            context_parts.append(f"Meta Description: {website_data['meta_description']}")
+        
+        if website_data.get('all_page_titles'):
+            titles = website_data['all_page_titles'][:5]  # Top 5 page titles
+            context_parts.append(f"Page Titles: {', '.join(titles)}")
+        
+        if website_data.get('all_h1_headings'):
+            h1s = website_data['all_h1_headings'][:5]
+            context_parts.append(f"H1 Headings: {', '.join(h1s)}")
+        
+        if website_data.get('all_h2_headings'):
+            h2s = website_data['all_h2_headings'][:10]
+            context_parts.append(f"H2 Headings: {', '.join(h2s)}")
+        
+        context = "\n".join(context_parts)
+        
+        system_prompt = f"""You are an SEO keyword extraction expert. Extract {max_keywords} relevant SEO keyword phrases from the website content provided.
+
+RULES:
+- Each keyword must be 2-4 words long
+- Focus on business/product keywords, NOT navigation terms
+- Exclude: "click here", "read more", "contact us", "privacy policy", "terms of service", etc.
+- Keywords should be what users would search for to find this website
+- Keywords should appear multiple times in the content
+- Return ONLY the keywords, one per line, no numbering or explanations"""
+
+        user_prompt = f"""Website Content:
+
+{context}
+
+Extract {max_keywords} relevant SEO keywords (2-4 words each) that this website is targeting. Return one keyword per line."""
+
+        try:
+            response = await self.client.chat.completions.create(
+                model=self.summarization_model,  # Use faster model for extraction
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                max_tokens=500,
+                temperature=0.3
+            )
+            
+            content = response.choices[0].message.content
+            if not content:
+                return []
+            
+            # Parse keywords from response (one per line)
+            keywords = []
+            for line in content.strip().split('\n'):
+                # Clean up line (remove numbers, bullets, quotes, etc.)
+                keyword = line.strip().lstrip('0123456789.-•*').strip().strip('"\'')
+                # Validate: 2-4 words, min 10 chars
+                words = keyword.split()
+                if 2 <= len(words) <= 4 and len(keyword) >= 10 and keyword:
+                    keywords.append(keyword.lower())
+            
+            logger.info(f"LLM extracted {len(keywords)} keywords from website")
+            return keywords[:max_keywords]
+            
+        except Exception as e:
+            logger.error(f"Error extracting keywords via LLM: {e}")
+            return []
+    
     async def summarize_message(self, message_content: str, max_retries: int = 3) -> str:
         """
         Generate a concise one-liner summary of a single message for pinning purposes.
@@ -792,11 +871,11 @@ You have powerful research capabilities:
 - **research_keywords**: Get real search volume, competition, intent, and CPC data
 - **find_opportunity_keywords**: Find low-hanging fruit opportunities
 - **check_ranking**: See where domains currently rank
-- **analyze_website**: Full site crawl and SEO audit
+- **analyze_website**: Extract targeted keywords from website content and perform full site crawl/SEO audit. Use when user requests website analysis or keyword extraction. If user refers to their project or website without specifying URL, use the project's target_url from context.
 - **analyze_backlinks**: Competitive backlink intelligence
 - **track_keywords**: Set up monitoring for chosen keywords
 
-Use these tools strategically - don't just fetch data, interpret it and provide strategic direction.
+Use these tools strategically - don't just fetch data, interpret it and provide strategic direction. When user refers to their website or project without specifying a URL, look for the active project's target_url in the context and use that.
 
 **HANDLING FOLLOW-UP QUESTIONS:**
 

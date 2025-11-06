@@ -30,6 +30,8 @@ class TrackedKeyword(Base):
     competition = Column(String, nullable=True)  # LOW, MEDIUM, HIGH
     target_position = Column(Integer, default=10)  # Goal ranking position
     target_page = Column(String, nullable=True)  # Specific page to track (e.g., "/blog/seo-tips")
+    source = Column(String, default="manual")  # "manual" or "auto_detected"
+    is_active = Column(Integer, default=1)  # 1 for active (tracked), 0 for inactive (suggestion only). Manual keywords are active by default, auto_detected start inactive.
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     project = relationship("Project", back_populates="tracked_keywords")

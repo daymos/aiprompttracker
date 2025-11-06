@@ -15,6 +15,9 @@ from ..models.user import User
 from ..models.project import Project, TrackedKeyword, KeywordRanking
 from ..models.pin import PinnedItem
 from ..services.rank_checker import RankCheckerService
+from ..services.web_scraper import WebScraperService
+from ..services.llm_service import LLMService
+from ..services.dataforseo_service import DataForSEOService
 from .auth import get_current_user
 import logging
 
@@ -22,6 +25,9 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/project", tags=["project"])
 rank_checker = RankCheckerService()
+web_scraper = WebScraperService()
+llm_service = LLMService()
+dataforseo_service = DataForSEOService()
 
 class CreateProjectRequest(BaseModel):
     target_url: str
@@ -39,6 +45,10 @@ class ProjectResponse(BaseModel):
     name: Optional[str]
     created_at: str
 
+class RankingHistoryPoint(BaseModel):
+    position: Optional[int]
+    checked_at: str
+
 class TrackedKeywordResponse(BaseModel):
     id: str
     keyword: str
@@ -49,7 +59,10 @@ class TrackedKeywordResponse(BaseModel):
     target_page: Optional[str]  # Desired page to rank
     ranking_page: Optional[str]  # Actual page currently ranking
     is_correct_page: Optional[bool]  # True if ranking_page matches target_page (or any page if no target)
+    source: str  # "manual" or "auto_detected"
+    is_active: bool  # True if actively tracked, False if just a suggestion
     created_at: str
+    ranking_history: List[RankingHistoryPoint] = []  # Last 30 ranking checks
 
 class PinItemRequest(BaseModel):
     project_id: Optional[str] = None
@@ -80,7 +93,7 @@ async def create_project(
     authorization: str = Header(...),
     db: Session = Depends(get_db)
 ):
-    """Create a new SEO project"""
+    """Create a new SEO project and auto-detect targeted keywords"""
     token = authorization.replace("Bearer ", "")
     user = get_current_user(token, db)
     
@@ -98,6 +111,45 @@ async def create_project(
     db.add(project)
     db.commit()
     db.refresh(project)
+    
+    # Auto-detect keywords from website using LLM (async, doesn't block project creation)
+    try:
+        logger.info(f"Auto-detecting keywords for project {project.id} ({target_url})")
+        website_data = await web_scraper.analyze_full_site(target_url)
+        
+        if website_data and not website_data.get('error'):
+            # Use LLM to intelligently extract keywords
+            keywords = await llm_service.extract_keywords_from_website(website_data, max_keywords=20)
+            
+            # Fetch search volume data for all keywords in batch
+            volume_data = {}
+            if keywords:
+                logger.info(f"Fetching search volume for {len(keywords)} auto-detected keywords")
+                volume_data = await dataforseo_service.get_search_volume(keywords, location="US")
+            
+            # Save keywords as INACTIVE suggestions (is_active=0) with volume data
+            saved_count = 0
+            for keyword_text in keywords:
+                search_volume = volume_data.get(keyword_text, 0) if volume_data else None
+                
+                tracked_keyword = TrackedKeyword(
+                    id=str(uuid.uuid4()),
+                    project_id=project.id,
+                    keyword=keyword_text,
+                    search_volume=search_volume,
+                    source="auto_detected",
+                    is_active=0  # Inactive by default - user must activate to track
+                )
+                db.add(tracked_keyword)
+                saved_count += 1
+            
+            db.commit()
+            logger.info(f"LLM extracted and saved {saved_count} keyword suggestions with search volume data")
+        else:
+            logger.warning(f"Failed to auto-detect keywords for {target_url}: {website_data.get('error') if website_data else 'No data'}")
+    except Exception as e:
+        logger.error(f"Error auto-detecting keywords for project {project.id}: {e}")
+        # Don't fail project creation if keyword detection fails
     
     return ProjectResponse(
         id=project.id,
@@ -180,13 +232,23 @@ async def add_keyword_to_project(
     if existing:
         raise HTTPException(status_code=400, detail="Keyword already tracked")
     
+    # If search volume not provided, fetch it
+    search_volume = request.search_volume
+    competition = request.competition
+    
+    if search_volume is None:
+        logger.info(f"Fetching search volume for keyword: {request.keyword}")
+        volume_data = await dataforseo_service.get_search_volume([request.keyword], location="US")
+        search_volume = volume_data.get(request.keyword, 0) if volume_data else None
+    
     tracked_keyword = TrackedKeyword(
         id=str(uuid.uuid4()),
         project_id=project_id,
         keyword=request.keyword,
-        search_volume=request.search_volume,
-        competition=request.competition,
-        target_page=request.target_page
+        search_volume=search_volume,
+        competition=competition,
+        target_page=request.target_page,
+        is_active=1  # Manually added keywords are active by default
     )
     db.add(tracked_keyword)
     db.commit()
@@ -227,6 +289,8 @@ async def add_keyword_to_project(
         target_page=tracked_keyword.target_page,
         ranking_page=ranking_page,
         is_correct_page=is_correct_page,
+        source=tracked_keyword.source or "manual",
+        is_active=bool(tracked_keyword.is_active) if hasattr(tracked_keyword, 'is_active') else True,
         created_at=tracked_keyword.created_at.isoformat()
     )
 
@@ -254,10 +318,12 @@ async def get_project_keywords(
     
     result = []
     for kw in keywords:
-        # Get latest ranking
-        latest_ranking = db.query(KeywordRanking).filter(
+        # Get ranking history (last 30 checks)
+        rankings = db.query(KeywordRanking).filter(
             KeywordRanking.tracked_keyword_id == kw.id
-        ).order_by(KeywordRanking.checked_at.desc()).first()
+        ).order_by(KeywordRanking.checked_at.desc()).limit(30).all()
+        
+        latest_ranking = rankings[0] if rankings else None
         
         # Determine ranking page and if it's correct
         ranking_page = latest_ranking.page_url if latest_ranking else None
@@ -271,6 +337,15 @@ async def get_project_keywords(
                 # No target specified, any page is correct
                 is_correct_page = True
         
+        # Build ranking history
+        ranking_history = [
+            RankingHistoryPoint(
+                position=r.position,
+                checked_at=r.checked_at.isoformat()
+            )
+            for r in reversed(rankings)  # Reverse to get chronological order
+        ]
+        
         result.append(TrackedKeywordResponse(
             id=kw.id,
             keyword=kw.keyword,
@@ -281,7 +356,10 @@ async def get_project_keywords(
             target_page=kw.target_page,
             ranking_page=ranking_page,
             is_correct_page=is_correct_page,
-            created_at=kw.created_at.isoformat()
+            source=kw.source or "manual",
+            is_active=bool(kw.is_active) if hasattr(kw, 'is_active') else True,
+            created_at=kw.created_at.isoformat(),
+            ranking_history=ranking_history
         ))
     
     return result
@@ -292,7 +370,7 @@ async def refresh_rankings(
     authorization: str = Header(...),
     db: Session = Depends(get_db)
 ):
-    """Manually refresh rankings for all keywords in project"""
+    """Manually refresh rankings for all ACTIVE keywords in project using BULK processing"""
     token = authorization.replace("Bearer ", "")
     user = get_current_user(token, db)
     
@@ -304,25 +382,39 @@ async def refresh_rankings(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     
+    # Only refresh ACTIVE keywords (is_active=1)
     keywords = db.query(TrackedKeyword).filter(
-        TrackedKeyword.project_id == project_id
+        TrackedKeyword.project_id == project_id,
+        TrackedKeyword.is_active == 1
     ).all()
     
+    if not keywords:
+        return {"message": "No active keywords to refresh"}
+    
+    # Use BULK processing - all keywords checked in parallel (~2-5 seconds total!)
+    keyword_list = [kw.keyword for kw in keywords]
+    logger.info(f"🚀 Bulk refreshing {len(keyword_list)} keywords for project {project.name}")
+    
+    results = await rank_checker.check_multiple_rankings(keyword_list, project.target_url)
+    
+    # Save all results to database
     updated_count = 0
     for kw in keywords:
-        result = await rank_checker.check_ranking(kw.keyword, project.target_url)
+        result = results.get(kw.keyword)
         
         if result:
             new_ranking = KeywordRanking(
                 id=str(uuid.uuid4()),
                 tracked_keyword_id=kw.id,
                 position=result.get('position'),
-                page_url=result.get('page_url')
+                page_url=result.get('url')  # Note: bulk method uses 'url' not 'page_url'
             )
             db.add(new_ranking)
             updated_count += 1
     
     db.commit()
+    
+    logger.info(f"✅ Bulk refresh complete: {updated_count}/{len(keyword_list)} keywords updated")
     
     return {"message": f"Updated rankings for {updated_count} keywords"}
 
@@ -367,6 +459,53 @@ async def get_keyword_history(
             for r in rankings
         ]
     }
+
+@router.patch("/keywords/{keyword_id}/toggle")
+async def toggle_keyword_active(
+    keyword_id: str,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """Toggle keyword active status (activate suggestion or deactivate keyword)"""
+    token = authorization.replace("Bearer ", "")
+    user = get_current_user(token, db)
+    
+    keyword = db.query(TrackedKeyword).filter(
+        TrackedKeyword.id == keyword_id
+    ).first()
+    
+    if not keyword:
+        raise HTTPException(status_code=404, detail="Keyword not found")
+    
+    # Verify user owns this project
+    project = db.query(Project).filter(
+        Project.id == keyword.project_id,
+        Project.user_id == user.id
+    ).first()
+    
+    if not project:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Toggle is_active
+    keyword.is_active = 0 if keyword.is_active else 1
+    
+    # If activating, check initial ranking
+    if keyword.is_active == 1:
+        ranking_result = await rank_checker.check_ranking(keyword.keyword, project.target_url)
+        
+        if ranking_result:
+            initial_ranking = KeywordRanking(
+                id=str(uuid.uuid4()),
+                tracked_keyword_id=keyword.id,
+                position=ranking_result.get('position'),
+                page_url=ranking_result.get('url')
+            )
+            db.add(initial_ranking)
+    
+    db.commit()
+    
+    action = "activated" if keyword.is_active else "deactivated"
+    return {"message": f"Keyword {action} successfully", "is_active": bool(keyword.is_active)}
 
 @router.post("/test-rank-check")
 async def test_rank_check(
@@ -425,30 +564,26 @@ async def delete_project(
             TrackedKeyword.project_id == project_id
         ).delete()
         
-        # Delete backlink submissions
-        submission_count = db.query(BacklinkSubmission).filter(
-            BacklinkSubmission.project_id == project_id
+        # Delete pinned items associated with this project
+        pin_count = db.query(PinnedItem).filter(
+            PinnedItem.project_id == project_id
         ).delete()
         
-        # Delete backlink campaigns
-        campaign_count = db.query(BacklinkCampaign).filter(
-            BacklinkCampaign.project_id == project_id
-        ).delete()
+        # BacklinkAnalysis has CASCADE delete, so it will be automatically deleted
         
         # Delete the project itself
         db.delete(project)
         
         db.commit()
         
-        logger.info(f"Deleted project {project_id}: {keyword_count} keywords, {ranking_count} rankings, {submission_count} backlink submissions, {campaign_count} campaigns")
+        logger.info(f"Deleted project {project_id}: {keyword_count} keywords, {ranking_count} rankings, {pin_count} pins")
         
         return {
             "message": "Project deleted successfully",
             "deleted": {
                 "keywords": keyword_count,
                 "rankings": ranking_count,
-                "backlink_submissions": submission_count,
-                "backlink_campaigns": campaign_count
+                "pins": pin_count
             }
         }
         

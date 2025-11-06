@@ -2556,9 +2556,82 @@ class _ChatScreenState extends State<ChatScreen> {
 
   // Selected keywords state
   final Set<String> _selectedKeywordIds = {};
+  final Set<String> _activatingKeywordIds = {}; // Track keywords being activated
   bool _isDeletingKeywords = false;
+  String? _hoveredKeywordId; // Track which specific keyword is being hovered
+  
+  // Sorting and filtering state
+  String _keywordSortBy = 'position'; // position, name, volume, status
+  bool _keywordSortAscending = true;
+  String _keywordFilter = 'all'; // all, tracking, suggestions
+  String _keywordSearchQuery = ''; // Search query for keywords
+
+  List<TrackedKeyword> _filterAndSortKeywords(List<TrackedKeyword> keywords) {
+    // Apply search filter
+    List<TrackedKeyword> filtered = keywords;
+    if (_keywordSearchQuery.isNotEmpty) {
+      filtered = filtered.where((k) => 
+        k.keyword.toLowerCase().contains(_keywordSearchQuery.toLowerCase())
+      ).toList();
+    }
+    
+    // Apply status filter
+    switch (_keywordFilter) {
+      case 'tracking':
+        filtered = filtered.where((k) => k.isActive).toList();
+        break;
+      case 'suggestions':
+        filtered = filtered.where((k) => k.isSuggestion).toList();
+        break;
+      default:
+        // Keep all
+        break;
+    }
+    
+    // Apply sorting
+    filtered.sort((a, b) {
+      int comparison;
+      switch (_keywordSortBy) {
+        case 'name':
+          comparison = a.keyword.toLowerCase().compareTo(b.keyword.toLowerCase());
+          break;
+        case 'volume':
+          comparison = (b.searchVolume ?? 0).compareTo(a.searchVolume ?? 0);
+          break;
+        case 'status':
+          // Sort by: active first, then suggestions
+          if (a.isActive == b.isActive) {
+            comparison = 0;
+          } else if (a.isActive) {
+            comparison = -1;
+          } else {
+            comparison = 1;
+          }
+          break;
+        case 'position':
+        default:
+          // Lower position is better, nulls at the end
+          if (a.currentPosition == null && b.currentPosition == null) {
+            comparison = 0;
+          } else if (a.currentPosition == null) {
+            comparison = 1;
+          } else if (b.currentPosition == null) {
+            comparison = -1;
+          } else {
+            comparison = a.currentPosition!.compareTo(b.currentPosition!);
+          }
+      }
+      
+      return _keywordSortAscending ? comparison : -comparison;
+    });
+    
+    return filtered;
+  }
 
   Widget _buildKeywordsTab(ProjectProvider projectProvider, List<TrackedKeyword> keywords) {
+    // Apply filtering and sorting
+    final filteredKeywords = _filterAndSortKeywords(keywords);
+    
     return projectProvider.isLoading
         ? const Center(child: CircularProgressIndicator())
         : keywords.isEmpty
@@ -2593,6 +2666,145 @@ class _ChatScreenState extends State<ChatScreen> {
               )
             : Column(
                 children: [
+                  // Search, filter and sort controls (inline, compact)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      border: Border(
+                        bottom: BorderSide(
+                          color: Theme.of(context).dividerColor,
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        // Search bar (compact)
+                        SizedBox(
+                          width: 250,
+                          height: 36,
+                          child: TextField(
+                            style: const TextStyle(fontSize: 13),
+                            decoration: InputDecoration(
+                              hintText: 'Search keywords...',
+                              hintStyle: const TextStyle(fontSize: 13),
+                              prefixIcon: const Icon(Icons.search, size: 16),
+                              suffixIcon: _keywordSearchQuery.isNotEmpty
+                                  ? IconButton(
+                                      icon: const Icon(Icons.clear, size: 16),
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                      onPressed: () {
+                                        setState(() => _keywordSearchQuery = '');
+                                      },
+                                    )
+                                  : null,
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(6),
+                                borderSide: BorderSide(color: Theme.of(context).dividerColor),
+                              ),
+                            ),
+                            onChanged: (value) {
+                              setState(() => _keywordSearchQuery = value);
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 20),
+                        // Filter chips (compact)
+                        Text(
+                          'Show:',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ChoiceChip(
+                          label: const Text('All', style: TextStyle(fontSize: 12)),
+                          selected: _keywordFilter == 'all',
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                          labelPadding: EdgeInsets.zero,
+                          visualDensity: VisualDensity.compact,
+                          onSelected: (selected) {
+                            if (selected) {
+                              setState(() => _keywordFilter = 'all');
+                            }
+                          },
+                        ),
+                        const SizedBox(width: 6),
+                        ChoiceChip(
+                          label: const Text('Tracking', style: TextStyle(fontSize: 12)),
+                          selected: _keywordFilter == 'tracking',
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                          labelPadding: EdgeInsets.zero,
+                          visualDensity: VisualDensity.compact,
+                          onSelected: (selected) {
+                            if (selected) {
+                              setState(() => _keywordFilter = 'tracking');
+                            }
+                          },
+                        ),
+                        const SizedBox(width: 6),
+                        ChoiceChip(
+                          label: const Text('Suggestions', style: TextStyle(fontSize: 12)),
+                          selected: _keywordFilter == 'suggestions',
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                          labelPadding: EdgeInsets.zero,
+                          visualDensity: VisualDensity.compact,
+                          onSelected: (selected) {
+                            if (selected) {
+                              setState(() => _keywordFilter = 'suggestions');
+                            }
+                          },
+                        ),
+                        const Spacer(),
+                        // Sort dropdown (compact)
+                        Text(
+                          'Sort by:',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        DropdownButton<String>(
+                          value: _keywordSortBy,
+                          underline: Container(),
+                          isDense: true,
+                          style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodyMedium?.color),
+                          items: const [
+                            DropdownMenuItem(value: 'position', child: Text('Position')),
+                            DropdownMenuItem(value: 'name', child: Text('Name')),
+                            DropdownMenuItem(value: 'volume', child: Text('Search Volume')),
+                            DropdownMenuItem(value: 'status', child: Text('Status')),
+                          ],
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() => _keywordSortBy = value);
+                            }
+                          },
+                        ),
+                        const SizedBox(width: 4),
+                        IconButton(
+                          icon: Icon(
+                            _keywordSortAscending ? Icons.arrow_upward : Icons.arrow_downward,
+                            size: 16,
+                          ),
+                          padding: const EdgeInsets.all(4),
+                          constraints: const BoxConstraints(),
+                          onPressed: () {
+                            setState(() => _keywordSortAscending = !_keywordSortAscending);
+                          },
+                          tooltip: _keywordSortAscending ? 'Ascending' : 'Descending',
+                        ),
+                      ],
+                    ),
+                  ),
                   // Bulk actions bar (shown when keywords are selected)
                   if (_selectedKeywordIds.isNotEmpty)
                     Container(
@@ -2608,41 +2820,83 @@ class _ChatScreenState extends State<ChatScreen> {
                             ),
                           ),
                           const Spacer(),
-                          TextButton.icon(
-                            onPressed: () async {
-                              final confirm = await showDialog<bool>(
-                                context: context,
-                                builder: (context) => AlertDialog(
-                                  title: const Text('Stop Tracking Keywords'),
-                                  content: Text('Stop tracking ${_selectedKeywordIds.length} keyword(s)?'),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context, false),
-                                      child: const Text('Cancel'),
-                                    ),
-                                    FilledButton(
-                                      onPressed: () => Navigator.pop(context, true),
-                                      child: const Text('Stop Tracking'),
-                                    ),
-                                  ],
-                                ),
-                              );
-                              
-                              if (confirm == true && mounted) {
-                                // TODO: Implement stop tracking API call
+                          // Show "Start Tracking" button if any suggestions are selected
+                          if (_selectedKeywordIds.any((id) => 
+                              keywords.any((kw) => kw.id == id && kw.isSuggestion)))
+                            TextButton.icon(
+                              onPressed: () {
+                                final selectedSuggestions = _selectedKeywordIds
+                                    .where((id) => keywords.any((kw) => kw.id == id && kw.isSuggestion))
+                                    .toList();
+                                
+                                final count = selectedSuggestions.length;
+                                
+                                // Clear selection and mark as activating
                                 setState(() {
                                   _selectedKeywordIds.clear();
+                                  _activatingKeywordIds.addAll(selectedSuggestions);
                                 });
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Keywords stopped tracking')),
-                                  );
-                                }
-                              }
-                            },
-                            icon: const Icon(Icons.pause_circle_outline),
-                            label: const Text('Stop Tracking'),
-                          ),
+                                
+                                // Show activating message
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Activating $count keyword(s)...'),
+                                    duration: const Duration(seconds: 1),
+                                  ),
+                                );
+                                
+                                // Activate in background
+                                () async {
+                                  try {
+                                    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                                    
+                                    // Activate all selected suggestions
+                                    for (final id in selectedSuggestions) {
+                                      await authProvider.apiService.toggleKeywordActive(id);
+                                    }
+                                    
+                                    // Reload keywords
+                                    if (mounted) {
+                                      await projectProvider.loadTrackedKeywords(
+                                        authProvider.apiService,
+                                        projectProvider.selectedProject!.id,
+                                      );
+                                      
+                                      // Clear activating state
+                                      setState(() {
+                                        _activatingKeywordIds.removeAll(selectedSuggestions);
+                                      });
+                                      
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('✓ Activated $count keyword(s) for tracking'),
+                                          backgroundColor: Colors.green,
+                                        ),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (mounted) {
+                                      // Clear activating state on error
+                                      setState(() {
+                                        _activatingKeywordIds.removeAll(selectedSuggestions);
+                                      });
+                                      
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Failed to activate keywords: $e'),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                  }
+                                }();
+                              },
+                              icon: const Icon(Icons.play_arrow),
+                              label: const Text('Start Tracking'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.green,
+                              ),
+                            ),
                           const SizedBox(width: 8),
                           TextButton.icon(
                             onPressed: (_isDeletingKeywords || _selectedKeywordIds.isEmpty) ? null : () async {
@@ -2736,12 +2990,33 @@ class _ChatScreenState extends State<ChatScreen> {
                   
                   // Keywords list
                   Expanded(
-                    child: ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                          itemCount: keywords.length + 1, // +1 for the Add Keyword button
+                    child: filteredKeywords.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.filter_list_off,
+                                  size: 64,
+                                  color: Colors.grey[400],
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'No keywords match your filters',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : ListView.builder(
+                          padding: const EdgeInsets.only(left: 24.0, right: 24.0, top: 16.0),
+                          itemCount: filteredKeywords.length + 1, // +1 for the Add Keyword button
                           itemBuilder: (context, index) {
                             // Add Keyword button at the end
-                            if (index == keywords.length) {
+                            if (index == filteredKeywords.length) {
                               return Padding(
                                 padding: const EdgeInsets.symmetric(vertical: 16.0),
                                 child: Center(
@@ -2757,16 +3032,30 @@ class _ChatScreenState extends State<ChatScreen> {
                               );
                             }
 
-                            final keyword = keywords[index];
+                            final keyword = filteredKeywords[index];
                             final isSelected = _selectedKeywordIds.contains(keyword.id);
+                            final isHovered = _hoveredKeywordId == keyword.id;
+                            // Show checkbox if: this item is hovered OR any item is selected
+                            final showCheckbox = isHovered || _selectedKeywordIds.isNotEmpty;
                             
                             return MouseRegion(
                               cursor: SystemMouseCursors.click,
-                              child: Card(
-                                margin: const EdgeInsets.only(bottom: 12),
-                                color: isSelected 
-                                    ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3)
-                                    : null,
+                              onEnter: (_) => setState(() => _hoveredKeywordId = keyword.id),
+                              onExit: (_) => setState(() => _hoveredKeywordId = null),
+                              child: Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                decoration: BoxDecoration(
+                                  color: isSelected 
+                                      ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3)
+                                      : (isHovered ? Theme.of(context).hoverColor.withOpacity(0.05) : Colors.transparent),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: !isSelected
+                                      ? Border.all(
+                                          color: Theme.of(context).dividerColor.withOpacity(0.2),
+                                          width: 1,
+                                        )
+                                      : null,
+                                ),
                                 child: InkWell(
                                   onTap: () {
                                     setState(() {
@@ -2777,24 +3066,34 @@ class _ChatScreenState extends State<ChatScreen> {
                                       }
                                     });
                                   },
+                                  borderRadius: BorderRadius.circular(8),
                                   child: Padding(
-                                    padding: const EdgeInsets.all(16.0),
+                                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
                                     child: Row(
                                       children: [
-                                        // Checkbox
-                                        MouseRegion(
-                                          cursor: SystemMouseCursors.click,
-                                          child: Checkbox(
-                                            value: isSelected,
-                                            onChanged: (value) {
-                                              setState(() {
-                                                if (value == true) {
-                                                  _selectedKeywordIds.add(keyword.id);
-                                                } else {
-                                                  _selectedKeywordIds.remove(keyword.id);
-                                                }
-                                              });
-                                            },
+                                        // Checkbox for multi-select (always reserve space, fade in/out)
+                                        SizedBox(
+                                          width: 48,
+                                          child: AnimatedOpacity(
+                                            opacity: showCheckbox ? 1.0 : 0.0,
+                                            duration: const Duration(milliseconds: 150),
+                                            child: MouseRegion(
+                                              cursor: SystemMouseCursors.click,
+                                              child: Checkbox(
+                                                value: isSelected,
+                                                onChanged: showCheckbox
+                                                    ? (value) {
+                                                        setState(() {
+                                                          if (value == true) {
+                                                            _selectedKeywordIds.add(keyword.id);
+                                                          } else {
+                                                            _selectedKeywordIds.remove(keyword.id);
+                                                          }
+                                                        });
+                                                      }
+                                                    : null,
+                                              ),
+                                            ),
                                           ),
                                         ),
                                         const SizedBox(width: 8),
@@ -2813,7 +3112,35 @@ class _ChatScreenState extends State<ChatScreen> {
                                                       ),
                                                     ),
                                                   ),
-                                                  if (keyword.source == 'auto_detected')
+                                                  if (keyword.isSuggestion)
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.orange.withOpacity(0.1),
+                                                        borderRadius: BorderRadius.circular(12),
+                                                        border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                                                      ),
+                                                      child: Row(
+                                                        mainAxisSize: MainAxisSize.min,
+                                                        children: [
+                                                          Icon(
+                                                            Icons.lightbulb_outline,
+                                                            size: 12,
+                                                            color: Colors.orange[700],
+                                                          ),
+                                                          const SizedBox(width: 4),
+                                                          Text(
+                                                            'Suggestion',
+                                                            style: TextStyle(
+                                                              fontSize: 10,
+                                                              fontWeight: FontWeight.w600,
+                                                              color: Colors.orange[700],
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  if (keyword.source == 'auto_detected' && keyword.isActive)
                                                     Container(
                                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                                       decoration: BoxDecoration(
@@ -2831,7 +3158,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                                           ),
                                                           const SizedBox(width: 4),
                                                           Text(
-                                                            'Currently Targeting',
+                                                            'Auto-Detected',
                                                             style: TextStyle(
                                                               fontSize: 10,
                                                               fontWeight: FontWeight.w600,
@@ -2846,6 +3173,59 @@ class _ChatScreenState extends State<ChatScreen> {
                                               const SizedBox(height: 4),
                                               Row(
                                                 children: [
+                                                  // Tracking status indicator
+                                                  Builder(
+                                                    builder: (context) {
+                                                      final isActivating = _activatingKeywordIds.contains(keyword.id);
+                                                      final statusColor = isActivating 
+                                                          ? Colors.orange
+                                                          : (keyword.isActive ? Colors.green : Colors.grey);
+                                                      final statusText = isActivating
+                                                          ? 'Activating...'
+                                                          : (keyword.isActive ? 'Tracking' : 'Not Tracking');
+                                                      final statusIcon = isActivating
+                                                          ? Icons.sync
+                                                          : (keyword.isActive ? Icons.show_chart : Icons.pause_circle_outline);
+                                                      
+                                                      return Container(
+                                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                        decoration: BoxDecoration(
+                                                          color: statusColor.withOpacity(0.1),
+                                                          borderRadius: BorderRadius.circular(8),
+                                                        ),
+                                                        child: Row(
+                                                          mainAxisSize: MainAxisSize.min,
+                                                          children: [
+                                                            if (isActivating)
+                                                              SizedBox(
+                                                                width: 12,
+                                                                height: 12,
+                                                                child: CircularProgressIndicator(
+                                                                  strokeWidth: 1.5,
+                                                                  valueColor: AlwaysStoppedAnimation<Color>(statusColor[700]!),
+                                                                ),
+                                                              )
+                                                            else
+                                                              Icon(
+                                                                statusIcon,
+                                                                size: 12,
+                                                                color: statusColor[700],
+                                                              ),
+                                                            const SizedBox(width: 4),
+                                                            Text(
+                                                              statusText,
+                                                              style: TextStyle(
+                                                                fontSize: 11,
+                                                                fontWeight: FontWeight.w600,
+                                                                color: statusColor[700],
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      );
+                                                    },
+                                                  ),
+                                                  const SizedBox(width: 12),
                                                   Icon(
                                                     Icons.search,
                                                     size: 14,
@@ -2879,40 +3259,45 @@ class _ChatScreenState extends State<ChatScreen> {
                                           ),
                                         ),
                                     const SizedBox(width: 16),
-                                    // Sparkline chart
-                                    FutureBuilder<Map<String, dynamic>>(
-                                      future: Provider.of<AuthProvider>(context, listen: false).apiService.getKeywordHistory(keyword.id),
-                                      builder: (context, snapshot) {
-                                        if (snapshot.hasData && snapshot.data?['history'] != null) {
-                                          final history = snapshot.data!['history'] as List;
-                                          if (history.length >= 2) {
-                                            // Extract positions for sparkline
-                                            final positions = history
-                                                .map((e) => (e as Map<String, dynamic>)['position'] as int?)
-                                                .where((p) => p != null)
-                                                .map((p) => p!.toDouble())
-                                                .toList();
+                                    // Sparkline chart from ranking history
+                                    Builder(
+                                      builder: (context) {
+                                        if (keyword.rankingHistory.length >= 2) {
+                                          // Extract positions for sparkline
+                                          final positions = keyword.rankingHistory
+                                              .map((point) => point.position)
+                                              .where((p) => p != null)
+                                              .map((p) => p!.toDouble())
+                                              .toList();
 
-                                            if (positions.length >= 2) {
-                                              final firstPos = positions.first;
-                                              final lastPos = positions.last;
-                                              final change = firstPos - lastPos;
-                                              final isImproving = change > 0;
+                                          if (positions.length >= 2) {
+                                            final firstPos = positions.first;
+                                            final lastPos = positions.last;
+                                            final change = firstPos - lastPos;
+                                            final isImproving = change > 0;
 
-                                              return SizedBox(
-                                                width: 80,
-                                                height: 40,
-                                                child: CustomPaint(
-                                                  painter: SparklinePainter(
-                                                    positions,
-                                                    isImproving ? Colors.green : Colors.red,
-                                                  ),
+                                            return SizedBox(
+                                              width: 80,
+                                              height: 40,
+                                              child: CustomPaint(
+                                                painter: SparklinePainter(
+                                                  positions,
+                                                  isImproving ? Colors.green : Colors.red,
                                                 ),
-                                              );
-                                            }
+                                              ),
+                                            );
                                           }
                                         }
-                                        return const SizedBox(width: 80, height: 40);
+                                        // Show placeholder when no data
+                                        return SizedBox(
+                                          width: 80,
+                                          height: 40,
+                                          child: CustomPaint(
+                                            painter: NoDataSparklinePainter(
+                                              Colors.grey.withOpacity(0.3),
+                                            ),
+                                          ),
+                                        );
                                       },
                                     ),
                                     const SizedBox(width: 12),
@@ -2926,7 +3311,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                       ),
                                       child: Center(
                                         child: Text(
-                                          keyword.currentPosition?.toString() ?? '101+',
+                                          keyword.currentPosition?.toString() ?? '--',
                                           style: TextStyle(
                                             color: _getPositionColor(keyword.currentPosition),
                                             fontWeight: FontWeight.bold,
@@ -3411,6 +3796,40 @@ class _ChatScreenState extends State<ChatScreen> {
 }
 
 // Sparkline painter for keyword ranking history
+class NoDataSparklinePainter extends CustomPainter {
+  final Color lineColor;
+
+  NoDataSparklinePainter(this.lineColor);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = lineColor
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+
+    // Draw a dashed horizontal line in the middle
+    final y = size.height / 2;
+    final dashWidth = 4.0;
+    final dashSpace = 4.0;
+    double startX = 0;
+    
+    while (startX < size.width) {
+      canvas.drawLine(
+        Offset(startX, y),
+        Offset(startX + dashWidth, y),
+        paint,
+      );
+      startX += dashWidth + dashSpace;
+    }
+  }
+
+  @override
+  bool shouldRepaint(NoDataSparklinePainter oldDelegate) {
+    return oldDelegate.lineColor != lineColor;
+  }
+}
+
 class SparklinePainter extends CustomPainter {
   final List<double> positions;
   final Color lineColor;
@@ -3445,8 +3864,9 @@ class SparklinePainter extends CustomPainter {
     final path = Path();
     for (int i = 0; i < positions.length; i++) {
       final x = (i / (positions.length - 1)) * size.width;
-      // Invert Y because lower ranking position is better (should be higher on graph)
-      final normalizedPos = (maxPos - positions[i]) / range;
+      // Lower ranking position (1) is better and should be higher on graph (smaller Y)
+      // Higher ranking position (100) is worse and should be lower on graph (larger Y)
+      final normalizedPos = (positions[i] - minPos) / range;
       final y = normalizedPos * size.height;
 
       if (i == 0) {

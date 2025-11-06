@@ -217,13 +217,13 @@ async def send_message_stream(
                     "type": "function",
                     "function": {
                         "name": "analyze_website",
-                        "description": "Crawl and analyze a website's SEO. Extracts title, meta description, headings, content, and provides SEO recommendations.",
+                        "description": "Crawl and analyze a website to extract targeted keywords and SEO data. Use when user requests website analysis, keyword extraction, or site audit. Scrapes all pages via sitemap and extracts titles, meta descriptions, headings, content, and identifies targeted keywords. Returns comprehensive keyword analysis and SEO recommendations.",
                         "parameters": {
                             "type": "object",
                             "properties": {
                                 "url": {
                                     "type": "string",
-                                    "description": "Full URL of the website to analyze (e.g., 'https://example.com')"
+                                    "description": "Full URL of the website to analyze. If user refers to the project or their website without specifying URL, use the project's target_url from context."
                                 }
                             },
                             "required": ["url"]
@@ -1363,11 +1363,11 @@ async def send_message(
                 }
             }
         },
-        {
-            "type": "function",
-            "function": {
-                "name": "analyze_website",
-                "description": "Crawl and analyze a website's SEO. Extracts title, meta description, headings, content, and provides SEO recommendations.",
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "analyze_website",
+                        "description": "Crawl and analyze a website to extract targeted keywords and SEO data. Use when user requests website analysis, keyword extraction, or site audit. Scrapes all pages via sitemap and extracts titles, meta descriptions, headings, content, and identifies targeted keywords. Returns comprehensive keyword analysis and SEO recommendations.",
                 "parameters": {
                     "type": "object",
                     "properties": {

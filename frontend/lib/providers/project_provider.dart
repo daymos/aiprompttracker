@@ -19,6 +19,16 @@ class Project {
   bool get isGSCLinked => gscPropertyUrl != null && gscPropertyUrl!.isNotEmpty;
 }
 
+class RankingHistoryPoint {
+  final int? position;
+  final DateTime checkedAt;
+
+  RankingHistoryPoint({
+    required this.position,
+    required this.checkedAt,
+  });
+}
+
 class TrackedKeyword {
   final String id;
   final String keyword;
@@ -29,6 +39,7 @@ class TrackedKeyword {
   final String source; // "manual" or "auto_detected"
   final bool isActive; // true if actively tracked, false if just a suggestion
   final DateTime createdAt;
+  final List<RankingHistoryPoint> rankingHistory;
 
   TrackedKeyword({
     required this.id,
@@ -40,6 +51,7 @@ class TrackedKeyword {
     this.source = 'manual', // Default for backward compatibility
     this.isActive = true, // Default for backward compatibility
     required this.createdAt,
+    this.rankingHistory = const [],
   });
   
   bool get isActivated => isActive;
@@ -155,17 +167,30 @@ class ProjectProvider with ChangeNotifier {
     try {
       final keywords = await apiService.getProjectKeywords(projectId);
       
-      _trackedKeywords = keywords.map((k) => TrackedKeyword(
-        id: k['id'],
-        keyword: k['keyword'],
-        searchVolume: k['search_volume'],
-        competition: k['competition'],
-        currentPosition: k['current_position'],
-        targetPosition: k['target_position'],
-        source: k['source'] ?? 'manual', // Default to manual if not present
-        isActive: k['is_active'] ?? true, // Default to true if not present
-        createdAt: DateTime.parse(k['created_at']),
-      )).toList();
+      _trackedKeywords = keywords.map((k) {
+        final List<RankingHistoryPoint> history = [];
+        if (k['ranking_history'] != null) {
+          for (var point in k['ranking_history']) {
+            history.add(RankingHistoryPoint(
+              position: point['position'],
+              checkedAt: DateTime.parse(point['checked_at']),
+            ));
+          }
+        }
+        
+        return TrackedKeyword(
+          id: k['id'],
+          keyword: k['keyword'],
+          searchVolume: k['search_volume'],
+          competition: k['competition'],
+          currentPosition: k['current_position'],
+          targetPosition: k['target_position'],
+          source: k['source'] ?? 'manual',
+          isActive: k['is_active'] ?? true,
+          createdAt: DateTime.parse(k['created_at']),
+          rankingHistory: history,
+        );
+      }).toList();
       
       notifyListeners();
     } catch (e) {
@@ -185,6 +210,16 @@ class ProjectProvider with ChangeNotifier {
         competition,
       );
 
+      final List<RankingHistoryPoint> history = [];
+      if (response['ranking_history'] != null) {
+        for (var point in response['ranking_history']) {
+          history.add(RankingHistoryPoint(
+            position: point['position'],
+            checkedAt: DateTime.parse(point['checked_at']),
+          ));
+        }
+      }
+      
       final newKeyword = TrackedKeyword(
         id: response['id'],
         keyword: response['keyword'],
@@ -192,9 +227,10 @@ class ProjectProvider with ChangeNotifier {
         competition: response['competition'],
         currentPosition: response['current_position'],
         targetPosition: response['target_position'],
-        source: response['source'] ?? 'manual', // Default to manual if not present
-        isActive: response['is_active'] ?? true, // Default to true if not present
+        source: response['source'] ?? 'manual',
+        isActive: response['is_active'] ?? true,
         createdAt: DateTime.parse(response['created_at']),
+        rankingHistory: history,
       );
 
       // Only add to tracked keywords if it's the currently selected project
