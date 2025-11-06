@@ -11,6 +11,7 @@ import '../widgets/theme_switcher.dart';
 import '../widgets/cli_spinner.dart';
 import '../widgets/favicon_widget.dart';
 import 'dart:html' as html;
+import 'dart:async';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -33,6 +34,7 @@ class _ChatScreenState extends State<ChatScreen> {
   ViewState _currentView = ViewState.chat;
   ProjectViewState _projectViewState = ProjectViewState.list;
   ProjectTab _selectedProjectTab = ProjectTab.keywords;
+  Timer? _keywordPollingTimer;
 
   @override
   void initState() {
@@ -65,7 +67,46 @@ class _ChatScreenState extends State<ChatScreen> {
     chatProvider.removeListener(_scrollToBottom);
     _messageController.dispose();
     _scrollController.dispose();
+    _keywordPollingTimer?.cancel();
     super.dispose();
+  }
+
+  void _startKeywordPolling() {
+    // Cancel any existing timer
+    _keywordPollingTimer?.cancel();
+    
+    // Poll every 10 seconds for new keywords
+    _keywordPollingTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      
+      final projectProvider = context.read<ProjectProvider>();
+      final authProvider = context.read<AuthProvider>();
+      
+      if (projectProvider.activeProject != null) {
+        await projectProvider.loadTrackedKeywords(
+          authProvider.apiService,
+          projectProvider.activeProject!.id,
+        );
+        
+        // Stop polling if keywords are found
+        if (projectProvider.trackedKeywords.isNotEmpty) {
+          timer.cancel();
+          _keywordPollingTimer = null;
+        }
+      } else {
+        // No active project, stop polling
+        timer.cancel();
+        _keywordPollingTimer = null;
+      }
+    });
+  }
+
+  void _stopKeywordPolling() {
+    _keywordPollingTimer?.cancel();
+    _keywordPollingTimer = null;
   }
 
   void _showWelcomeModal() {
@@ -1436,6 +1477,20 @@ class _ChatScreenState extends State<ChatScreen> {
         }
       });
     }
+    
+    // Start polling for keywords if on keywords tab and no keywords yet
+    if (_selectedProjectTab == ProjectTab.keywords && keywords.isEmpty && _keywordPollingTimer == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _startKeywordPolling();
+      });
+    }
+    
+    // Stop polling if we have keywords
+    if (keywords.isNotEmpty && _keywordPollingTimer != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _stopKeywordPolling();
+      });
+    }
 
     return DefaultTabController(
       length: 3,
@@ -1637,6 +1692,13 @@ class _ChatScreenState extends State<ChatScreen> {
                       setState(() {
                         _selectedProjectTab = ProjectTab.values[index];
                       });
+                      
+                      // Start polling if switching to keywords tab with no keywords
+                      if (_selectedProjectTab == ProjectTab.keywords && keywords.isEmpty) {
+                        _startKeywordPolling();
+                      } else {
+                        _stopKeywordPolling();
+                      }
                     },
                     tabs: [
                       const Tab(text: 'Overview'),
@@ -2639,26 +2701,45 @@ class _ChatScreenState extends State<ChatScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.search,
+                    CliSpinner(
                       size: 64,
                       color: Colors.grey[600],
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No Keywords Yet',
-                      style: TextStyle(
-                        fontSize: 20,
-                        color: Colors.grey[600],
-                      ),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Auto-detecting keywords',
+                          style: TextStyle(
+                            fontSize: 20,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ThinkingIndicator(
+                          text: '',
+                          fontSize: 20,
+                          color: Colors.grey[600],
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Add keywords from the chat to start tracking',
+                      'Analyzing your website to suggest relevant keywords.\nThis may take 1-5 minutes.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.grey[500],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'You can add keywords manually from the chat while you wait',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[400],
                       ),
                     ),
                   ],
