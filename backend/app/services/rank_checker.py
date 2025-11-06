@@ -67,3 +67,4 @@ class RankCheckerService:
             }
         """
         return await self.dataforseo.get_serp_analysis(keyword, location)
+

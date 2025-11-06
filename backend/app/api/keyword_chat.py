@@ -19,7 +19,10 @@ from ..services.keyword_service import KeywordService
 from ..services.llm_service import LLMService
 from ..services.rank_checker import RankCheckerService
 from ..services.rapidapi_backlinks_service import RapidAPIBacklinkService
+from ..services.dataforseo_backlinks_service import DataForSEOBacklinksService
 from ..services.web_scraper import WebScraperService
+from ..models.backlink_analysis import BacklinkAnalysis
+from ..models.project import KeywordRanking
 from .auth import get_current_user
 
 router = APIRouter(prefix="/chat", tags=["chat"])
@@ -29,6 +32,7 @@ keyword_service = KeywordService()
 llm_service = LLMService()
 rank_checker = RankCheckerService()
 backlink_service = RapidAPIBacklinkService()
+dataforseo_backlink_service = DataForSEOBacklinksService()
 web_scraper = WebScraperService()
 
 class ChatRequest(BaseModel):
@@ -310,6 +314,23 @@ async def send_message_stream(
                             "required": ["title", "content"]
                         }
                     }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "analyze_project_status",
+                        "description": "Load complete project data and analyze SEO progress. Use this when user asks about a specific project, wants to 'work on SEO strategy', or asks 'how is my project doing'. Returns keywords with current rankings, historical progress, backlink profile, and overall assessment. ALWAYS use this first when discussing an existing project.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "project_id": {
+                                    "type": "string",
+                                    "description": "The ID of the project to analyze"
+                                }
+                            },
+                            "required": ["project_id"]
+                        }
+                    }
                 }
             ]
 
@@ -345,6 +366,8 @@ async def send_message_stream(
                         yield await send_sse_event("status", {"message": "Adding keywords to tracker..."})
                     elif tool_name == "pin_important_info":
                         yield await send_sse_event("status", {"message": "Pinning important information..."})
+                    elif tool_name == "analyze_project_status":
+                        yield await send_sse_event("status", {"message": "Loading project data..."})
                     
                     try:
                         if tool_name == "research_keywords":
@@ -598,6 +621,146 @@ async def send_message_stream(
                                     "name": tool_name,
                                     "content": f"Successfully pinned '{title}' to the pinboard"
                                 })
+                        
+                        elif tool_name == "analyze_project_status":
+                            project_id = args.get("project_id")
+                            
+                            # Get project
+                            project = db.query(Project).filter(
+                                Project.id == project_id,
+                                Project.user_id == user.id
+                            ).first()
+                            
+                            if not project:
+                                tool_results.append({
+                                    "tool_call_id": tool_call["id"],
+                                    "role": "tool",
+                                    "name": tool_name,
+                                    "content": "ERROR: Project not found"
+                                })
+                                continue
+                            
+                            # Load complete project data
+                            logger.info(f"📊 Loading complete data for project: {project.name}")
+                            
+                            # 1. Get tracked keywords with rankings
+                            tracked_keywords = db.query(TrackedKeyword).filter(
+                                TrackedKeyword.project_id == project_id
+                            ).all()
+                            
+                            keywords_data = []
+                            for kw in tracked_keywords:
+                                # Get all rankings for this keyword
+                                rankings = db.query(KeywordRanking).filter(
+                                    KeywordRanking.tracked_keyword_id == kw.id
+                                ).order_by(KeywordRanking.checked_at.desc()).limit(30).all()
+                                
+                                current_position = rankings[0].position if rankings else None
+                                current_page = rankings[0].page_url if rankings else None
+                                
+                                # Calculate progress (compare first vs latest)
+                                progress = None
+                                if len(rankings) >= 2:
+                                    oldest_pos = rankings[-1].position
+                                    current_pos = rankings[0].position
+                                    if oldest_pos and current_pos:
+                                        progress = oldest_pos - current_pos  # Positive = improvement
+                                
+                                keywords_data.append({
+                                    "keyword": kw.keyword,
+                                    "search_volume": kw.search_volume,
+                                    "competition": kw.competition,
+                                    "target_position": kw.target_position,
+                                    "target_page": kw.target_page,
+                                    "current_position": current_position,
+                                    "ranking_page": current_page,
+                                    "is_correct_page": kw.target_page in (current_page or '') if kw.target_page else (current_page is not None),
+                                    "progress": progress,
+                                    "ranking_history": [{"position": r.position, "date": r.checked_at.isoformat()} for r in rankings[:10]]
+                                })
+                            
+                            # 2. Get backlink analysis
+                            backlink_analysis = db.query(BacklinkAnalysis).filter(
+                                BacklinkAnalysis.project_id == project_id
+                            ).first()
+                            
+                            backlinks_summary = None
+                            if backlink_analysis:
+                                backlinks_summary = {
+                                    "total_backlinks": backlink_analysis.total_backlinks,
+                                    "referring_domains": backlink_analysis.referring_domains,
+                                    "domain_authority": backlink_analysis.domain_authority,
+                                    "analyzed_at": backlink_analysis.analyzed_at.isoformat(),
+                                    "recent_backlinks": backlink_analysis.raw_data.get("backlinks", [])[:10] if backlink_analysis.raw_data else []
+                                }
+                            
+                            # 3. Format comprehensive report
+                            report = {
+                                "project_name": project.name,
+                                "target_url": project.target_url,
+                                "created_at": project.created_at.isoformat(),
+                                "keywords": {
+                                    "total": len(keywords_data),
+                                    "ranking": sum(1 for kw in keywords_data if kw["current_position"]),
+                                    "not_ranking": sum(1 for kw in keywords_data if not kw["current_position"]),
+                                    "top_10": sum(1 for kw in keywords_data if kw["current_position"] and kw["current_position"] <= 10),
+                                    "improved": sum(1 for kw in keywords_data if kw["progress"] and kw["progress"] > 0),
+                                    "declined": sum(1 for kw in keywords_data if kw["progress"] and kw["progress"] < 0),
+                                    "details": keywords_data
+                                },
+                                "backlinks": backlinks_summary
+                            }
+                            
+                            # Format as readable text for LLM
+                            report_text = f"""
+PROJECT STATUS REPORT: {project.name}
+Website: {project.target_url}
+Created: {project.created_at.strftime('%Y-%m-%d')}
+
+KEYWORD PERFORMANCE:
+- Total Keywords Tracked: {report['keywords']['total']}
+- Currently Ranking: {report['keywords']['ranking']} ({int(report['keywords']['ranking']/max(report['keywords']['total'],1)*100)}%)
+- Not Ranking Yet: {report['keywords']['not_ranking']}
+- In Top 10: {report['keywords']['top_10']}
+- Improved: {report['keywords']['improved']}
+- Declined: {report['keywords']['declined']}
+
+KEYWORD DETAILS:
+"""
+                            for kw in keywords_data:
+                                status = "✅ Ranking" if kw["current_position"] else "❌ Not ranking"
+                                pos = f"#{kw['current_position']}" if kw["current_position"] else "Not in top 100"
+                                progress_emoji = ""
+                                if kw["progress"]:
+                                    if kw["progress"] > 0:
+                                        progress_emoji = f" 📈 +{kw['progress']}"
+                                    elif kw["progress"] < 0:
+                                        progress_emoji = f" 📉 {kw['progress']}"
+                                
+                                report_text += f"\n• {kw['keyword']}: {pos} {progress_emoji}"
+                                if kw["target_page"] and not kw["is_correct_page"] and kw["current_position"]:
+                                    report_text += f" ⚠️  Wrong page ranking"
+                            
+                            if backlinks_summary:
+                                report_text += f"""
+
+BACKLINK PROFILE:
+- Total Backlinks: {backlinks_summary['total_backlinks']}
+- Referring Domains: {backlinks_summary['referring_domains']}
+- Domain Authority: {backlinks_summary['domain_authority']}
+- Last Updated: {backlinks_summary['analyzed_at'][:10]}
+"""
+                            else:
+                                report_text += "\n\nBACKLINK PROFILE: Not analyzed yet"
+                            
+                            report_text += "\n\nPlease analyze this data and provide insights on SEO progress, opportunities, and recommendations."
+                            
+                            tool_results.append({
+                                "tool_call_id": tool_call["id"],
+                                "role": "tool",
+                                "name": tool_name,
+                                "content": report_text
+                            })
 
                     except Exception as e:
                         tool_results.append({

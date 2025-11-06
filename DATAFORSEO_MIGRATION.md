@@ -187,3 +187,4 @@ Once credentials are added:
 - Credentials stored in `.env` (not committed to git)
 - API calls made server-side only (credentials never exposed to frontend)
 
+
