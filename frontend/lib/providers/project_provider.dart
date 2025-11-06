@@ -6,13 +6,17 @@ class Project {
   final String targetUrl;
   final String name;
   final DateTime createdAt;
+  final String? gscPropertyUrl; // Google Search Console property URL
 
   Project({
     required this.id,
     required this.targetUrl,
     required this.name,
     required this.createdAt,
+    this.gscPropertyUrl,
   });
+
+  bool get isGSCLinked => gscPropertyUrl != null && gscPropertyUrl!.isNotEmpty;
 }
 
 class TrackedKeyword {
@@ -23,6 +27,7 @@ class TrackedKeyword {
   final int? currentPosition;
   final int targetPosition;
   final String source; // "manual" or "auto_detected"
+  final bool isActive; // true if actively tracked, false if just a suggestion
   final DateTime createdAt;
 
   TrackedKeyword({
@@ -33,8 +38,12 @@ class TrackedKeyword {
     this.currentPosition,
     required this.targetPosition,
     this.source = 'manual', // Default for backward compatibility
+    this.isActive = true, // Default for backward compatibility
     required this.createdAt,
   });
+  
+  bool get isActivated => isActive;
+  bool get isSuggestion => !isActive && source == 'auto_detected';
 }
 
 class ProjectProvider with ChangeNotifier {
@@ -65,6 +74,7 @@ class ProjectProvider with ChangeNotifier {
           targetUrl: response['target_url'],
           name: response['name'] ?? 'My Project',
           createdAt: DateTime.parse(response['created_at']),
+          gscPropertyUrl: response['gsc_property_url'],
         );
 
         // Set as selected if no project is selected
@@ -105,6 +115,7 @@ class ProjectProvider with ChangeNotifier {
         targetUrl: s['target_url'],
         name: s['name'] ?? 'My Project',
         createdAt: DateTime.parse(s['created_at']),
+        gscPropertyUrl: s['gsc_property_url'],
       )).toList();
       
       notifyListeners();
@@ -125,6 +136,7 @@ class ProjectProvider with ChangeNotifier {
         targetUrl: response['target_url'],
         name: response['name'] ?? 'My Project',
         createdAt: DateTime.parse(response['created_at']),
+        gscPropertyUrl: response['gsc_property_url'],
       );
       
       _activeProject = newProject;
@@ -151,6 +163,7 @@ class ProjectProvider with ChangeNotifier {
         currentPosition: k['current_position'],
         targetPosition: k['target_position'],
         source: k['source'] ?? 'manual', // Default to manual if not present
+        isActive: k['is_active'] ?? true, // Default to true if not present
         createdAt: DateTime.parse(k['created_at']),
       )).toList();
       
@@ -180,6 +193,7 @@ class ProjectProvider with ChangeNotifier {
         currentPosition: response['current_position'],
         targetPosition: response['target_position'],
         source: response['source'] ?? 'manual', // Default to manual if not present
+        isActive: response['is_active'] ?? true, // Default to true if not present
         createdAt: DateTime.parse(response['created_at']),
       );
 

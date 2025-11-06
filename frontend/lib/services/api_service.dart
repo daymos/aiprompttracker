@@ -190,6 +190,19 @@ class ApiService {
     }
   }
   
+  Future<Map<String, dynamic>> toggleKeywordActive(String keywordId) async {
+    final response = await http.patch(
+      Uri.parse('$baseUrl/project/keywords/$keywordId/toggle'),
+      headers: _headers(),
+    );
+    
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to toggle keyword: ${response.body}');
+    }
+  }
+  
   Future<Map<String, dynamic>> addKeywordToProject(
     String projectId,
     String keyword,
@@ -392,5 +405,105 @@ class ApiService {
     // The backend now proxies the favicon, so we just return the endpoint URL
     return '$baseUrl/project/favicon?url=${Uri.encodeComponent(url)}';
   }
+
+  // Google Search Console endpoints
+
+  Future<List<Map<String, dynamic>>> getGSCProperties() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/gsc/properties'),
+      headers: _headers(),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return List<Map<String, dynamic>>.from(data['properties']);
+    } else {
+      throw Exception('Failed to get GSC properties: ${response.body}');
+    }
+  }
+
+  Future<void> linkProjectToGSCProperty(String projectId, String propertyUrl) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/gsc/project/link'),
+      headers: _headers(),
+      body: jsonEncode({
+        'project_id': projectId,
+        'property_url': propertyUrl,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to link GSC property: ${response.body}');
+    }
+  }
+
+  Future<Map<String, dynamic>> getGSCAnalytics(String projectId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/gsc/project/$projectId/analytics'),
+      headers: _headers(),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to get GSC analytics: ${response.body}');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getGSCTopQueries(String projectId, {int limit = 20}) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/gsc/project/$projectId/queries?limit=$limit'),
+      headers: _headers(),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return List<Map<String, dynamic>>.from(data['queries']);
+    } else {
+      throw Exception('Failed to get top queries: ${response.body}');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getGSCTopPages(String projectId, {int limit = 20}) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/gsc/project/$projectId/pages?limit=$limit'),
+      headers: _headers(),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return List<Map<String, dynamic>>.from(data['pages']);
+    } else {
+      throw Exception('Failed to get top pages: ${response.body}');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getGSCSitemaps(String projectId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/gsc/project/$projectId/sitemaps'),
+      headers: _headers(),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return List<Map<String, dynamic>>.from(data['sitemaps']);
+    } else {
+      throw Exception('Failed to get sitemaps: ${response.body}');
+    }
+  }
+
+  Future<Map<String, dynamic>> getGSCIndexing(String projectId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/gsc/project/$projectId/indexing'),
+      headers: _headers(),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to get indexing status: ${response.body}');
+    }
+  }
 }
+
 
