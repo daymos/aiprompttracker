@@ -9,7 +9,11 @@ class AuthService {
   
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     clientId: '149794489949-n76062u9scrnki2sbp22aaivat2eccri.apps.googleusercontent.com',
-    scopes: ['email', 'profile'],
+    scopes: [
+      'email',
+      'profile',
+      'https://www.googleapis.com/auth/webmasters.readonly',  // GSC access
+    ],
   );
   
   Future<Map<String, dynamic>?> signInWithGoogle() async {
@@ -23,13 +27,21 @@ class AuthService {
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
       
       // Send both tokens to backend (web uses access token, native uses id token)
+      final Map<String, dynamic> authData = {
+        'id_token': googleAuth.idToken ?? googleAuth.accessToken ?? '',
+        'access_token': googleAuth.accessToken,
+        'gsc_access_token': googleAuth.accessToken,  // Same token for GSC
+      };
+      
+      // Only add gsc_refresh_token if available (not available in web flow)
+      if (googleAuth.serverAuthCode != null) {
+        authData['gsc_refresh_token'] = googleAuth.serverAuthCode;
+      }
+      
       final response = await http.post(
         Uri.parse('$baseUrl/auth/google'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'id_token': googleAuth.idToken ?? googleAuth.accessToken ?? '',
-          'access_token': googleAuth.accessToken,
-        }),
+        body: jsonEncode(authData),
       );
       
       if (response.statusCode == 200) {

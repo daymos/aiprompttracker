@@ -17,6 +17,11 @@ class User(Base):
     backlink_rows_limit = Column(Integer, default=1000)  # Testing mode: 1000 requests/month
     backlink_usage_reset_at = Column(DateTime(timezone=True), server_default=func.now())
     
+    # Google Search Console integration
+    gsc_access_token = Column(String, nullable=True)  # OAuth access token
+    gsc_refresh_token = Column(String, nullable=True)  # OAuth refresh token
+    gsc_token_expires_at = Column(DateTime(timezone=True), nullable=True)
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     

@@ -11,6 +11,7 @@ class Project(Base):
     user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
     target_url = Column(String, nullable=False)  # The website they're trying to rank
     name = Column(String, nullable=True)  # Optional project name
+    gsc_property_url = Column(String, nullable=True)  # Google Search Console property URL
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     

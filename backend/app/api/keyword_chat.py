@@ -21,6 +21,7 @@ from ..services.rank_checker import RankCheckerService
 from ..services.rapidapi_backlinks_service import RapidAPIBacklinkService
 from ..services.dataforseo_backlinks_service import DataForSEOBacklinksService
 from ..services.web_scraper import WebScraperService
+from ..services.gsc_service import GSCService
 from ..models.backlink_analysis import BacklinkAnalysis
 from ..models.project import KeywordRanking
 from .auth import get_current_user
@@ -34,6 +35,7 @@ rank_checker = RankCheckerService()
 backlink_service = RapidAPIBacklinkService()
 dataforseo_backlink_service = DataForSEOBacklinksService()
 web_scraper = WebScraperService()
+gsc_service = GSCService()
 
 class ChatRequest(BaseModel):
     message: str
@@ -331,6 +333,55 @@ async def send_message_stream(
                             "required": ["project_id"]
                         }
                     }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "get_gsc_performance",
+                        "description": "Get real Google Search Console data for a project - actual clicks, impressions, CTR, and average position from Google. Use this to see real performance data (not estimates), check indexing status, or analyze sitemap issues. Only works if user has connected their Google Search Console and linked the project to a GSC property.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "project_id": {
+                                    "type": "string",
+                                    "description": "The ID of the project to get GSC data for"
+                                },
+                                "data_type": {
+                                    "type": "string",
+                                    "enum": ["overview", "queries", "pages", "sitemaps", "indexing"],
+                                    "description": "Type of GSC data to retrieve: 'overview' (summary stats), 'queries' (top keywords), 'pages' (top pages), 'sitemaps' (sitemap status), 'indexing' (indexing coverage)",
+                                    "default": "overview"
+                                },
+                                "limit": {
+                                    "type": "integer",
+                                    "description": "For 'queries' or 'pages', number of results to return (default 20)",
+                                    "default": 20
+                                }
+                            },
+                            "required": ["project_id"]
+                        }
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "link_gsc_property",
+                        "description": "Link a project to a Google Search Console property. Use this when user wants to connect their project to GSC or when GSC data retrieval fails because no property is linked. Lists available GSC properties and links the selected one to the project.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "project_id": {
+                                    "type": "string",
+                                    "description": "The ID of the project to link"
+                                },
+                                "property_url": {
+                                    "type": "string",
+                                    "description": "Optional: The GSC property URL to link (e.g., 'https://example.com/' or 'sc-domain:example.com'). If not provided, will list available properties for user to choose from."
+                                }
+                            },
+                            "required": ["project_id"]
+                        }
+                    }
                 }
             ]
 
@@ -368,6 +419,10 @@ async def send_message_stream(
                         yield await send_sse_event("status", {"message": "Pinning important information..."})
                     elif tool_name == "analyze_project_status":
                         yield await send_sse_event("status", {"message": "Loading project data..."})
+                    elif tool_name == "get_gsc_performance":
+                        yield await send_sse_event("status", {"message": "Fetching Google Search Console data..."})
+                    elif tool_name == "link_gsc_property":
+                        yield await send_sse_event("status", {"message": "Linking GSC property..."})
                     
                     try:
                         if tool_name == "research_keywords":
@@ -761,6 +816,258 @@ BACKLINK PROFILE:
                                 "name": tool_name,
                                 "content": report_text
                             })
+                        
+                        elif tool_name == "get_gsc_performance":
+                            project_id = args.get("project_id")
+                            data_type = args.get("data_type", "overview")
+                            limit = args.get("limit", 20)
+                            
+                            # Check if user has GSC connected
+                            if not user.gsc_access_token:
+                                tool_results.append({
+                                    "tool_call_id": tool_call["id"],
+                                    "role": "tool",
+                                    "name": tool_name,
+                                    "content": "ERROR: Google Search Console not connected. User needs to connect their GSC account first."
+                                })
+                                continue
+                            
+                            # Get project
+                            project = db.query(Project).filter(
+                                Project.id == project_id,
+                                Project.user_id == user.id
+                            ).first()
+                            
+                            if not project:
+                                tool_results.append({
+                                    "tool_call_id": tool_call["id"],
+                                    "role": "tool",
+                                    "name": tool_name,
+                                    "content": "ERROR: Project not found"
+                                })
+                                continue
+                            
+                            if not project.gsc_property_url:
+                                tool_results.append({
+                                    "tool_call_id": tool_call["id"],
+                                    "role": "tool",
+                                    "name": tool_name,
+                                    "content": f"ERROR: Project '{project.name}' is not linked to a Google Search Console property. User needs to link this project to a GSC property first."
+                                })
+                                continue
+                            
+                            # Fetch GSC data based on type
+                            try:
+                                if data_type == "overview":
+                                    gsc_data = await gsc_service.get_search_analytics(
+                                        access_token=user.gsc_access_token,
+                                        site_url=project.gsc_property_url,
+                                        refresh_token=user.gsc_refresh_token
+                                    )
+                                    
+                                    result_text = f"""
+GOOGLE SEARCH CONSOLE DATA - {project.name}
+Property: {project.gsc_property_url}
+Period: {gsc_data['start_date']} to {gsc_data['end_date']}
+
+PERFORMANCE SUMMARY:
+- Total Clicks: {gsc_data['total_clicks']:,}
+- Total Impressions: {gsc_data['total_impressions']:,}
+- Average CTR: {gsc_data['average_ctr']}%
+- Average Position: {gsc_data['average_position']}
+
+This is REAL data from Google Search Console (not estimates).
+"""
+                                    
+                                elif data_type == "queries":
+                                    queries = await gsc_service.get_top_queries(
+                                        access_token=user.gsc_access_token,
+                                        site_url=project.gsc_property_url,
+                                        limit=limit,
+                                        refresh_token=user.gsc_refresh_token
+                                    )
+                                    
+                                    result_text = f"""
+TOP {len(queries)} SEARCH QUERIES - {project.name}
+Real data from Google Search Console:
+
+"""
+                                    for i, q in enumerate(queries[:limit], 1):
+                                        result_text += f"{i}. \"{q['query']}\" - {q['clicks']} clicks, {q['impressions']:,} impressions, {q['ctr']}% CTR, avg position #{q['position']}\n"
+                                
+                                elif data_type == "pages":
+                                    pages = await gsc_service.get_top_pages(
+                                        access_token=user.gsc_access_token,
+                                        site_url=project.gsc_property_url,
+                                        limit=limit,
+                                        refresh_token=user.gsc_refresh_token
+                                    )
+                                    
+                                    result_text = f"""
+TOP {len(pages)} PERFORMING PAGES - {project.name}
+Real data from Google Search Console:
+
+"""
+                                    for i, p in enumerate(pages[:limit], 1):
+                                        result_text += f"{i}. {p['page']}\n   {p['clicks']} clicks, {p['impressions']:,} impressions, {p['ctr']}% CTR\n"
+                                
+                                elif data_type == "sitemaps":
+                                    sitemaps = await gsc_service.get_sitemaps(
+                                        access_token=user.gsc_access_token,
+                                        site_url=project.gsc_property_url,
+                                        refresh_token=user.gsc_refresh_token
+                                    )
+                                    
+                                    result_text = f"""
+SITEMAP STATUS - {project.name}
+Total Sitemaps: {len(sitemaps)}
+
+"""
+                                    if not sitemaps:
+                                        result_text += "⚠️  WARNING: No sitemaps found! This could impact indexing.\n"
+                                    else:
+                                        for sitemap in sitemaps:
+                                            status_emoji = "✅" if sitemap['errors'] == 0 else "❌"
+                                            result_text += f"{status_emoji} {sitemap['path']}\n"
+                                            result_text += f"   Last submitted: {sitemap['last_submitted']}\n"
+                                            result_text += f"   Errors: {sitemap['errors']}, Warnings: {sitemap['warnings']}\n"
+                                            if sitemap['errors'] > 0:
+                                                result_text += f"   ⚠️  ATTENTION: Sitemap has errors that need fixing!\n"
+                                
+                                elif data_type == "indexing":
+                                    coverage = await gsc_service.get_index_coverage(
+                                        access_token=user.gsc_access_token,
+                                        site_url=project.gsc_property_url,
+                                        refresh_token=user.gsc_refresh_token
+                                    )
+                                    
+                                    result_text = f"""
+INDEXING STATUS - {project.name}
+
+OVERVIEW:
+- Pages with impressions: {coverage['pages_with_impressions']}
+- Sitemaps: {coverage['sitemaps_count']}
+- Sitemap errors: {coverage['sitemap_errors']}
+- Sitemap warnings: {coverage['sitemap_warnings']}
+
+"""
+                                    if coverage['sitemap_errors'] > 0:
+                                        result_text += "⚠️  WARNING: Sitemap errors detected! Pages may not be indexed properly.\n\n"
+                                    
+                                    if coverage['sitemaps']:
+                                        result_text += "SITEMAPS:\n"
+                                        for sitemap in coverage['sitemaps']:
+                                            result_text += f"- {sitemap['path']}: {sitemap['errors']} errors, {sitemap['warnings']} warnings\n"
+                                
+                                tool_results.append({
+                                    "tool_call_id": tool_call["id"],
+                                    "role": "tool",
+                                    "name": tool_name,
+                                    "content": result_text
+                                })
+                                
+                            except Exception as gsc_error:
+                                tool_results.append({
+                                    "tool_call_id": tool_call["id"],
+                                    "role": "tool",
+                                    "name": tool_name,
+                                    "content": f"ERROR fetching GSC data: {str(gsc_error)}. The user may need to reconnect their Google Search Console account."
+                                })
+                        
+                        elif tool_name == "link_gsc_property":
+                            project_id = args.get("project_id")
+                            property_url = args.get("property_url")
+                            
+                            # Check if user has GSC connected
+                            if not user.gsc_access_token:
+                                tool_results.append({
+                                    "tool_call_id": tool_call["id"],
+                                    "role": "tool",
+                                    "name": tool_name,
+                                    "content": "ERROR: Google Search Console not connected. User needs to connect their GSC account first by logging in again."
+                                })
+                                continue
+                            
+                            # Get project
+                            project = db.query(Project).filter(
+                                Project.id == project_id,
+                                Project.user_id == user.id
+                            ).first()
+                            
+                            if not project:
+                                tool_results.append({
+                                    "tool_call_id": tool_call["id"],
+                                    "role": "tool",
+                                    "name": tool_name,
+                                    "content": "ERROR: Project not found"
+                                })
+                                continue
+                            
+                            try:
+                                # If property_url is provided, link directly
+                                if property_url:
+                                    project.gsc_property_url = property_url
+                                    db.commit()
+                                    
+                                    tool_results.append({
+                                        "tool_call_id": tool_call["id"],
+                                        "role": "tool",
+                                        "name": tool_name,
+                                        "content": f"✅ Successfully linked project '{project.name}' to GSC property: {property_url}"
+                                    })
+                                else:
+                                    # Fetch available properties and let user choose
+                                    properties = await gsc_service.get_site_list(
+                                        access_token=user.gsc_access_token,
+                                        refresh_token=user.gsc_refresh_token
+                                    )
+                                    
+                                    if not properties:
+                                        tool_results.append({
+                                            "tool_call_id": tool_call["id"],
+                                            "role": "tool",
+                                            "name": tool_name,
+                                            "content": "No GSC properties found. Make sure you have verified at least one site in Google Search Console."
+                                        })
+                                        continue
+                                    
+                                    # Auto-link if there's an obvious match
+                                    target_domain = project.target_url.replace('https://', '').replace('http://', '').rstrip('/')
+                                    matched_property = None
+                                    
+                                    for prop in properties:
+                                        prop_url = prop['site_url']
+                                        if target_domain in prop_url or prop_url.replace('https://', '').replace('http://', '').rstrip('/') == target_domain:
+                                            matched_property = prop_url
+                                            break
+                                    
+                                    if matched_property:
+                                        project.gsc_property_url = matched_property
+                                        db.commit()
+                                        
+                                        tool_results.append({
+                                            "tool_call_id": tool_call["id"],
+                                            "role": "tool",
+                                            "name": tool_name,
+                                            "content": f"✅ Auto-linked project '{project.name}' to GSC property: {matched_property}"
+                                        })
+                                    else:
+                                        # Show available properties
+                                        props_list = "\n".join([f"- {p['site_url']} ({p['permission_level']})" for p in properties])
+                                        tool_results.append({
+                                            "tool_call_id": tool_call["id"],
+                                            "role": "tool",
+                                            "name": tool_name,
+                                            "content": f"Available GSC properties:\n{props_list}\n\nTo link, please specify which property URL to use for project '{project.name}' (target: {project.target_url})"
+                                        })
+                                
+                            except Exception as link_error:
+                                tool_results.append({
+                                    "tool_call_id": tool_call["id"],
+                                    "role": "tool",
+                                    "name": tool_name,
+                                    "content": f"ERROR linking GSC property: {str(link_error)}"
+                                })
 
                     except Exception as e:
                         tool_results.append({
@@ -1159,6 +1466,72 @@ async def send_message(
                     "required": ["title", "content"]
                 }
             }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "analyze_project_status",
+                "description": "Load complete project data and analyze SEO progress. Use this when user asks about a specific project, wants to 'work on SEO strategy', or asks 'how is my project doing'. Returns keywords with current rankings, historical progress, backlink profile, and overall assessment. ALWAYS use this first when discussing an existing project.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "project_id": {
+                            "type": "string",
+                            "description": "The ID of the project to analyze"
+                        }
+                    },
+                    "required": ["project_id"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "get_gsc_performance",
+                "description": "Get real Google Search Console data for a project - actual clicks, impressions, CTR, and average position from Google. Use this to see real performance data (not estimates), check indexing status, or analyze sitemap issues. Only works if user has connected their Google Search Console and linked the project to a GSC property.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "project_id": {
+                            "type": "string",
+                            "description": "The ID of the project to get GSC data for"
+                        },
+                        "data_type": {
+                            "type": "string",
+                            "enum": ["overview", "queries", "pages", "sitemaps", "indexing"],
+                            "description": "Type of GSC data to retrieve: 'overview' (summary stats), 'queries' (top keywords), 'pages' (top pages), 'sitemaps' (sitemap status), 'indexing' (indexing coverage)",
+                            "default": "overview"
+                        },
+                        "limit": {
+                            "type": "integer",
+                            "description": "For 'queries' or 'pages', number of results to return (default 20)",
+                            "default": 20
+                        }
+                    },
+                    "required": ["project_id"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "link_gsc_property",
+                "description": "Link a project to a Google Search Console property. Use this when user wants to connect their project to GSC or when GSC data retrieval fails because no property is linked. Lists available GSC properties and links the selected one to the project.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "project_id": {
+                            "type": "string",
+                            "description": "The ID of the project to link"
+                        },
+                        "property_url": {
+                            "type": "string",
+                            "description": "Optional: The GSC property URL to link (e.g., 'https://example.com/' or 'sc-domain:example.com'). If not provided, will list available properties for user to choose from."
+                        }
+                    },
+                    "required": ["project_id"]
+                }
+            }
         }
     ]
 
@@ -1477,6 +1850,388 @@ async def send_message(
                             "content": f"Successfully pinned '{title}' to the pinboard"
                         })
                         logger.info(f"  ✅ Pinned '{title}' to pinboard")
+                
+                elif tool_name == "analyze_project_status":
+                    project_id = args.get("project_id")
+                    
+                    # Get project
+                    project = db.query(Project).filter(
+                        Project.id == project_id,
+                        Project.user_id == user.id
+                    ).first()
+                    
+                    if not project:
+                        tool_results.append({
+                            "tool_call_id": tool_call["id"],
+                            "role": "tool",
+                            "name": tool_name,
+                            "content": "ERROR: Project not found"
+                        })
+                        continue
+                    
+                    # Load complete project data (same as streaming version)
+                    logger.info(f"📊 Loading complete data for project: {project.name}")
+                    
+                    # Get tracked keywords with rankings
+                    tracked_keywords = db.query(TrackedKeyword).filter(
+                        TrackedKeyword.project_id == project_id
+                    ).all()
+                    
+                    keywords_data = []
+                    for kw in tracked_keywords:
+                        rankings = db.query(KeywordRanking).filter(
+                            KeywordRanking.tracked_keyword_id == kw.id
+                        ).order_by(KeywordRanking.checked_at.desc()).limit(30).all()
+                        
+                        current_position = rankings[0].position if rankings else None
+                        current_page = rankings[0].page_url if rankings else None
+                        
+                        progress = None
+                        if len(rankings) >= 2:
+                            oldest_pos = rankings[-1].position
+                            current_pos = rankings[0].position
+                            if oldest_pos and current_pos:
+                                progress = oldest_pos - current_pos
+                        
+                        keywords_data.append({
+                            "keyword": kw.keyword,
+                            "search_volume": kw.search_volume,
+                            "competition": kw.competition,
+                            "target_position": kw.target_position,
+                            "target_page": kw.target_page,
+                            "current_position": current_position,
+                            "ranking_page": current_page,
+                            "is_correct_page": kw.target_page in (current_page or '') if kw.target_page else (current_page is not None),
+                            "progress": progress,
+                            "ranking_history": [{"position": r.position, "date": r.checked_at.isoformat()} for r in rankings[:10]]
+                        })
+                    
+                    # Get backlink analysis
+                    backlink_analysis = db.query(BacklinkAnalysis).filter(
+                        BacklinkAnalysis.project_id == project_id
+                    ).first()
+                    
+                    backlinks_summary = None
+                    if backlink_analysis:
+                        backlinks_summary = {
+                            "total_backlinks": backlink_analysis.total_backlinks,
+                            "referring_domains": backlink_analysis.referring_domains,
+                            "domain_authority": backlink_analysis.domain_authority,
+                            "analyzed_at": backlink_analysis.analyzed_at.isoformat(),
+                            "recent_backlinks": backlink_analysis.raw_data.get("backlinks", [])[:10] if backlink_analysis.raw_data else []
+                        }
+                    
+                    # Format comprehensive report
+                    report = {
+                        "project_name": project.name,
+                        "target_url": project.target_url,
+                        "created_at": project.created_at.isoformat(),
+                        "keywords": {
+                            "total": len(keywords_data),
+                            "ranking": sum(1 for kw in keywords_data if kw["current_position"]),
+                            "not_ranking": sum(1 for kw in keywords_data if not kw["current_position"]),
+                            "top_10": sum(1 for kw in keywords_data if kw["current_position"] and kw["current_position"] <= 10),
+                            "improved": sum(1 for kw in keywords_data if kw["progress"] and kw["progress"] > 0),
+                            "declined": sum(1 for kw in keywords_data if kw["progress"] and kw["progress"] < 0),
+                            "details": keywords_data
+                        },
+                        "backlinks": backlinks_summary
+                    }
+                    
+                    # Format as readable text for LLM
+                    report_text = f"""
+PROJECT STATUS REPORT: {project.name}
+Website: {project.target_url}
+Created: {project.created_at.strftime('%Y-%m-%d')}
+
+KEYWORD PERFORMANCE:
+- Total Keywords Tracked: {report['keywords']['total']}
+- Currently Ranking: {report['keywords']['ranking']} ({int(report['keywords']['ranking']/max(report['keywords']['total'],1)*100)}%)
+- Not Ranking Yet: {report['keywords']['not_ranking']}
+- In Top 10: {report['keywords']['top_10']}
+- Improved: {report['keywords']['improved']}
+- Declined: {report['keywords']['declined']}
+
+KEYWORD DETAILS:
+"""
+                    for kw in keywords_data:
+                        status = "✅ Ranking" if kw["current_position"] else "❌ Not ranking"
+                        pos = f"#{kw['current_position']}" if kw["current_position"] else "Not in top 100"
+                        progress_emoji = ""
+                        if kw["progress"]:
+                            if kw["progress"] > 0:
+                                progress_emoji = f" 📈 +{kw['progress']}"
+                            elif kw["progress"] < 0:
+                                progress_emoji = f" 📉 {kw['progress']}"
+                        
+                        report_text += f"\n• {kw['keyword']}: {pos} {progress_emoji}"
+                        if kw["target_page"] and not kw["is_correct_page"] and kw["current_position"]:
+                            report_text += f" ⚠️  Wrong page ranking"
+                    
+                    if backlinks_summary:
+                        report_text += f"""
+
+BACKLINK PROFILE:
+- Total Backlinks: {backlinks_summary['total_backlinks']}
+- Referring Domains: {backlinks_summary['referring_domains']}
+- Domain Authority: {backlinks_summary['domain_authority']}
+- Last Updated: {backlinks_summary['analyzed_at'][:10]}
+"""
+                    else:
+                        report_text += "\n\nBACKLINK PROFILE: Not analyzed yet"
+                    
+                    report_text += "\n\nPlease analyze this data and provide insights on SEO progress, opportunities, and recommendations."
+                    
+                    tool_results.append({
+                        "tool_call_id": tool_call["id"],
+                        "role": "tool",
+                        "name": tool_name,
+                        "content": report_text
+                    })
+                
+                elif tool_name == "get_gsc_performance":
+                    project_id = args.get("project_id")
+                    data_type = args.get("data_type", "overview")
+                    limit = args.get("limit", 20)
+                    
+                    # Same handler logic as streaming version
+                    if not user.gsc_access_token:
+                        tool_results.append({
+                            "tool_call_id": tool_call["id"],
+                            "role": "tool",
+                            "name": tool_name,
+                            "content": "ERROR: Google Search Console not connected. User needs to connect their GSC account first."
+                        })
+                        continue
+                    
+                    project = db.query(Project).filter(
+                        Project.id == project_id,
+                        Project.user_id == user.id
+                    ).first()
+                    
+                    if not project:
+                        tool_results.append({
+                            "tool_call_id": tool_call["id"],
+                            "role": "tool",
+                            "name": tool_name,
+                            "content": "ERROR: Project not found"
+                        })
+                        continue
+                    
+                    if not project.gsc_property_url:
+                        tool_results.append({
+                            "tool_call_id": tool_call["id"],
+                            "role": "tool",
+                            "name": tool_name,
+                            "content": f"ERROR: Project '{project.name}' is not linked to a Google Search Console property. User needs to link this project to a GSC property first."
+                        })
+                        continue
+                    
+                    try:
+                        if data_type == "overview":
+                            gsc_data = await gsc_service.get_search_analytics(
+                                access_token=user.gsc_access_token,
+                                site_url=project.gsc_property_url,
+                                refresh_token=user.gsc_refresh_token
+                            )
+                            
+                            result_text = f"""
+GOOGLE SEARCH CONSOLE DATA - {project.name}
+Property: {project.gsc_property_url}
+Period: {gsc_data['start_date']} to {gsc_data['end_date']}
+
+PERFORMANCE SUMMARY:
+- Total Clicks: {gsc_data['total_clicks']:,}
+- Total Impressions: {gsc_data['total_impressions']:,}
+- Average CTR: {gsc_data['average_ctr']}%
+- Average Position: {gsc_data['average_position']}
+
+This is REAL data from Google Search Console (not estimates).
+"""
+                            
+                        elif data_type == "queries":
+                            queries = await gsc_service.get_top_queries(
+                                access_token=user.gsc_access_token,
+                                site_url=project.gsc_property_url,
+                                limit=limit,
+                                refresh_token=user.gsc_refresh_token
+                            )
+                            
+                            result_text = f"""
+TOP {len(queries)} SEARCH QUERIES - {project.name}
+Real data from Google Search Console:
+
+"""
+                            for i, q in enumerate(queries[:limit], 1):
+                                result_text += f"{i}. \"{q['query']}\" - {q['clicks']} clicks, {q['impressions']:,} impressions, {q['ctr']}% CTR, avg position #{q['position']}\n"
+                        
+                        elif data_type == "pages":
+                            pages = await gsc_service.get_top_pages(
+                                access_token=user.gsc_access_token,
+                                site_url=project.gsc_property_url,
+                                limit=limit,
+                                refresh_token=user.gsc_refresh_token
+                            )
+                            
+                            result_text = f"""
+TOP {len(pages)} PERFORMING PAGES - {project.name}
+Real data from Google Search Console:
+
+"""
+                            for i, p in enumerate(pages[:limit], 1):
+                                result_text += f"{i}. {p['page']}\n   {p['clicks']} clicks, {p['impressions']:,} impressions, {p['ctr']}% CTR\n"
+                        
+                        elif data_type == "sitemaps":
+                            sitemaps = await gsc_service.get_sitemaps(
+                                access_token=user.gsc_access_token,
+                                site_url=project.gsc_property_url,
+                                refresh_token=user.gsc_refresh_token
+                            )
+                            
+                            result_text = f"""
+SITEMAP STATUS - {project.name}
+Total Sitemaps: {len(sitemaps)}
+
+"""
+                            if not sitemaps:
+                                result_text += "⚠️  WARNING: No sitemaps found! This could impact indexing.\n"
+                            else:
+                                for sitemap in sitemaps:
+                                    status_emoji = "✅" if sitemap['errors'] == 0 else "❌"
+                                    result_text += f"{status_emoji} {sitemap['path']}\n"
+                                    result_text += f"   Last submitted: {sitemap['last_submitted']}\n"
+                                    result_text += f"   Errors: {sitemap['errors']}, Warnings: {sitemap['warnings']}\n"
+                                    if sitemap['errors'] > 0:
+                                        result_text += f"   ⚠️  ATTENTION: Sitemap has errors that need fixing!\n"
+                        
+                        elif data_type == "indexing":
+                            coverage = await gsc_service.get_index_coverage(
+                                access_token=user.gsc_access_token,
+                                site_url=project.gsc_property_url,
+                                refresh_token=user.gsc_refresh_token
+                            )
+                            
+                            result_text = f"""
+INDEXING STATUS - {project.name}
+
+OVERVIEW:
+- Pages with impressions: {coverage['pages_with_impressions']}
+- Sitemaps: {coverage['sitemaps_count']}
+- Sitemap errors: {coverage['sitemap_errors']}
+- Sitemap warnings: {coverage['sitemap_warnings']}
+
+"""
+                            if coverage['sitemap_errors'] > 0:
+                                result_text += "⚠️  WARNING: Sitemap errors detected! Pages may not be indexed properly.\n\n"
+                            
+                            if coverage['sitemaps']:
+                                result_text += "SITEMAPS:\n"
+                                for sitemap in coverage['sitemaps']:
+                                    result_text += f"- {sitemap['path']}: {sitemap['errors']} errors, {sitemap['warnings']} warnings\n"
+                        
+                        tool_results.append({
+                            "tool_call_id": tool_call["id"],
+                            "role": "tool",
+                            "name": tool_name,
+                            "content": result_text
+                        })
+                        
+                    except Exception as gsc_error:
+                        tool_results.append({
+                            "tool_call_id": tool_call["id"],
+                            "role": "tool",
+                            "name": tool_name,
+                            "content": f"ERROR fetching GSC data: {str(gsc_error)}. The user may need to reconnect their Google Search Console account."
+                        })
+                
+                elif tool_name == "link_gsc_property":
+                    project_id = args.get("project_id")
+                    property_url = args.get("property_url")
+                    
+                    if not user.gsc_access_token:
+                        tool_results.append({
+                            "tool_call_id": tool_call["id"],
+                            "role": "tool",
+                            "name": tool_name,
+                            "content": "ERROR: Google Search Console not connected. User needs to connect their GSC account first by logging in again."
+                        })
+                        continue
+                    
+                    project = db.query(Project).filter(
+                        Project.id == project_id,
+                        Project.user_id == user.id
+                    ).first()
+                    
+                    if not project:
+                        tool_results.append({
+                            "tool_call_id": tool_call["id"],
+                            "role": "tool",
+                            "name": tool_name,
+                            "content": "ERROR: Project not found"
+                        })
+                        continue
+                    
+                    try:
+                        if property_url:
+                            project.gsc_property_url = property_url
+                            db.commit()
+                            
+                            tool_results.append({
+                                "tool_call_id": tool_call["id"],
+                                "role": "tool",
+                                "name": tool_name,
+                                "content": f"✅ Successfully linked project '{project.name}' to GSC property: {property_url}"
+                            })
+                        else:
+                            properties = await gsc_service.get_site_list(
+                                access_token=user.gsc_access_token,
+                                refresh_token=user.gsc_refresh_token
+                            )
+                            
+                            if not properties:
+                                tool_results.append({
+                                    "tool_call_id": tool_call["id"],
+                                    "role": "tool",
+                                    "name": tool_name,
+                                    "content": "No GSC properties found. Make sure you have verified at least one site in Google Search Console."
+                                })
+                                continue
+                            
+                            target_domain = project.target_url.replace('https://', '').replace('http://', '').rstrip('/')
+                            matched_property = None
+                            
+                            for prop in properties:
+                                prop_url = prop['site_url']
+                                if target_domain in prop_url or prop_url.replace('https://', '').replace('http://', '').rstrip('/') == target_domain:
+                                    matched_property = prop_url
+                                    break
+                            
+                            if matched_property:
+                                project.gsc_property_url = matched_property
+                                db.commit()
+                                
+                                tool_results.append({
+                                    "tool_call_id": tool_call["id"],
+                                    "role": "tool",
+                                    "name": tool_name,
+                                    "content": f"✅ Auto-linked project '{project.name}' to GSC property: {matched_property}"
+                                })
+                            else:
+                                props_list = "\n".join([f"- {p['site_url']} ({p['permission_level']})" for p in properties])
+                                tool_results.append({
+                                    "tool_call_id": tool_call["id"],
+                                    "role": "tool",
+                                    "name": tool_name,
+                                    "content": f"Available GSC properties:\n{props_list}\n\nTo link, please specify which property URL to use for project '{project.name}' (target: {project.target_url})"
+                                })
+                        
+                    except Exception as link_error:
+                        tool_results.append({
+                            "tool_call_id": tool_call["id"],
+                            "role": "tool",
+                            "name": tool_name,
+                            "content": f"ERROR linking GSC property: {str(link_error)}"
+                        })
 
             except Exception as e:
                 logger.error(f"  ❌ Error executing {tool_name}: {e}")

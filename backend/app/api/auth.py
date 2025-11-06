@@ -17,6 +17,9 @@ settings = get_settings()
 class GoogleAuthRequest(BaseModel):
     id_token: str
     access_token: str = None  # Optional for web clients
+    gsc_access_token: str = None  # Optional GSC token (if user granted GSC scope)
+    gsc_refresh_token: str = None  # Optional GSC refresh token
+    gsc_token_expires_at: str = None  # ISO format datetime
 
 class AuthResponse(BaseModel):
     access_token: str
@@ -72,6 +75,24 @@ async def google_auth(auth_request: GoogleAuthRequest, db: Session = Depends(get
                 is_subscribed=False  # Will be updated via RevenueCat webhook
             )
             db.add(user)
+            db.commit()
+            db.refresh(user)
+        
+        # Store GSC tokens if provided
+        if auth_request.gsc_access_token:
+            user.gsc_access_token = auth_request.gsc_access_token
+            user.gsc_refresh_token = auth_request.gsc_refresh_token
+            
+            # Parse expiration time if provided
+            if auth_request.gsc_token_expires_at:
+                try:
+                    user.gsc_token_expires_at = datetime.fromisoformat(
+                        auth_request.gsc_token_expires_at.replace('Z', '+00:00')
+                    )
+                except:
+                    # If parsing fails, set to 1 hour from now (standard OAuth token expiry)
+                    user.gsc_token_expires_at = datetime.utcnow() + timedelta(hours=1)
+            
             db.commit()
             db.refresh(user)
         
