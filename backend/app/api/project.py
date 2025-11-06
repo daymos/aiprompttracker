@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import uuid
+import asyncio
 from datetime import datetime
 from sqlalchemy.sql import func
 import httpx
@@ -112,20 +113,39 @@ async def create_project(
     db.commit()
     db.refresh(project)
     
-    # Auto-detect keywords from website using LLM (async, doesn't block project creation)
+    # Start keyword auto-detection in background (non-blocking)
+    # Return project immediately, keyword suggestions will appear in 1-5 minutes
+    asyncio.create_task(_auto_detect_keywords_background(project.id, target_url))
+    logger.info(f"Project {project.id} created, keyword detection running in background")
+    
+    return ProjectResponse(
+        id=project.id,
+        target_url=project.target_url,
+        name=project.name,
+        created_at=project.created_at.isoformat()
+    )
+
+
+async def _auto_detect_keywords_background(project_id: str, target_url: str):
+    """Background task to auto-detect keywords using LLM and fetch search volume"""
+    from ..database import SessionLocal  # Import here to avoid circular imports
+    
+    # Create a new database session for this background task
+    db = SessionLocal()
     try:
-        logger.info(f"Auto-detecting keywords for project {project.id} ({target_url})")
+        logger.info(f"[Background] Auto-detecting keywords for project {project_id} ({target_url})")
         website_data = await web_scraper.analyze_full_site(target_url)
         
         if website_data and not website_data.get('error'):
             # Use LLM to intelligently extract keywords
             keywords = await llm_service.extract_keywords_from_website(website_data, max_keywords=20)
             
-            # Fetch search volume data for all keywords in batch
+            # Fetch search volume data for all keywords in batch (using task mode - cheaper but slower)
+            # Task mode takes 1-5 minutes but costs ~50% less
             volume_data = {}
             if keywords:
-                logger.info(f"Fetching search volume for {len(keywords)} auto-detected keywords")
-                volume_data = await dataforseo_service.get_search_volume(keywords, location="US")
+                logger.info(f"[Background] Fetching search volume for {len(keywords)} keywords (task mode, will take 1-5 min)")
+                volume_data = await dataforseo_service.get_search_volume(keywords, location="US", use_task_mode=True)
             
             # Save keywords as INACTIVE suggestions (is_active=0) with volume data
             saved_count = 0
@@ -134,7 +154,7 @@ async def create_project(
                 
                 tracked_keyword = TrackedKeyword(
                     id=str(uuid.uuid4()),
-                    project_id=project.id,
+                    project_id=project_id,
                     keyword=keyword_text,
                     search_volume=search_volume,
                     source="auto_detected",
@@ -144,19 +164,14 @@ async def create_project(
                 saved_count += 1
             
             db.commit()
-            logger.info(f"LLM extracted and saved {saved_count} keyword suggestions with search volume data")
+            logger.info(f"[Background] ✅ Auto-detected and saved {saved_count} keyword suggestions with search volumes")
         else:
-            logger.warning(f"Failed to auto-detect keywords for {target_url}: {website_data.get('error') if website_data else 'No data'}")
+            logger.warning(f"[Background] Failed to auto-detect keywords: {website_data.get('error') if website_data else 'No data'}")
     except Exception as e:
-        logger.error(f"Error auto-detecting keywords for project {project.id}: {e}")
-        # Don't fail project creation if keyword detection fails
-    
-    return ProjectResponse(
-        id=project.id,
-        target_url=project.target_url,
-        name=project.name,
-        created_at=project.created_at.isoformat()
-    )
+        logger.error(f"[Background] Error auto-detecting keywords: {e}", exc_info=True)
+        # Don't fail - this is background processing
+    finally:
+        db.close()
 
 @router.get("/active", response_model=Optional[ProjectResponse])
 async def get_active_project(
@@ -237,8 +252,8 @@ async def add_keyword_to_project(
     competition = request.competition
     
     if search_volume is None:
-        logger.info(f"Fetching search volume for keyword: {request.keyword}")
-        volume_data = await dataforseo_service.get_search_volume([request.keyword], location="US")
+        logger.info(f"Fetching search volume for keyword: {request.keyword} (live mode)")
+        volume_data = await dataforseo_service.get_search_volume([request.keyword], location="US", use_task_mode=False)
         search_volume = volume_data.get(request.keyword, 0) if volume_data else None
     
     tracked_keyword = TrackedKeyword(

@@ -233,28 +233,35 @@ class DataForSEOService:
             logger.error(f"Error getting keywords from URL: {e}", exc_info=True)
             return []
     
-    async def get_search_volume(self, keywords: List[str], location: str = "US") -> Dict[str, int]:
+    async def get_search_volume(self, keywords: List[str], location: str = "US", use_task_mode: bool = False) -> Dict[str, int]:
         """
         Get search volume for multiple keywords
         
         Cost: ~$0.001 per keyword (much cheaper than suggestions!)
+        Task mode: ~50% cheaper but takes 1-5 minutes
         
         Args:
             keywords: List of keywords to check
             location: Country code
+            use_task_mode: If True, use task mode (slower, cheaper). If False, use live mode (instant)
             
         Returns:
             Dict mapping keyword to search volume
         """
         
-        logger.info(f"📊 Getting search volume for {len(keywords)} keywords")
+        logger.info(f"📊 Getting search volume for {len(keywords)} keywords (mode: {'task' if use_task_mode else 'live'})")
         
         if not self.login or not self.password:
             logger.error("DataForSEO credentials not configured")
             return {}
         
         try:
-            endpoint = f"{self.base_url}/keywords_data/google/search_volume/live"
+            if use_task_mode:
+                # Task mode: POST task, wait for completion, GET results (cheaper)
+                endpoint = f"{self.base_url}/keywords_data/google/search_volume/task_post"
+            else:
+                # Live mode: Instant results (more expensive)
+                endpoint = f"{self.base_url}/keywords_data/google/search_volume/live"
             
             payload = [{
                 "keywords": keywords,
@@ -273,8 +280,58 @@ class DataForSEOService:
                 data = response.json()
                 
                 if data.get('status_code') != 20000:
+                    logger.error(f"API error: {data.get('status_message')}")
                     return {}
                 
+                # Handle task mode - need to wait for completion
+                if use_task_mode:
+                    tasks = data.get('tasks', [])
+                    if not tasks:
+                        return {}
+                    
+                    task_id = tasks[0].get('id')
+                    if not task_id:
+                        return {}
+                    
+                    logger.info(f"⏳ Task submitted: {task_id}, waiting for completion...")
+                    
+                    # Poll for results (DataForSEO tasks usually complete in 1-5 min)
+                    max_attempts = 60  # 5 minutes with 5-second intervals
+                    for attempt in range(max_attempts):
+                        await asyncio.sleep(5)  # Wait 5 seconds between checks
+                        
+                        get_endpoint = f"{self.base_url}/keywords_data/google/search_volume/task_get/{task_id}"
+                        get_response = await client.get(
+                            get_endpoint,
+                            auth=(self.login, self.password),
+                            timeout=30.0
+                        )
+                        
+                        if get_response.status_code != 200:
+                            continue
+                        
+                        result_data = get_response.json()
+                        if result_data.get('status_code') != 20000:
+                            continue
+                        
+                        result_tasks = result_data.get('tasks', [])
+                        if not result_tasks:
+                            continue
+                        
+                        task_status = result_tasks[0].get('status_message')
+                        if task_status == 'Ok.':
+                            # Task complete!
+                            logger.info(f"✅ Task complete after {(attempt + 1) * 5} seconds")
+                            data = result_data
+                            break
+                        elif 'error' in task_status.lower():
+                            logger.error(f"Task failed: {task_status}")
+                            return {}
+                    else:
+                        logger.error("Task timeout after 5 minutes")
+                        return {}
+                
+                # Parse results (same for both live and task mode)
                 tasks = data.get('tasks', [])
                 if not tasks or not tasks[0].get('result'):
                     return {}
@@ -289,6 +346,7 @@ class DataForSEOService:
                     search_volume = item.get('search_volume', 0)
                     volume_map[keyword] = search_volume
                 
+                logger.info(f"✅ Got search volume for {len(volume_map)} keywords")
                 return volume_map
                 
         except Exception as e:
