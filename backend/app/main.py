@@ -88,6 +88,22 @@ async def serve_video(video_name: str):
         return FileResponse(video_file, media_type="video/mp4")
     return {"error": "Video not found"}
 
+@app.get("/images/{image_name}")
+async def serve_image(image_name: str):
+    """Serve image files from landing/images directory"""
+    image_file = landing_dir / "images" / image_name
+    if image_file.exists() and image_file.suffix.lower() in ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp']:
+        media_type = {
+            '.png': 'image/png',
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.gif': 'image/gif',
+            '.svg': 'image/svg+xml',
+            '.webp': 'image/webp'
+        }.get(image_file.suffix.lower(), 'image/png')
+        return FileResponse(image_file, media_type=media_type)
+    return {"error": "Image not found"}
+
 @app.get("/og-image.png")
 async def og_image():
     """Serve OG image for social sharing"""
@@ -107,8 +123,10 @@ async def k_logo():
 @app.get("/logo-icon.svg")
 async def logo_icon():
     """Serve K logo icon SVG"""
-    # Try landing directory first, then frontend assets
+    # Try landing directory first, then frontend web, then frontend assets
     logo_file = landing_dir / "logo-icon.svg"
+    if not logo_file.exists():
+        logo_file = Path(__file__).parent.parent.parent / "frontend" / "web" / "logo-icon.svg"
     if not logo_file.exists():
         logo_file = Path(__file__).parent.parent.parent / "frontend" / "assets" / "logo-icon.svg"
     if logo_file.exists():
@@ -117,8 +135,11 @@ async def logo_icon():
 
 @app.get("/logo.svg")
 async def logo():
-    """Serve K logo SVG (same as logo-icon for compatibility)"""
-    logo_file = Path(__file__).parent.parent.parent / "frontend" / "assets" / "logo-icon.svg"
+    """Serve K logo SVG"""
+    # Try frontend web first (has cropped viewBox), then assets
+    logo_file = Path(__file__).parent.parent.parent / "frontend" / "web" / "logo.svg"
+    if not logo_file.exists():
+        logo_file = Path(__file__).parent.parent.parent / "frontend" / "assets" / "logo-icon.svg"
     if logo_file.exists():
         return FileResponse(logo_file, media_type="image/svg+xml")
     return {"error": "Logo not found"}
