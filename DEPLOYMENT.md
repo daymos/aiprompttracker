@@ -297,14 +297,40 @@ gcloud run services update-traffic keywordschat-api \
 
 ## 📦 Cold Start Optimization
 
-Cloud Run instances may experience cold starts. To minimize:
+Cloud Run instances may experience cold starts when idle. We've implemented an automated keep-warm mechanism:
+
+### Automated Keep-Warm Workflow
+
+The `.github/workflows/keep-warm.yml` workflow automatically pings the service to prevent cold starts:
+
+- **Peak hours** (6 AM - 11 PM UTC): Pings every 5 minutes
+- **Off-peak hours** (12 AM - 5 AM UTC): Pings every 15 minutes
+
+**What it does:**
+1. Pings `/health` endpoint to keep the service warm
+2. Pings landing page `/` to ensure fast page loads
+3. Runs automatically via GitHub Actions
+4. No additional costs (uses GitHub Actions free tier)
+
+**Manual trigger:**
+```bash
+# Trigger the workflow manually from GitHub Actions UI
+# or via GitHub CLI:
+gh workflow run keep-warm.yml
+```
+
+### Alternative: Minimum Instances (Costs More)
+
+If you need guaranteed zero cold starts:
 
 ```bash
-# Set minimum instances (costs more but improves performance)
+# Set minimum instances (costs ~$15-30/month extra)
 gcloud run services update keywordschat-api \
   --min-instances=1 \
-  --region=us-central1
+  --region=europe-west1
 ```
+
+**Note:** The keep-warm workflow is the recommended approach as it's cost-effective and works well for most use cases.
 
 ---
 

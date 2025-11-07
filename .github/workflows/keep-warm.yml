@@ -1,0 +1,57 @@
+name: Keep Cloud Run Warm
+
+on:
+  schedule:
+    # Run every 5 minutes during peak hours (6 AM - 11 PM UTC)
+    # This helps keep the service warm when users are most likely to visit
+    - cron: '*/5 6-23 * * *'
+    # Run every 15 minutes during off-peak hours (12 AM - 5 AM UTC)
+    - cron: '*/15 0-5 * * *'
+  workflow_dispatch: # Allow manual trigger for testing
+
+env:
+  # Update this URL to match your Cloud Run service URL
+  # You can find it with: gcloud run services describe keywordschat-api --region=europe-west1 --format='value(status.url)'
+  SERVICE_URL: "https://keywordschat-api-857764937476.europe-west1.run.app"
+
+jobs:
+  keep-warm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    
+    steps:
+      - name: Ping Health Endpoint
+        run: |
+          echo "🔥 Keeping Cloud Run service warm..."
+          echo "Pinging $SERVICE_URL/health"
+          
+          # Make request with timeout
+          response=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$SERVICE_URL/health")
+          
+          if [ "$response" = "200" ]; then
+            echo "✅ Health check successful (HTTP $response)"
+          else
+            echo "⚠️ Service responded with HTTP $response"
+            # Don't fail the workflow, just log it
+            exit 0
+          fi
+          
+      - name: Ping Landing Page
+        run: |
+          echo "Pinging landing page $SERVICE_URL/"
+          
+          response=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$SERVICE_URL/")
+          
+          if [ "$response" = "200" ]; then
+            echo "✅ Landing page is warm (HTTP $response)"
+          else
+            echo "⚠️ Landing page responded with HTTP $response"
+            exit 0
+          fi
+          
+      - name: Summary
+        if: always()
+        run: |
+          echo "🎯 Keep-warm ping completed at $(date)"
+          echo "This workflow runs automatically to prevent cold starts"
+
