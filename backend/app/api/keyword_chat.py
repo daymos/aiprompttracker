@@ -250,6 +250,56 @@ async def send_message_stream(
                 {
                     "type": "function",
                     "function": {
+                        "name": "get_project_keywords",
+                        "description": "Get all keywords for a project, including both tracked keywords (actively monitored) and suggested keywords (auto-detected from website). Use when user asks to see/view current keywords, or wants to know what keywords are saved for a project.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "project_id": {
+                                    "type": "string",
+                                    "description": "The ID of the project to get keywords for"
+                                }
+                            },
+                            "required": ["project_id"]
+                        }
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "get_project_backlinks",
+                        "description": "Get detailed backlink data for a project. Returns complete backlink profile including domain authority, total backlinks, referring domains, and list of all backlinks with their details (anchor text, domain rank, follow/nofollow status). Use when user asks about backlinks, link profile, or wants to see who's linking to their site.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "project_id": {
+                                    "type": "string",
+                                    "description": "The ID of the project to get backlinks for"
+                                }
+                            },
+                            "required": ["project_id"]
+                        }
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "get_project_pinboard",
+                        "description": "Get all pinned items (saved insights, notes, recommendations) for a project or globally. Use when user asks to see saved/pinned information, past insights, or wants to review what they've bookmarked.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "project_id": {
+                                    "type": "string",
+                                    "description": "Optional project ID to filter pins. If not provided, returns all user's pins."
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
                         "name": "track_keywords",
                         "description": "Add keywords to a project's keyword tracker for rank tracking. Use when user wants to track/monitor keywords for their project. Requires a project_id.",
                         "parameters": {
@@ -413,6 +463,12 @@ async def send_message_stream(
                         yield await send_sse_event("status", {"message": "Analyzing website..."})
                     elif tool_name == "analyze_backlinks":
                         yield await send_sse_event("status", {"message": "Analyzing backlinks..."})
+                    elif tool_name == "get_project_keywords":
+                        yield await send_sse_event("status", {"message": "Getting project keywords..."})
+                    elif tool_name == "get_project_backlinks":
+                        yield await send_sse_event("status", {"message": "Loading backlink data..."})
+                    elif tool_name == "get_project_pinboard":
+                        yield await send_sse_event("status", {"message": "Loading pinned items..."})
                     elif tool_name == "track_keywords":
                         yield await send_sse_event("status", {"message": "Adding keywords to tracker..."})
                     elif tool_name == "pin_important_info":
@@ -554,6 +610,163 @@ async def send_message_stream(
                                     "name": tool_name,
                                     "content": str(backlink_data)
                                 })
+                        
+                        elif tool_name == "get_project_keywords":
+                            project_id = args.get("project_id")
+                            
+                            # Verify project exists and belongs to user
+                            project = db.query(Project).filter(
+                                Project.id == project_id,
+                                Project.user_id == user.id
+                            ).first()
+                            
+                            if not project:
+                                tool_results.append({
+                                    "tool_call_id": tool_call["id"],
+                                    "role": "tool",
+                                    "name": tool_name,
+                                    "content": "ERROR: Project not found"
+                                })
+                            else:
+                                # Get all keywords (both tracked and suggestions)
+                                keywords = db.query(TrackedKeyword).filter(
+                                    TrackedKeyword.project_id == project_id
+                                ).all()
+                                
+                                tracked_keywords = []
+                                suggested_keywords = []
+                                
+                                for kw in keywords:
+                                    kw_info = {
+                                        "keyword": kw.keyword,
+                                        "search_volume": kw.search_volume,
+                                        "competition": kw.competition,
+                                        "status": "tracked" if kw.is_active else "suggestion"
+                                    }
+                                    
+                                    if kw.is_active:
+                                        tracked_keywords.append(kw_info)
+                                    else:
+                                        suggested_keywords.append(kw_info)
+                                
+                                result = {
+                                    "project_name": project.name,
+                                    "project_url": project.target_url,
+                                    "tracked_keywords": tracked_keywords,
+                                    "suggested_keywords": suggested_keywords,
+                                    "total_tracked": len(tracked_keywords),
+                                    "total_suggested": len(suggested_keywords)
+                                }
+                                
+                                tool_results.append({
+                                    "tool_call_id": tool_call["id"],
+                                    "role": "tool",
+                                    "name": tool_name,
+                                    "content": str(result)
+                                })
+                        
+                        elif tool_name == "get_project_backlinks":
+                            project_id = args.get("project_id")
+                            
+                            # Verify project exists and belongs to user
+                            project = db.query(Project).filter(
+                                Project.id == project_id,
+                                Project.user_id == user.id
+                            ).first()
+                            
+                            if not project:
+                                tool_results.append({
+                                    "tool_call_id": tool_call["id"],
+                                    "role": "tool",
+                                    "name": tool_name,
+                                    "content": "ERROR: Project not found"
+                                })
+                            else:
+                                # Get backlink analysis
+                                backlink_analysis = db.query(BacklinkAnalysis).filter(
+                                    BacklinkAnalysis.project_id == project_id
+                                ).first()
+                                
+                                if not backlink_analysis:
+                                    tool_results.append({
+                                        "tool_call_id": tool_call["id"],
+                                        "role": "tool",
+                                        "name": tool_name,
+                                        "content": "No backlink data found. Run backlink analysis first using analyze_backlinks tool."
+                                    })
+                                else:
+                                    # Return detailed backlink data
+                                    result = {
+                                        "project_name": project.name,
+                                        "project_url": project.target_url,
+                                        "domain_authority": backlink_analysis.domain_authority,
+                                        "total_backlinks": backlink_analysis.total_backlinks,
+                                        "referring_domains": backlink_analysis.referring_domains,
+                                        "analyzed_at": backlink_analysis.analyzed_at.isoformat(),
+                                        "backlinks": backlink_analysis.raw_data.get("backlinks", []) if backlink_analysis.raw_data else [],
+                                        "anchor_texts": backlink_analysis.raw_data.get("anchor_texts", []) if backlink_analysis.raw_data else []
+                                    }
+                                    
+                                    tool_results.append({
+                                        "tool_call_id": tool_call["id"],
+                                        "role": "tool",
+                                        "name": tool_name,
+                                        "content": str(result)
+                                    })
+                        
+                        elif tool_name == "get_project_pinboard":
+                            project_id = args.get("project_id")
+                            
+                            # Build query
+                            query = db.query(PinnedItem).filter(
+                                PinnedItem.user_id == user.id
+                            )
+                            
+                            # Filter by project if specified
+                            if project_id:
+                                project = db.query(Project).filter(
+                                    Project.id == project_id,
+                                    Project.user_id == user.id
+                                ).first()
+                                
+                                if not project:
+                                    tool_results.append({
+                                        "tool_call_id": tool_call["id"],
+                                        "role": "tool",
+                                        "name": tool_name,
+                                        "content": "ERROR: Project not found"
+                                    })
+                                    continue
+                                
+                                query = query.filter(PinnedItem.project_id == project_id)
+                            
+                            # Get all pinned items
+                            pinned_items = query.order_by(PinnedItem.created_at.desc()).all()
+                            
+                            pins = []
+                            for pin in pinned_items:
+                                pins.append({
+                                    "title": pin.title,
+                                    "content": pin.content,
+                                    "content_type": pin.content_type,
+                                    "created_at": pin.created_at.isoformat(),
+                                    "project_id": pin.project_id
+                                })
+                            
+                            result = {
+                                "total_pins": len(pins),
+                                "pins": pins
+                            }
+                            
+                            if project_id:
+                                result["filtered_by_project"] = project.name
+                            
+                            tool_results.append({
+                                "tool_call_id": tool_call["id"],
+                                "role": "tool",
+                                "name": tool_name,
+                                "content": str(result)
+                            })
                         
                         elif tool_name == "track_keywords":
                             project_id = args.get("project_id")
@@ -1100,12 +1313,12 @@ OVERVIEW:
                 for result in tool_results:
                     conversation_history.append(result)
                 
-                # Get final response
-                # Don't pass tools again - we want a final text response, not more tool calls
+                # Get final response with tools still available to avoid confusing the model
+                # The LLM can decide if it needs to call more tools or provide a final response
                 assistant_response, reasoning, follow_up_tools = await llm_service.chat_with_tools(
-                    user_message="Please analyze the results and provide a clear response to the user's request.",
+                    user_message="Based on the tool results above, provide a clear and helpful response to the user.",
                     conversation_history=conversation_history,
-                    available_tools=None,  # No more tools - force text response
+                    available_tools=tools,  # Keep tools available so LLM doesn't get confused
                     user_projects=user_projects_data if user_projects_data else None,
                     mode=request.mode or "ask"
                 )
@@ -1394,6 +1607,56 @@ async def send_message(
                         }
                     },
                     "required": ["domain"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "get_project_keywords",
+                "description": "Get all keywords for a project, including both tracked keywords (actively monitored) and suggested keywords (auto-detected from website). Use when user asks to see/view current keywords, or wants to know what keywords are saved for a project.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "project_id": {
+                            "type": "string",
+                            "description": "The ID of the project to get keywords for"
+                        }
+                    },
+                    "required": ["project_id"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "get_project_backlinks",
+                "description": "Get detailed backlink data for a project. Returns complete backlink profile including domain authority, total backlinks, referring domains, and list of all backlinks with their details (anchor text, domain rank, follow/nofollow status). Use when user asks about backlinks, link profile, or wants to see who's linking to their site.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "project_id": {
+                            "type": "string",
+                            "description": "The ID of the project to get backlinks for"
+                        }
+                    },
+                    "required": ["project_id"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "get_project_pinboard",
+                "description": "Get all pinned items (saved insights, notes, recommendations) for a project or globally. Use when user asks to see saved/pinned information, past insights, or wants to review what they've bookmarked.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "project_id": {
+                            "type": "string",
+                            "description": "Optional project ID to filter pins. If not provided, returns all user's pins."
+                        }
+                    }
                 }
             }
         },
@@ -1714,6 +1977,179 @@ async def send_message(
                             "name": tool_name,
                             "content": str(backlink_data)
                         })
+                
+                elif tool_name == "get_project_keywords":
+                    project_id = args.get("project_id")
+                    
+                    logger.info(f"  📋 Getting keywords for project {project_id}")
+                    
+                    # Verify project exists and belongs to user
+                    project = db.query(Project).filter(
+                        Project.id == project_id,
+                        Project.user_id == user.id
+                    ).first()
+                    
+                    if not project:
+                        error_msg = "Project not found"
+                        tool_results.append({
+                            "tool_call_id": tool_call["id"],
+                            "role": "tool",
+                            "name": tool_name,
+                            "content": f"ERROR: {error_msg}"
+                        })
+                        logger.warning(f"  ❌ {error_msg}")
+                    else:
+                        # Get all keywords (both tracked and suggestions)
+                        keywords = db.query(TrackedKeyword).filter(
+                            TrackedKeyword.project_id == project_id
+                        ).all()
+                        
+                        tracked_keywords = []
+                        suggested_keywords = []
+                        
+                        for kw in keywords:
+                            kw_info = {
+                                "keyword": kw.keyword,
+                                "search_volume": kw.search_volume,
+                                "competition": kw.competition,
+                                "status": "tracked" if kw.is_active else "suggestion"
+                            }
+                            
+                            if kw.is_active:
+                                tracked_keywords.append(kw_info)
+                            else:
+                                suggested_keywords.append(kw_info)
+                        
+                        result = {
+                            "project_name": project.name,
+                            "project_url": project.target_url,
+                            "tracked_keywords": tracked_keywords,
+                            "suggested_keywords": suggested_keywords,
+                            "total_tracked": len(tracked_keywords),
+                            "total_suggested": len(suggested_keywords)
+                        }
+                        
+                        tool_results.append({
+                            "tool_call_id": tool_call["id"],
+                            "role": "tool",
+                            "name": tool_name,
+                            "content": str(result)
+                        })
+                        logger.info(f"  ✅ Found {len(tracked_keywords)} tracked + {len(suggested_keywords)} suggested keywords")
+                
+                elif tool_name == "get_project_backlinks":
+                    project_id = args.get("project_id")
+                    
+                    logger.info(f"  📎 Getting backlinks for project {project_id}")
+                    
+                    # Verify project exists and belongs to user
+                    project = db.query(Project).filter(
+                        Project.id == project_id,
+                        Project.user_id == user.id
+                    ).first()
+                    
+                    if not project:
+                        error_msg = "Project not found"
+                        tool_results.append({
+                            "tool_call_id": tool_call["id"],
+                            "role": "tool",
+                            "name": tool_name,
+                            "content": f"ERROR: {error_msg}"
+                        })
+                        logger.warning(f"  ❌ {error_msg}")
+                    else:
+                        # Get backlink analysis
+                        backlink_analysis = db.query(BacklinkAnalysis).filter(
+                            BacklinkAnalysis.project_id == project_id
+                        ).first()
+                        
+                        if not backlink_analysis:
+                            tool_results.append({
+                                "tool_call_id": tool_call["id"],
+                                "role": "tool",
+                                "name": tool_name,
+                                "content": "No backlink data found. Run backlink analysis first using analyze_backlinks tool."
+                            })
+                            logger.warning("  ⚠️ No backlink data found")
+                        else:
+                            # Return detailed backlink data
+                            result = {
+                                "project_name": project.name,
+                                "project_url": project.target_url,
+                                "domain_authority": backlink_analysis.domain_authority,
+                                "total_backlinks": backlink_analysis.total_backlinks,
+                                "referring_domains": backlink_analysis.referring_domains,
+                                "analyzed_at": backlink_analysis.analyzed_at.isoformat(),
+                                "backlinks": backlink_analysis.raw_data.get("backlinks", []) if backlink_analysis.raw_data else [],
+                                "anchor_texts": backlink_analysis.raw_data.get("anchor_texts", []) if backlink_analysis.raw_data else []
+                            }
+                            
+                            tool_results.append({
+                                "tool_call_id": tool_call["id"],
+                                "role": "tool",
+                                "name": tool_name,
+                                "content": str(result)
+                            })
+                            logger.info(f"  ✅ Found {len(result['backlinks'])} backlinks")
+                
+                elif tool_name == "get_project_pinboard":
+                    project_id = args.get("project_id")
+                    
+                    logger.info(f"  📌 Getting pinboard items" + (f" for project {project_id}" if project_id else ""))
+                    
+                    # Build query
+                    query = db.query(PinnedItem).filter(
+                        PinnedItem.user_id == user.id
+                    )
+                    
+                    # Filter by project if specified
+                    if project_id:
+                        project = db.query(Project).filter(
+                            Project.id == project_id,
+                            Project.user_id == user.id
+                        ).first()
+                        
+                        if not project:
+                            error_msg = "Project not found"
+                            tool_results.append({
+                                "tool_call_id": tool_call["id"],
+                                "role": "tool",
+                                "name": tool_name,
+                                "content": f"ERROR: {error_msg}"
+                            })
+                            logger.warning(f"  ❌ {error_msg}")
+                            continue
+                        
+                        query = query.filter(PinnedItem.project_id == project_id)
+                    
+                    # Get all pinned items
+                    pinned_items = query.order_by(PinnedItem.created_at.desc()).all()
+                    
+                    pins = []
+                    for pin in pinned_items:
+                        pins.append({
+                            "title": pin.title,
+                            "content": pin.content,
+                            "content_type": pin.content_type,
+                            "created_at": pin.created_at.isoformat(),
+                            "project_id": pin.project_id
+                        })
+                    
+                    result = {
+                        "total_pins": len(pins),
+                        "pins": pins
+                    }
+                    
+                    if project_id:
+                        result["filtered_by_project"] = project.name
+                    
+                    tool_results.append({
+                        "tool_call_id": tool_call["id"],
+                        "role": "tool",
+                        "name": tool_name,
+                        "content": str(result)
+                    })
+                    logger.info(f"  ✅ Found {len(pins)} pinned items")
                 
                 elif tool_name == "track_keywords":
                     project_id = args.get("project_id")

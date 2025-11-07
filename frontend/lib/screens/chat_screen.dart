@@ -23,7 +23,7 @@ class ChatScreen extends StatefulWidget {
 
 enum ViewState { chat, conversations, projects }
 enum ProjectViewState { list, detail }
-enum ProjectTab { overview, pinboard, keywords, backlinks }
+enum ProjectTab { overview, pinboard, keywords, backlinks, chat }
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
@@ -1494,7 +1494,7 @@ class _ChatScreenState extends State<ChatScreen> {
     }
 
     return DefaultTabController(
-      length: 3,
+      length: 5,
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 900),
@@ -1560,13 +1560,22 @@ class _ChatScreenState extends State<ChatScreen> {
                           final project = projectProvider.selectedProject!;
                           chatProvider.startNewConversation();
                           MessageBubble.clearAnimationCache();
+                          
                           setState(() {
-                            _currentView = ViewState.chat;
+                            _selectedProjectTab = ProjectTab.chat;
+                            _selectedMode = 'agent';
                           });
-                          // Send a simple project-aware message after the UI updates
+                          
+                          // Switch to chat tab and send initial message
                           WidgetsBinding.instance.addPostFrameCallback((_) {
-                            _messageController.text = "Let's work on my ${project.name} project (${project.targetUrl}).";
-                            _sendMessage();
+                            DefaultTabController.of(context).animateTo(4); // Chat is the 5th tab (index 4)
+                            // Wait a bit for the tab to finish switching, then send message
+                            Future.delayed(const Duration(milliseconds: 300)).then((_) {
+                              if (mounted) {
+                                _messageController.text = "Let's work on my ${project.name} project (${project.targetUrl}).";
+                                _sendMessage();
+                              }
+                            });
                           });
                         },
                         icon: const Icon(Icons.auto_awesome, size: 20),
@@ -1706,6 +1715,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       const Tab(text: 'Pinboard'),
                       Tab(text: 'Keywords (${keywords.length})'),
                       Tab(text: 'Backlinks (${projectProvider.backlinksData?['total_backlinks'] ?? 0})'),
+                      const Tab(text: 'Chat'),
                     ],
                   ),
                 ],
@@ -1721,6 +1731,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   _buildPinboardTab(project),
                   _buildKeywordsTab(projectProvider, keywords),
                   _buildBacklinksTab(project),
+                  _buildProjectChatTab(project),
                 ],
               ),
             ),
@@ -3868,6 +3879,230 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
               );
             },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProjectChatTab(Project project) {
+    final chatProvider = context.watch<ChatProvider>();
+    final projectProvider = context.watch<ProjectProvider>();
+    
+    return Column(
+      children: [
+        // Chat messages
+        Expanded(
+          child: ListView.builder(
+            controller: _scrollController,
+            padding: const EdgeInsets.all(16),
+            itemCount: chatProvider.messages.length,
+            itemBuilder: (context, index) {
+              final message = chatProvider.messages[index];
+              return MessageBubble(message: message);
+            },
+          ),
+        ),
+        
+        // Input area - reuse the same design as main chat
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 700),
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Text input area
+                    TextField(
+                      controller: _messageController,
+                      decoration: InputDecoration(
+                        hintText: 'Ask about ${project.name}...',
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      ),
+                      maxLines: null,
+                      textInputAction: TextInputAction.send,
+                      onSubmitted: (_) => _sendMessage(),
+                    ),
+                    
+                    // Bottom toolbar with mode selector and buttons
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          top: BorderSide(
+                            color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          // Mode selector dropdown
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: DropdownButton<String>(
+                              value: _selectedMode,
+                              underline: const SizedBox(),
+                              isDense: true,
+                              icon: Icon(
+                                Icons.keyboard_arrow_down,
+                                size: 14,
+                                color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.5),
+                              ),
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
+                                fontSize: 12,
+                              ),
+                              items: [
+                                DropdownMenuItem(
+                                  value: 'ask',
+                                  child: Tooltip(
+                                    message: 'Ask Mode: You control the workflow - give direct commands',
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.chat_bubble_outline,
+                                          size: 12,
+                                          color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        const Text('Ask'),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'agent',
+                                  child: Tooltip(
+                                    message: 'Agent Mode: Strategic SEO guidance with proactive recommendations',
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.auto_awesome,
+                                          size: 12,
+                                          color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        const Text('Agent'),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                              onChanged: (value) {
+                                if (value != null) {
+                                  setState(() {
+                                    _selectedMode = value;
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                          const Spacer(),
+                          // Pin conversation button
+                          chatProvider.messages.isEmpty
+                              ? Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).colorScheme.surfaceVariant,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Icon(
+                                    Icons.bookmark_border,
+                                    size: 16,
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.4),
+                                  ),
+                                )
+                              : Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).colorScheme.secondaryContainer,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: IconButton(
+                                    onPressed: () async {
+                                      // Pin current conversation to this project
+                                      await _pinConversationToProject(project.id);
+                                    },
+                                    icon: Icon(
+                                      Icons.bookmark_border,
+                                      size: 16,
+                                      color: Theme.of(context).colorScheme.onSecondaryContainer,
+                                    ),
+                                    padding: EdgeInsets.zero,
+                                    tooltip: 'Pin to ${project.name}',
+                                  ),
+                                ),
+                          const SizedBox(width: 8),
+                          // Download CSV button
+                          Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: chatProvider.messages.isEmpty
+                                  ? Theme.of(context).colorScheme.surfaceVariant
+                                  : Theme.of(context).colorScheme.secondaryContainer,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: IconButton(
+                              onPressed: chatProvider.messages.isEmpty ? null : _downloadConversationAsCSV,
+                              icon: const Icon(Icons.download),
+                              iconSize: 16,
+                              padding: EdgeInsets.zero,
+                              color: chatProvider.messages.isEmpty
+                                  ? Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.4)
+                                  : Theme.of(context).colorScheme.onSecondaryContainer,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Submit/Stop button
+                          Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: chatProvider.isLoading
+                                  ? Theme.of(context).colorScheme.error
+                                  : Theme.of(context).colorScheme.primary,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: IconButton(
+                              onPressed: _sendMessage,
+                              icon: Icon(
+                                chatProvider.isLoading ? Icons.stop : Icons.arrow_upward,
+                              ),
+                              iconSize: 16,
+                              padding: EdgeInsets.zero,
+                              color: Theme.of(context).colorScheme.onPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ],

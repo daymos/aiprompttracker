@@ -91,8 +91,8 @@ class DataForSEOService:
             return []
         
         try:
-            # DataForSEO Keywords Data API
-            endpoint = f"{self.base_url}/keywords_data/google/keywords_for_keywords/live"
+            # DataForSEO Keywords Data API (must use google_ads, not google)
+            endpoint = f"{self.base_url}/keywords_data/google_ads/keywords_for_keywords/live"
             
             payload = [{
                 "keywords": [seed_keyword],
@@ -112,37 +112,48 @@ class DataForSEOService:
                 response.raise_for_status()
                 data = response.json()
                 
+                logger.info(f"DataForSEO Response: status_code={data.get('status_code')}, tasks={len(data.get('tasks', []))}")
+                
                 if data.get('status_code') != 20000:
                     error_msg = data.get('status_message', 'Unknown error')
                     logger.error(f"DataForSEO API error: {error_msg}")
+                    logger.error(f"Full response: {data}")
                     return []
                 
                 # Parse results
                 tasks = data.get('tasks', [])
-                if not tasks or not tasks[0].get('result'):
-                    logger.warning(f"No keyword suggestions found for '{seed_keyword}'")
+                if not tasks:
+                    logger.warning(f"No tasks in response for '{seed_keyword}'")
+                    logger.warning(f"Full response: {data}")
                     return []
                 
-                result = tasks[0]['result'][0]
-                items = result.get('items', [])
+                # Google Ads API returns result as an array of keyword objects (no nested 'items')
+                result_list = tasks[0].get('result', [])
+                if not result_list:
+                    logger.warning(f"No result in first task for '{seed_keyword}'")
+                    logger.warning(f"Task data: {tasks[0]}")
+                    return []
                 
-                logger.info(f"Got {len(items)} keyword suggestions from DataForSEO")
+                logger.info(f"Result has {len(result_list)} keyword items")
                 
                 # Transform to our format
                 keywords = []
-                for item in items:
-                    keyword_data = item.get('keyword_data', {})
+                for item in result_list:
+                    # Google Ads API returns flat structure with data at top level
+                    competition_value = item.get('competition_index', 0)
                     keywords.append({
                         'keyword': item.get('keyword', ''),
-                        'search_volume': keyword_data.get('keyword_info', {}).get('search_volume', 0),
-                        'competition': self._map_competition(keyword_data.get('keyword_info', {}).get('competition', 0)),
-                        'competition_index': keyword_data.get('keyword_info', {}).get('competition', 0),
-                        'cpc': keyword_data.get('keyword_info', {}).get('cpc', 0),
-                        'low_bid': keyword_data.get('keyword_info', {}).get('low_top_of_page_bid', 0),
-                        'high_bid': keyword_data.get('keyword_info', {}).get('high_top_of_page_bid', 0),
+                        'search_volume': item.get('search_volume', 0),
+                        'competition': self._map_competition(competition_value),
+                        'competition_index': competition_value,
+                        'cpc': item.get('cpc', 0),
+                        'low_bid': item.get('low_top_of_page_bid', 0),
+                        'high_bid': item.get('high_top_of_page_bid', 0),
                         'intent': self._detect_intent(item.get('keyword', '')),
-                        'keyword_difficulty': keyword_data.get('keyword_properties', {}).get('keyword_difficulty', 0)
+                        'keyword_difficulty': 0  # Not available in Google Ads API
                     })
+                
+                logger.info(f"✅ Got {len(keywords)} keyword suggestions from DataForSEO")
                 
                 return keywords
                 
@@ -176,7 +187,8 @@ class DataForSEOService:
             return []
         
         try:
-            endpoint = f"{self.base_url}/keywords_data/google/keywords_for_site/live"
+            # DataForSEO Keywords For Site API (must use google_ads, not google)
+            endpoint = f"{self.base_url}/keywords_data/google_ads/keywords_for_site/live"
             
             # Clean URL
             if not url.startswith(('http://', 'https://')):
@@ -205,25 +217,29 @@ class DataForSEOService:
                     return []
                 
                 tasks = data.get('tasks', [])
-                if not tasks or not tasks[0].get('result'):
+                if not tasks:
+                    logger.warning(f"No tasks in response for URL: {url}")
+                    return []
+                
+                # Google Ads API returns result as an array of keyword objects (no nested 'items')
+                result_list = tasks[0].get('result', [])
+                if not result_list:
                     logger.warning(f"No keywords found for URL: {url}")
                     return []
                 
-                result = tasks[0]['result'][0]
-                items = result.get('items', [])
-                
-                logger.info(f"Found {len(items)} keywords for URL")
+                logger.info(f"Found {len(result_list)} keywords for URL")
                 
                 # Transform to our format
                 keywords = []
-                for item in items:
-                    keyword_data = item.get('keyword_data', {})
+                for item in result_list:
+                    # Google Ads API returns flat structure with data at top level
+                    competition_value = item.get('competition_index', 0)
                     keywords.append({
                         'keyword': item.get('keyword', ''),
-                        'search_volume': keyword_data.get('keyword_info', {}).get('search_volume', 0),
-                        'competition': self._map_competition(keyword_data.get('keyword_info', {}).get('competition', 0)),
-                        'competition_index': keyword_data.get('keyword_info', {}).get('competition', 0),
-                        'cpc': keyword_data.get('keyword_info', {}).get('cpc', 0),
+                        'search_volume': item.get('search_volume', 0),
+                        'competition': self._map_competition(competition_value),
+                        'competition_index': competition_value,
+                        'cpc': item.get('cpc', 0),
                         'intent': self._detect_intent(item.get('keyword', ''))
                     })
                 
@@ -258,10 +274,12 @@ class DataForSEOService:
         try:
             if use_task_mode:
                 # Task mode: POST task, wait for completion, GET results (cheaper)
-                endpoint = f"{self.base_url}/keywords_data/google/search_volume/task_post"
+                # Must use google_ads, not google
+                endpoint = f"{self.base_url}/keywords_data/google_ads/search_volume/task_post"
             else:
                 # Live mode: Instant results (more expensive)
-                endpoint = f"{self.base_url}/keywords_data/google/search_volume/live"
+                # Must use google_ads, not google
+                endpoint = f"{self.base_url}/keywords_data/google_ads/search_volume/live"
             
             payload = [{
                 "keywords": keywords,
@@ -300,7 +318,7 @@ class DataForSEOService:
                     for attempt in range(max_attempts):
                         await asyncio.sleep(5)  # Wait 5 seconds between checks
                         
-                        get_endpoint = f"{self.base_url}/keywords_data/google/search_volume/task_get/{task_id}"
+                        get_endpoint = f"{self.base_url}/keywords_data/google_ads/search_volume/task_get/{task_id}"
                         get_response = await client.get(
                             get_endpoint,
                             auth=(self.login, self.password),
@@ -333,18 +351,26 @@ class DataForSEOService:
                 
                 # Parse results (same for both live and task mode)
                 tasks = data.get('tasks', [])
-                if not tasks or not tasks[0].get('result'):
+                if not tasks:
+                    logger.warning("No tasks in response")
                     return {}
                 
-                result = tasks[0]['result'][0]
-                items = result.get('items', [])
+                # Google Ads API returns result as an array of keyword objects (no nested 'items')
+                result_list = tasks[0].get('result', [])
+                if not result_list:
+                    logger.warning(f"No result in task. Task data: {tasks[0]}")
+                    return {}
+                
+                logger.info(f"Found {len(result_list)} keywords in result")
                 
                 # Map keywords to search volume
                 volume_map = {}
-                for item in items:
+                for item in result_list:
                     keyword = item.get('keyword', '')
                     search_volume = item.get('search_volume', 0)
-                    volume_map[keyword] = search_volume
+                    if keyword:
+                        volume_map[keyword] = search_volume
+                        logger.debug(f"  - {keyword}: {search_volume}")
                 
                 logger.info(f"✅ Got search volume for {len(volume_map)} keywords")
                 return volume_map
@@ -354,10 +380,14 @@ class DataForSEOService:
             return {}
     
     def _map_competition(self, competition_value: float) -> str:
-        """Map DataForSEO competition (0-1) to LOW/MEDIUM/HIGH"""
-        if competition_value < 0.33:
+        """Map DataForSEO competition_index (0-100) to LOW/MEDIUM/HIGH"""
+        if competition_value is None:
+            return "UNKNOWN"
+        
+        # Google Ads API uses 0-100 scale
+        if competition_value < 33:
             return "LOW"
-        elif competition_value < 0.67:
+        elif competition_value < 67:
             return "MEDIUM"
         else:
             return "HIGH"
