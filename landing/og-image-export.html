@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keywords.chat - OG Image</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #000;
+        }
+        .og-container {
+            width: 1200px;
+            height: 630px;
+            background: linear-gradient(135deg, #1a1f2e 0%, #2c3340 100%);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 60px 80px;
+        }
+        
+        /* Background pattern */
+        .bg-pattern {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            opacity: 0.03;
+            background-image: 
+                repeating-linear-gradient(0deg, transparent, transparent 2px, #95e1d3 2px, #95e1d3 4px),
+                repeating-linear-gradient(90deg, transparent, transparent 2px, #95e1d3 2px, #95e1d3 4px);
+            background-size: 40px 40px;
+        }
+        
+        /* Content */
+        .content {
+            position: relative;
+            z-index: 1;
+            flex: 1;
+        }
+        
+        .badge {
+            display: inline-block;
+            background: rgba(255, 213, 128, 0.15);
+            border: 1px solid rgba(255, 213, 128, 0.3);
+            color: #ffd580;
+            padding: 8px 20px;
+            border-radius: 30px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 72px;
+            font-weight: 700;
+            color: #ffffff;
+            line-height: 1.1;
+            margin-bottom: 25px;
+        }
+        
+        .highlight {
+            background: linear-gradient(135deg, #ffd580 0%, #5ccfe6 50%, #d4bfff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 28px;
+            color: #95e1d3;
+            font-weight: 400;
+            margin-bottom: 20px;
+        }
+        
+        .price {
+            display: inline-block;
+            background: linear-gradient(135deg, #ffd580 0%, #ffb347 100%);
+            color: #1a1f2e;
+            padding: 12px 30px;
+            border-radius: 12px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 32px;
+            font-weight: 700;
+        }
+        
+        /* Right side - Logo */
+        .logo-side {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .logo-k {
+            width: 200px;
+            height: 200px;
+            color: #ffd580;
+            fill: #ffd580;
+            margin-bottom: 20px;
+        }
+        
+        .logo-text {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 36px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+        
+        .logo-text .k {
+            color: #ffd580;
+        }
+    </style>
+</head>
+<body>
+    <div class="og-container">
+        <div class="bg-pattern"></div>
+        
+        <div class="content">
+            <div class="badge">✨ The Simplest SEO Tool</div>
+            <h1>
+                Simple SEO Tool<br>
+                For <span class="highlight">Indie Hackers</span>
+            </h1>
+            <div class="subtitle">
+                Easy Keyword Research • No Bloated Dashboard
+            </div>
+        </div>
+        
+        <div class="logo-side">
+            <svg class="logo-k" viewBox="300 320 480 440" xmlns="http://www.w3.org/2000/svg">
+                <g>
+                    <polygon points="612.6 617.8 385.65 732.06 322.98 670.43 612.6 617.8"/>
+                    <polygon points="476.45 561.78 477.8 621.47 322.56 659.06 332.76 652.38 476.45 561.78"/>
+                    <g>
+                        <polygon points="484.61 619.2 487.58 581.45 497.7 367.46 582.41 344 484.61 619.2"/>
+                        <polygon points="599.78 531.23 547.4 502.55 592.5 344.75 599.78 531.23"/>
+                    </g>
+                    <g>
+                        <polygon points="547.56 509.73 757.44 646.8 735.4 731.89 547.56 509.73"/>
+                        <polygon points="564.57 653.31 615.59 622.29 717.29 727.63 726.52 736 564.57 653.31"/>
+                    </g>
+                </g>
+            </svg>
+            <div class="logo-text"><span class="k">Keywords</span>.chat</div>
+        </div>
+    </div>
+</body>
+</html>
+

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K Logo Export</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #1a1a1a;
+        }
+        .logo-container {
+            width: 512px;
+            height: 512px;
+            background: #2c3340;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 24px;
+        }
+        .logo-k {
+            width: 320px;
+            height: 320px;
+            color: #ffd580;
+            fill: #ffd580;
+        }
+        /* Alternative sizes - uncomment the one you need */
+        /* 
+        .logo-container { width: 256px; height: 256px; border-radius: 12px; }
+        .logo-k { width: 160px; height: 160px; }
+        */
+        /*
+        .logo-container { width: 128px; height: 128px; border-radius: 8px; }
+        .logo-k { width: 80px; height: 80px; }
+        */
+    </style>
+</head>
+<body>
+    <div class="logo-container">
+        <svg class="logo-k" viewBox="300 320 480 440" xmlns="http://www.w3.org/2000/svg">
+            <g>
+                <polygon points="612.6 617.8 385.65 732.06 322.98 670.43 612.6 617.8"/>
+                <polygon points="476.45 561.78 477.8 621.47 322.56 659.06 332.76 652.38 476.45 561.78"/>
+                <g>
+                    <polygon points="484.61 619.2 487.58 581.45 497.7 367.46 582.41 344 484.61 619.2"/>
+                    <polygon points="599.78 531.23 547.4 502.55 592.5 344.75 599.78 531.23"/>
+                </g>
+                <g>
+                    <polygon points="547.56 509.73 757.44 646.8 735.4 731.89 547.56 509.73"/>
+                    <polygon points="564.57 653.31 615.59 622.29 717.29 727.63 726.52 736 564.57 653.31"/>
+                </g>
+            </g>
+        </svg>
+    </div>
+    
+    <div style="position: fixed; bottom: 20px; right: 20px; color: #888; font-family: monospace; font-size: 12px;">
+        512×512 • #2c3340 background • 320px logo with equal margins
+    </div>
+</body>
+</html>
+
