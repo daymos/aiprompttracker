@@ -173,14 +173,21 @@
         .logo {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.75rem;
             text-decoration: none;
         }
         
         .logo-k {
-            font-size: 1.5rem;
-            font-weight: bold;
+            width: 40px;
+            height: 40px;
             color: #ffd580;
+            fill: #ffd580;
+        }
+        
+        .logo-k:hover {
+            color: #ffde99;
+            fill: #ffde99;
+            transition: all 0.2s;
         }
         
         .logo-text {
@@ -848,7 +855,20 @@
     <header>
         <div class="header-content">
             <a href="#" class="logo">
-                <span class="logo-k">K</span>
+                <svg class="logo-k" viewBox="300 320 480 440" xmlns="http://www.w3.org/2000/svg">
+                    <g>
+                        <polygon points="612.6 617.8 385.65 732.06 322.98 670.43 612.6 617.8"/>
+                        <polygon points="476.45 561.78 477.8 621.47 322.56 659.06 332.76 652.38 476.45 561.78"/>
+                        <g>
+                            <polygon points="484.61 619.2 487.58 581.45 497.7 367.46 582.41 344 484.61 619.2"/>
+                            <polygon points="599.78 531.23 547.4 502.55 592.5 344.75 599.78 531.23"/>
+                        </g>
+                        <g>
+                            <polygon points="547.56 509.73 757.44 646.8 735.4 731.89 547.56 509.73"/>
+                            <polygon points="564.57 653.31 615.59 622.29 717.29 727.63 726.52 736 564.57 653.31"/>
+                        </g>
+                    </g>
+                </svg>
                 <span class="logo-text"><span class="highlight">Keywords</span>.chat</span>
             </a>
             <a href="#waitlist" class="header-cta">Join Waitlist</a>

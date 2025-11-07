@@ -1,0 +1,35 @@
+KEYWORDS.CHAT - TINYLAUNCH DESCRIPTION
+======================================
+
+TAGLINE
+-------
+Simplest SEO Tool for Indie Hackers
+
+
+ABOUT (Main Description)
+-------------------------
+
+Keywords.chat is the simplest SEO tool built specifically for indie hackers.
+
+You get the 5 core fundamentals that actually move the needle: keyword research, rank tracking, SERP analysis, site audits, and backlink analysis. Nothing more. No enterprise features. No overwhelming dashboards. Just what you need to rank.
+
+It's conversational. Ask "What keywords should I target?" and get search volume, competition, and suggestions instantly. "Check my rankings for X." See your position and competitors. Simple questions, instant answers.
+
+Built for indie hackers with one project, not agencies managing 100 clients. You don't need 50+ features you'll never touch. You need the essentials delivered fast, without spending days learning a tool.
+
+$59/month. Real SEO data. Actually simple.
+
+
+ALTERNATE VERSION (More Personal)
+----------------------------------
+
+Keywords.chat is the SEO tool I built for myself as an indie hacker.
+
+Most SEO tools feel like piloting a spaceship. Fifty features, complex dashboards, hours of tutorials. I just wanted to know what keywords to target and if I was ranking. Simple stuff that shouldn't be complicated.
+
+So I built this: 5 core fundamentals (keyword research, rank tracking, SERP analysis, site audits, backlinks) delivered through simple conversation. Ask "What keywords should I target for my SaaS?" and get everything you need in plain English. No menus. No learning curve.
+
+It's for indie hackers building one thing, not agencies managing a hundred. You get the essentials that actually move the needle, nothing you'll never use. SEO research you can do while drinking coffee.
+
+$59/month. Simple, fast, actually usable.
+

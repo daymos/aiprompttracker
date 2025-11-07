@@ -96,6 +96,33 @@ async def og_image():
         return FileResponse(og_image_file, media_type="image/png")
     return {"error": "OG image not found"}
 
+@app.get("/k-logo.png")
+async def k_logo():
+    """Serve K logo PNG"""
+    logo_file = landing_dir / "k-logo.png"
+    if logo_file.exists():
+        return FileResponse(logo_file, media_type="image/png")
+    return {"error": "Logo not found"}
+
+@app.get("/logo-icon.svg")
+async def logo_icon():
+    """Serve K logo icon SVG"""
+    # Try landing directory first, then frontend assets
+    logo_file = landing_dir / "logo-icon.svg"
+    if not logo_file.exists():
+        logo_file = Path(__file__).parent.parent.parent / "frontend" / "assets" / "logo-icon.svg"
+    if logo_file.exists():
+        return FileResponse(logo_file, media_type="image/svg+xml")
+    return {"error": "Logo icon not found"}
+
+@app.get("/logo.svg")
+async def logo():
+    """Serve K logo SVG (same as logo-icon for compatibility)"""
+    logo_file = Path(__file__).parent.parent.parent / "frontend" / "assets" / "logo-icon.svg"
+    if logo_file.exists():
+        return FileResponse(logo_file, media_type="image/svg+xml")
+    return {"error": "Logo not found"}
+
 @app.get("/blog/{blog_post}")
 async def serve_blog_post(blog_post: str):
     """Serve blog posts from landing/blog directory"""
