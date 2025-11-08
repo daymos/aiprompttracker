@@ -164,10 +164,10 @@ async def serve_favicon_ico():
         return FileResponse(logo_file, media_type="image/svg+xml")
     return {"error": "Favicon not found"}
 
-@app.get("/favicon-{size}x{size}.png")
+@app.get("/favicon-{size}.png")
 async def serve_favicon_png(size: str):
-    """Serve PNG favicons (16x16, 32x32, etc)"""
-    filename = f"favicon-{size}x{size}.png"
+    """Serve PNG favicons (16x16, 32x32, etc) - size should be like '16x16', '32x32'"""
+    filename = f"favicon-{size}.png"
     favicon_file = landing_dir / filename
     if favicon_file.exists():
         return FileResponse(favicon_file, media_type="image/png")
