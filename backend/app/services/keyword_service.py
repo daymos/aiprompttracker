@@ -2,25 +2,26 @@ import httpx
 import logging
 from typing import List, Dict, Any, Optional
 from ..config import get_settings
-from .dataforseo_service import DataForSEOService
+from .google_keyword_insight_service import GoogleKeywordInsightService
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
 class KeywordService:
-    """Service for fetching keyword data using DataForSEO Keywords Data API
+    """Service for fetching keyword data using Google Keyword Insight API
     
-    Migrated from RapidAPI to DataForSEO for:
-    - Better rate limits (40,000 req/min vs 10 req/min)
-    - Lower cost for variable usage
-    - Consolidation with existing SERP/rank tracking
+    Migrated from DataForSEO to Google Keyword Insight (RapidAPI) for:
+    - 75x cost reduction ($9.99/mo vs $0.075/keyword with DataForSEO)
+    - Predictable pricing (subscription vs pay-per-use)
+    - Same data quality (Google Ads API source)
+    - Dedicated keyword research endpoints
     """
     
     def __init__(self):
-        self.dataforseo = DataForSEOService()
+        self.google_kw = GoogleKeywordInsightService()
     
     async def get_keyword_ideas(self, seed_keyword: str, location: str = "us") -> List[Dict[str, Any]]:
-        """Get keyword ideas using DataForSEO (supports global and location-specific)"""
+        """Get keyword ideas using Google Keyword Insight API (supports global locations)"""
         
         # Auto-detect if input is a URL and use appropriate endpoint
         is_url = seed_keyword.startswith(("http://", "https://", "www.")) or "." in seed_keyword.split()[0]
@@ -29,18 +30,18 @@ class KeywordService:
             logger.info(f"🌐 Detected URL input, using URL endpoint")
             return await self.get_url_keyword_ideas(seed_keyword, location)
         
-        # Use DataForSEO keyword suggestions
+        # Use Google Keyword Insight API
         logger.info(f"🔍 Fetching keyword suggestions for: '{seed_keyword}' (location: {location})")
         
         try:
-            keywords = await self.dataforseo.get_keyword_suggestions(
-                seed_keyword=seed_keyword,
+            keywords = await self.google_kw.get_keyword_suggestions(
+                keyword=seed_keyword,
                 location=location,
                 limit=100
             )
             
             if keywords:
-                logger.info(f"✅ Got {len(keywords)} keyword suggestions from DataForSEO")
+                logger.info(f"✅ Got {len(keywords)} keyword suggestions from Google Keyword Insight")
             else:
                 logger.warning(f"No keywords found for '{seed_keyword}'")
             
@@ -51,12 +52,12 @@ class KeywordService:
             return []
     
     async def get_url_keyword_ideas(self, url: str, location: str = "us") -> List[Dict[str, Any]]:
-        """Get keyword ideas from a URL using DataForSEO"""
+        """Get keyword ideas from a URL using Google Keyword Insight API (competitor analysis)"""
         
         logger.info(f"🌐 Getting keywords from URL: {url}")
         
         try:
-            keywords = await self.dataforseo.get_keyword_ideas_from_url(
+            keywords = await self.google_kw.get_url_keyword_suggestions(
                 url=url,
                 location=location,
                 limit=100
@@ -74,45 +75,27 @@ class KeywordService:
             return []
     
     async def get_opportunity_keywords(self, seed_keyword: str, location: str = "us", num: int = 10) -> List[Dict[str, Any]]:
-        """Find opportunity keywords (high volume, low competition) using DataForSEO"""
+        """Find opportunity keywords (high volume, low competition) using Google Keyword Insight API
+        
+        Uses dedicated /topkeys endpoint optimized for finding the sweet spot keywords
+        """
         
         logger.info(f"💎 Finding opportunity keywords for '{seed_keyword}'")
         
         try:
-            # Get all keyword suggestions
-            all_keywords = await self.dataforseo.get_keyword_suggestions(
-                seed_keyword=seed_keyword,
+            # Use Google Keyword Insight's dedicated opportunity endpoint
+            opportunities = await self.google_kw.get_opportunity_keywords(
+                keyword=seed_keyword,
                 location=location,
-                limit=200  # Get more to filter from
+                num=num
             )
             
-            if not all_keywords:
-                return []
+            if opportunities:
+                logger.info(f"✅ Found {len(opportunities)} opportunity keywords")
+            else:
+                logger.warning(f"No opportunity keywords found for '{seed_keyword}'")
             
-            # Filter for opportunity keywords
-            # Criteria: competition_index < 0.5 (LOW to MEDIUM) and search_volume > 100
-            opportunities = []
-            for kw in all_keywords:
-                competition_idx = kw.get('competition_index', 1.0)
-                search_vol = kw.get('search_volume', 0)
-                
-                # Opportunity = decent volume + low competition
-                if competition_idx < 0.5 and search_vol >= 100:
-                    # Calculate opportunity score
-                    # Higher score = better opportunity (high volume, low competition)
-                    opportunity_score = search_vol * (1 - competition_idx)
-                    kw['opportunity_score'] = opportunity_score
-                    opportunities.append(kw)
-            
-            # Sort by opportunity score (best first)
-            opportunities.sort(key=lambda x: x.get('opportunity_score', 0), reverse=True)
-            
-            # Return top N
-            result = opportunities[:num]
-            
-            logger.info(f"✅ Found {len(result)} opportunity keywords")
-            
-            return result
+            return opportunities
             
         except Exception as e:
             logger.error(f"Error finding opportunity keywords: {e}", exc_info=True)
@@ -141,24 +124,15 @@ class KeywordService:
             # Limit results
             keywords = keywords[:limit]
             
-            # Transform to expected format for AI/frontend
-            enriched_keywords = []
-            for kw in keywords:
-                enriched_keywords.append({
-                    'keyword': kw.get('keyword', ''),
-                    'search_volume': kw.get('search_volume', 0),
-                    'competition': kw.get('competition', 'UNKNOWN'),
-                    'competition_index': kw.get('competition_index', 0),
-                    'cpc': kw.get('cpc', 0),
-                    'low_bid': kw.get('low_bid', 0),
-                    'high_bid': kw.get('high_bid', 0),
-                    'intent': kw.get('intent', 'informational'),
-                    'keyword_difficulty': kw.get('keyword_difficulty', 0)
-                })
+            # DEBUG: Log first keyword to see format
+            if keywords:
+                logger.info(f"📊 Sample keyword data: {keywords[0]}")
             
-            logger.info(f"✅ Analyzed {len(enriched_keywords)} keywords")
+            # Keywords are already in the correct format from GoogleKeywordInsightService
+            # No need to transform - just return them directly
+            logger.info(f"✅ Analyzed {len(keywords)} keywords")
             
-            return enriched_keywords
+            return keywords
             
         except Exception as e:
             logger.error(f"Error analyzing keywords: {e}", exc_info=True)
