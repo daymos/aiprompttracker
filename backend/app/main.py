@@ -80,6 +80,14 @@ async def sitemap():
         return FileResponse(sitemap_file, media_type="application/xml")
     return FileResponse(landing_dir / "sitemap.xml")
 
+@app.get("/BingSiteAuth.xml")
+async def bing_auth():
+    """Serve BingSiteAuth.xml for Bing Webmaster Tools verification"""
+    bing_auth_file = landing_dir / "BingSiteAuth.xml"
+    if bing_auth_file.exists():
+        return FileResponse(bing_auth_file, media_type="application/xml")
+    return {"error": "BingSiteAuth.xml not found"}
+
 @app.get("/videos/{video_name}")
 async def serve_video(video_name: str):
     """Serve video files from landing/videos directory"""
@@ -143,6 +151,43 @@ async def logo():
     if logo_file.exists():
         return FileResponse(logo_file, media_type="image/svg+xml")
     return {"error": "Logo not found"}
+
+@app.get("/favicon.ico")
+async def serve_favicon_ico():
+    """Serve favicon.ico"""
+    favicon_file = landing_dir / "favicon.ico"
+    if favicon_file.exists():
+        return FileResponse(favicon_file, media_type="image/x-icon")
+    # Fallback to logo.svg
+    logo_file = Path(__file__).parent.parent.parent / "frontend" / "web" / "logo.svg"
+    if logo_file.exists():
+        return FileResponse(logo_file, media_type="image/svg+xml")
+    return {"error": "Favicon not found"}
+
+@app.get("/favicon-{size}x{size}.png")
+async def serve_favicon_png(size: str):
+    """Serve PNG favicons (16x16, 32x32, etc)"""
+    filename = f"favicon-{size}x{size}.png"
+    favicon_file = landing_dir / filename
+    if favicon_file.exists():
+        return FileResponse(favicon_file, media_type="image/png")
+    # Fallback to logo.svg
+    logo_file = Path(__file__).parent.parent.parent / "frontend" / "web" / "logo.svg"
+    if logo_file.exists():
+        return FileResponse(logo_file, media_type="image/svg+xml")
+    return {"error": f"Favicon {filename} not found"}
+
+@app.get("/apple-touch-icon.png")
+async def serve_apple_touch_icon():
+    """Serve Apple touch icon"""
+    favicon_file = landing_dir / "apple-touch-icon.png"
+    if favicon_file.exists():
+        return FileResponse(favicon_file, media_type="image/png")
+    # Fallback to logo.svg
+    logo_file = Path(__file__).parent.parent.parent / "frontend" / "web" / "logo.svg"
+    if logo_file.exists():
+        return FileResponse(logo_file, media_type="image/svg+xml")
+    return {"error": "Apple touch icon not found"}
 
 @app.get("/blog/{blog_post}")
 async def serve_blog_post(blog_post: str):
