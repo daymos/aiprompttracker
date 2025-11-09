@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/grid_pattern_background.dart';
 
 class AuthScreen extends StatelessWidget {
   const AuthScreen({super.key});
@@ -10,7 +11,8 @@ class AuthScreen extends StatelessWidget {
     final authProvider = context.watch<AuthProvider>();
     
     return Scaffold(
-      body: Center(
+      body: GridPatternBackground(
+        child: Center(
         child: Container(
           constraints: const BoxConstraints(maxWidth: 400),
           padding: const EdgeInsets.all(32.0),
@@ -77,6 +79,7 @@ class AuthScreen extends StatelessWidget {
                 ),
             ],
           ),
+        ),
         ),
       ),
     );

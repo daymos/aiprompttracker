@@ -11,6 +11,7 @@ import '../widgets/conversation_list.dart';
 import '../widgets/theme_switcher.dart';
 import '../widgets/cli_spinner.dart';
 import '../widgets/favicon_widget.dart';
+import '../widgets/grid_pattern_background.dart';
 import 'dart:html' as html;
 import 'dart:async';
 import 'package:url_launcher/url_launcher.dart';
@@ -301,7 +302,8 @@ class _ChatScreenState extends State<ChatScreen> {
     final chatProvider = context.watch<ChatProvider>();
 
     return Scaffold(
-      body: Row(
+      body: GridPatternBackground(
+        child: Row(
         children: [
           // Persistent left sidebar with icons
           Container(
@@ -456,6 +458,7 @@ class _ChatScreenState extends State<ChatScreen> {
             child: _buildMainContent(),
           ),
         ],
+        ),
       ),
     );
   }
