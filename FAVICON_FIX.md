@@ -108,3 +108,4 @@ If manual export is tedious, use:
 
 The key is having **all standard favicon formats** (ICO, PNG 16x16, PNG 32x32, Apple Touch Icon) so search engines have no ambiguity.
 
+

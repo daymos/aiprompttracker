@@ -157,8 +157,8 @@ async def send_message_stream(
                                 },
                                 "limit": {
                                     "type": "integer",
-                                    "description": "Number of keywords to return (default 10)",
-                                    "default": 10
+                                    "description": "Number of keywords to return. Use 50 to provide comprehensive data for the user to explore in the data table view (default 50)",
+                                    "default": 50
                                 }
                             },
                             "required": ["keyword_or_topic"]
@@ -484,42 +484,30 @@ async def send_message_stream(
                         if tool_name == "research_keywords":
                             keyword_or_topic = args.get("keyword_or_topic")
                             location = args.get("location", "US")
-                            limit = args.get("limit", 10)
+                            limit = args.get("limit", 50)  # Fetch more keywords for data panel
                             
                             keyword_data = await keyword_service.analyze_keywords(keyword_or_topic, location=location, limit=limit)
                             
-                            # Enrich with SERP analysis
-                            serp_rate_limited = False
-                            serp_success_count = 0
-                            if keyword_data:
-                                for keyword_item in keyword_data[:5]:
-                                    keyword = keyword_item.get('keyword')
-                                    if keyword:
-                                        try:
-                                            serp_analysis = await rank_checker.get_serp_analysis(keyword)
-                                            if serp_analysis:
-                                                keyword_item['serp_analysis'] = serp_analysis['analysis']
-                                                keyword_item['serp_insight'] = serp_analysis['insight']
-                                                serp_success_count += 1
-                                        except httpx.HTTPStatusError as e:
-                                            if e.response.status_code == 429:
-                                                serp_rate_limited = True
+                            # Note: SERP analysis removed to reduce latency and API costs
+                            # Keyword data already includes: search_volume, competition, CPC, intent, trend
                             
                             response_data = {
                                 "keywords": keyword_data,
-                                "total_found": len(keyword_data) if keyword_data else 0,
-                                "serp_analysis_available": serp_success_count > 0,
-                                "serp_analysis_count": serp_success_count
+                                "total_found": len(keyword_data) if keyword_data else 0
                             }
                             
-                            if serp_rate_limited:
-                                response_data["warning"] = "SERP analysis unavailable: API rate limit reached. Keyword data is still accurate, but ranking difficulty analysis is limited. Rate limits reset daily."
-                            
+                            try:
+                                json_content = json.dumps(response_data)
+                                logger.info(f"📤 Sending {len(keyword_data) if keyword_data else 0} keywords to LLM. Preview: {json_content[:300]}...")
+                            except (TypeError, ValueError) as json_error:
+                                logger.error(f"❌ Failed to serialize keyword data to JSON: {json_error}")
+                                logger.error(f"   Keyword data type: {type(keyword_data)}, First item: {keyword_data[0] if keyword_data else 'None'}")
+                                raise
                             tool_results.append({
                                 "tool_call_id": tool_call["id"],
                                 "role": "tool",
                                 "name": tool_name,
-                                "content": str(response_data)
+                                "content": json_content
                             })
                         
                         elif tool_name == "find_opportunity_keywords":
@@ -551,7 +539,7 @@ async def send_message_stream(
                                     "tool_call_id": tool_call["id"],
                                     "role": "tool",
                                     "name": tool_name,
-                                    "content": str(processed_data)
+                                    "content": json.dumps(processed_data)
                                 })
                             else:
                                 tool_results.append({
@@ -571,7 +559,7 @@ async def send_message_stream(
                                 "tool_call_id": tool_call["id"],
                                 "role": "tool",
                                 "name": tool_name,
-                                "content": str(ranking_data)
+                                "content": json.dumps(ranking_data)
                             })
                         
                         elif tool_name == "analyze_website":
@@ -583,7 +571,7 @@ async def send_message_stream(
                                 "tool_call_id": tool_call["id"],
                                 "role": "tool",
                                 "name": tool_name,
-                                "content": str(website_data)
+                                "content": json.dumps(website_data)
                             })
                         
                         elif tool_name == "analyze_backlinks":
@@ -608,7 +596,7 @@ async def send_message_stream(
                                     "tool_call_id": tool_call["id"],
                                     "role": "tool",
                                     "name": tool_name,
-                                    "content": str(backlink_data)
+                                    "content": json.dumps(backlink_data)
                                 })
                         
                         elif tool_name == "get_project_keywords":
@@ -662,7 +650,7 @@ async def send_message_stream(
                                     "tool_call_id": tool_call["id"],
                                     "role": "tool",
                                     "name": tool_name,
-                                    "content": str(result)
+                                    "content": json.dumps(result)
                                 })
                         
                         elif tool_name == "get_project_backlinks":
@@ -711,7 +699,7 @@ async def send_message_stream(
                                         "tool_call_id": tool_call["id"],
                                         "role": "tool",
                                         "name": tool_name,
-                                        "content": str(result)
+                                        "content": json.dumps(result)
                                     })
                         
                         elif tool_name == "get_project_pinboard":
@@ -765,7 +753,7 @@ async def send_message_stream(
                                 "tool_call_id": tool_call["id"],
                                 "role": "tool",
                                 "name": tool_name,
-                                "content": str(result)
+                                "content": json.dumps(result)
                             })
                         
                         elif tool_name == "track_keywords":
@@ -1283,6 +1271,7 @@ OVERVIEW:
                                 })
 
                     except Exception as e:
+                        logger.error(f"❌ Tool execution failed for {tool_name}: {str(e)}", exc_info=True)
                         tool_results.append({
                             "tool_call_id": tool_call["id"],
                             "role": "tool",
@@ -1348,6 +1337,22 @@ OVERVIEW:
                 metadata = {}
                 if reasoning:
                     metadata["reasoning"] = reasoning
+                
+                # Save keyword data in metadata if tools were used
+                if tool_calls and len(tool_calls) > 0:
+                    for tool_call in tool_calls:
+                        if tool_call["name"] == "research_keywords":
+                            # Extract keyword data from tool results
+                            for result in tool_results:
+                                if result.get("name") == "research_keywords":
+                                    try:
+                                        import json as json_module
+                                        result_data = json_module.loads(result.get("content", "{}"))
+                                        if "keywords" in result_data:
+                                            metadata["keyword_data"] = result_data["keywords"]
+                                            break
+                                    except:
+                                        pass
 
                 assistant_message = Message(
                     id=str(uuid.uuid4()),
@@ -1392,11 +1397,17 @@ OVERVIEW:
             else:
                 logger.warning("⚠️  Skipping assistant message save - no content to save")
             
-            # Send final response (ensure message is always a string, not None)
-            yield await send_sse_event("message", {
+            # Send final response with metadata (ensure message is always a string, not None)
+            message_data = {
                 "message": assistant_response or "",
                 "conversation_id": conversation.id
-            })
+            }
+            
+            # Include metadata if available (for keyword data, etc.)
+            if assistant_response and 'metadata' in locals() and metadata:
+                message_data["metadata"] = metadata
+            
+            yield await send_sse_event("message", message_data)
             
             # Send done event
             yield await send_sse_event("done", {})
@@ -1520,8 +1531,8 @@ async def send_message(
                         },
                         "limit": {
                             "type": "integer",
-                            "description": "Number of keywords to return (default 10)",
-                            "default": 10
+                            "description": "Number of keywords to return. Use 50 to provide comprehensive data for the user to explore in the data table view (default 50)",
+                            "default": 50
                         }
                     },
                     "required": ["keyword_or_topic"]
@@ -1820,47 +1831,26 @@ async def send_message(
                 if tool_name == "research_keywords":
                     keyword_or_topic = args.get("keyword_or_topic")
                     location = args.get("location", "US")
-                    limit = args.get("limit", 10)
+                    limit = args.get("limit", 50)  # Fetch more keywords for data panel
                     
                     scope = "🌍 global" if location.lower() == "global" else f"📍 {location.upper()}"
                     logger.info(f"  📊 Researching keywords for: {keyword_or_topic} ({scope})")
                     keyword_data = await keyword_service.analyze_keywords(keyword_or_topic, location=location, limit=limit)
                     
-                    # Enrich with SERP analysis and track rate limits
-                    serp_rate_limited = False
-                    serp_success_count = 0
-                    if keyword_data:
-                        for keyword_item in keyword_data[:5]:  # Top 5 only
-                            keyword = keyword_item.get('keyword')
-                            if keyword:
-                                try:
-                                    serp_analysis = await rank_checker.get_serp_analysis(keyword)
-                                    if serp_analysis:
-                                        keyword_item['serp_analysis'] = serp_analysis['analysis']
-                                        keyword_item['serp_insight'] = serp_analysis['insight']
-                                        serp_success_count += 1
-                                except httpx.HTTPStatusError as e:
-                                    if e.response.status_code == 429:
-                                        serp_rate_limited = True
-                                        logger.warning(f"  ⚠️  SERP analysis rate limited for '{keyword}'")
-                                    # Continue to next keyword
+                    # Note: SERP analysis removed to reduce latency and API costs
+                    # Keyword data already includes: search_volume, competition, CPC, intent, trend
                     
-                    # Build response with rate limit info
+                    # Build response
                     response_data = {
                         "keywords": keyword_data,
-                        "total_found": len(keyword_data) if keyword_data else 0,
-                        "serp_analysis_available": serp_success_count > 0,
-                        "serp_analysis_count": serp_success_count
+                        "total_found": len(keyword_data) if keyword_data else 0
                     }
-                    
-                    if serp_rate_limited:
-                        response_data["warning"] = "SERP analysis unavailable: API rate limit reached. Keyword data is still accurate, but ranking difficulty analysis is limited. Rate limits reset daily."
                     
                     tool_results.append({
                         "tool_call_id": tool_call["id"],
                         "role": "tool",
                         "name": tool_name,
-                        "content": str(response_data)
+                        "content": json.dumps(response_data)
                     })
                     
                     if serp_rate_limited:
@@ -1899,7 +1889,7 @@ async def send_message(
                             "tool_call_id": tool_call["id"],
                             "role": "tool",
                             "name": tool_name,
-                            "content": str(processed_data)
+                            "content": json.dumps(processed_data)
                         })
                         logger.info(f"  ✅ Found {len(processed_data)} opportunity keywords")
                     else:
@@ -1922,7 +1912,7 @@ async def send_message(
                         "tool_call_id": tool_call["id"],
                         "role": "tool",
                         "name": tool_name,
-                        "content": str(ranking_data)
+                        "content": json.dumps(ranking_data)
                     })
                     
                     if ranking_data and ranking_data.get('position'):
@@ -1940,7 +1930,7 @@ async def send_message(
                         "tool_call_id": tool_call["id"],
                         "role": "tool",
                         "name": tool_name,
-                        "content": str(website_data)
+                        "content": json.dumps(website_data)
                     })
                     
                     if website_data and not website_data.get('error'):
@@ -1975,7 +1965,7 @@ async def send_message(
                             "tool_call_id": tool_call["id"],
                             "role": "tool",
                             "name": tool_name,
-                            "content": str(backlink_data)
+                            "content": json.dumps(backlink_data)
                         })
                 
                 elif tool_name == "get_project_keywords":
@@ -2033,7 +2023,7 @@ async def send_message(
                             "tool_call_id": tool_call["id"],
                             "role": "tool",
                             "name": tool_name,
-                            "content": str(result)
+                            "content": json.dumps(result)
                         })
                         logger.info(f"  ✅ Found {len(tracked_keywords)} tracked + {len(suggested_keywords)} suggested keywords")
                 
@@ -2088,7 +2078,7 @@ async def send_message(
                                 "tool_call_id": tool_call["id"],
                                 "role": "tool",
                                 "name": tool_name,
-                                "content": str(result)
+                                "content": json.dumps(result)
                             })
                             logger.info(f"  ✅ Found {len(result['backlinks'])} backlinks")
                 
@@ -2147,7 +2137,7 @@ async def send_message(
                         "tool_call_id": tool_call["id"],
                         "role": "tool",
                         "name": tool_name,
-                        "content": str(result)
+                        "content": json.dumps(result)
                     })
                     logger.info(f"  ✅ Found {len(pins)} pinned items")
                 
@@ -2724,6 +2714,22 @@ OVERVIEW:
         metadata = {}
         if reasoning:
             metadata["reasoning"] = reasoning
+        
+        # Save keyword data in metadata if tools were used
+        if tool_calls and len(tool_calls) > 0:
+            for tool_call in tool_calls:
+                if tool_call["name"] == "research_keywords":
+                    # Extract keyword data from tool results
+                    for result in tool_results:
+                        if result.get("name") == "research_keywords":
+                            try:
+                                import json as json_module
+                                result_data = json_module.loads(result.get("content", "{}"))
+                                if "keywords" in result_data:
+                                    metadata["keyword_data"] = result_data["keywords"]
+                                    break
+                            except:
+                                pass
 
         assistant_message = Message(
             id=str(uuid.uuid4()),
