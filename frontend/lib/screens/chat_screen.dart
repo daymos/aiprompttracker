@@ -1227,10 +1227,10 @@ class _ChatScreenState extends State<ChatScreen> {
         if (chatProvider.dataPanelOpen)
           DataPanel(
             data: chatProvider.dataPanelData,
-            columns: _buildKeywordColumns(),
+            columns: _buildDataPanelColumns(chatProvider.dataPanelTitle),
             title: chatProvider.dataPanelTitle,
             onClose: () => chatProvider.closeDataPanel(),
-            csvFilename: 'keywords_${DateTime.now().millisecondsSinceEpoch}.csv',
+            csvFilename: '${chatProvider.dataPanelTitle.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.csv',
             projects: projectProvider.allProjects.map((p) => {
               'id': p.id,
               'name': p.name,
@@ -1273,6 +1273,15 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
       ],
     );
+  }
+
+  List<DataColumnConfig> _buildDataPanelColumns(String title) {
+    // Detect data type from title or data structure
+    if (title.toLowerCase().contains('ranking')) {
+      return _buildRankingColumns();
+    }
+    // Default to keyword columns
+    return _buildKeywordColumns();
   }
 
   List<DataColumnConfig> _buildKeywordColumns() {
@@ -1385,6 +1394,101 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
       ),
     );
+  }
+
+  List<DataColumnConfig> _buildRankingColumns() {
+    return [
+      DataColumnConfig(
+        id: 'keyword',
+        label: 'Keyword',
+        sortable: true,
+        cellBuilder: (row) => ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 250),
+          child: Text(
+            row['keyword']?.toString() ?? '',
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 11),
+          ),
+        ),
+      ),
+      DataColumnConfig(
+        id: 'position',
+        label: 'Position',
+        numeric: true,
+        sortable: true,
+        cellBuilder: (row) {
+          final position = row['position'];
+          if (position == null) {
+            return const Text(
+              'Not ranking',
+              style: TextStyle(fontSize: 11, color: Colors.grey),
+            );
+          }
+          // Color code based on position
+          Color positionColor;
+          if (position <= 3) {
+            positionColor = Colors.green;
+          } else if (position <= 10) {
+            positionColor = Colors.blue;
+          } else if (position <= 20) {
+            positionColor = Colors.orange;
+          } else {
+            positionColor = Colors.grey;
+          }
+          return Text(
+            '#$position',
+            style: TextStyle(
+              fontSize: 11,
+              color: positionColor,
+              fontWeight: FontWeight.bold,
+            ),
+          );
+        },
+        csvFormatter: (value) => value?.toString() ?? 'Not ranking',
+      ),
+      DataColumnConfig(
+        id: 'url',
+        label: 'Ranking URL',
+        sortable: true,
+        cellBuilder: (row) {
+          final url = row['url']?.toString() ?? '';
+          if (url.isEmpty) return const Text('', style: TextStyle(fontSize: 11));
+          
+          // Extract path from URL for display
+          try {
+            final uri = Uri.parse(url);
+            final displayPath = uri.path.length > 30 
+                ? '${uri.path.substring(0, 27)}...'
+                : uri.path;
+            return Text(
+              displayPath.isEmpty ? '/' : displayPath,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 11),
+            );
+          } catch (e) {
+            return Text(
+              url.length > 30 ? '${url.substring(0, 27)}...' : url,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 11),
+            );
+          }
+        },
+        csvFormatter: (value) => value?.toString() ?? '',
+      ),
+      DataColumnConfig(
+        id: 'title',
+        label: 'Page Title',
+        sortable: true,
+        cellBuilder: (row) => ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 300),
+          child: Text(
+            row['title']?.toString() ?? '',
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 11),
+          ),
+        ),
+      ),
+    ];
   }
 
   Widget _buildConversationsView() {

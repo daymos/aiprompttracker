@@ -98,20 +98,51 @@ class _MessageBubbleState extends State<MessageBubble> {
   }
   
   void _openDataPanel() {
-    final keywordData = widget.message.messageMetadata?['keyword_data'];
-    if (keywordData == null) return;
+    final metadata = widget.message.messageMetadata;
+    if (metadata == null) return;
 
     final chatProvider = context.read<ChatProvider>();
-    chatProvider.openDataPanel(
-      data: List<Map<String, dynamic>>.from(keywordData),
-      title: 'Keyword Research Results',
-    );
+    
+    // Check for keyword data
+    if (metadata['keyword_data'] != null) {
+      chatProvider.openDataPanel(
+        data: List<Map<String, dynamic>>.from(metadata['keyword_data']),
+        title: 'Keyword Research Results',
+      );
+      return;
+    }
+    
+    // Check for ranking data
+    if (metadata['ranking_data'] != null) {
+      final domain = metadata['domain'] ?? 'Unknown Domain';
+      chatProvider.openDataPanel(
+        data: List<Map<String, dynamic>>.from(metadata['ranking_data']),
+        title: 'Ranking Report - $domain',
+      );
+      return;
+    }
   }
 
   void _downloadTableAsCSV() {
-    // Get keyword data from message metadata
-    final keywordData = widget.message.messageMetadata?['keyword_data'];
-    if (keywordData == null) return;
+    final metadata = widget.message.messageMetadata;
+    if (metadata == null) return;
+    
+    // Check for keyword data
+    final keywordData = metadata['keyword_data'];
+    if (keywordData != null) {
+      _downloadKeywordCSV(keywordData);
+      return;
+    }
+    
+    // Check for ranking data
+    final rankingData = metadata['ranking_data'];
+    if (rankingData != null) {
+      _downloadRankingCSV(rankingData, metadata['domain'] ?? 'unknown');
+      return;
+    }
+  }
+
+  void _downloadKeywordCSV(dynamic keywordData) {
     
     // Convert to CSV
     final csvContent = StringBuffer();
@@ -159,6 +190,50 @@ class _MessageBubbleState extends State<MessageBubble> {
     }
   }
   
+  void _downloadRankingCSV(dynamic rankingData, String domain) {
+    // Convert to CSV
+    final csvContent = StringBuffer();
+    
+    // Header row
+    csvContent.writeln('Keyword,Position,Ranking URL,Page Title');
+    
+    // Data rows
+    for (final item in rankingData) {
+      final keyword = item['keyword'] ?? '';
+      final position = item['position']?.toString() ?? 'Not ranking';
+      final url = item['url'] ?? '';
+      final title = item['title'] ?? '';
+      
+      // Escape commas and quotes in CSV
+      final escapedKeyword = _escapeCsvField(keyword.toString());
+      final escapedUrl = _escapeCsvField(url.toString());
+      final escapedTitle = _escapeCsvField(title.toString());
+      
+      csvContent.writeln('$escapedKeyword,$position,$escapedUrl,$escapedTitle');
+    }
+    
+    // Create and download the file
+    final bytes = utf8.encode(csvContent.toString());
+    final blob = html.Blob([bytes]);
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    final anchor = html.document.createElement('a') as html.AnchorElement
+      ..href = url
+      ..style.display = 'none'
+      ..download = 'ranking_report_${domain}_${DateTime.now().millisecondsSinceEpoch}.csv';
+    html.document.body?.children.add(anchor);
+    
+    anchor.click();
+    
+    html.document.body?.children.remove(anchor);
+    html.Url.revokeObjectUrl(url);
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ranking report downloaded successfully')),
+      );
+    }
+  }
+
   String _escapeCsvField(String field) {
     // Escape fields containing commas, quotes, or newlines
     if (field.contains(',') || field.contains('"') || field.contains('\n')) {

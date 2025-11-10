@@ -216,6 +216,33 @@ async def send_message_stream(
                 {
                     "type": "function",
                     "function": {
+                        "name": "check_multiple_rankings",
+                        "description": "Check where a domain ranks for multiple keywords at once (batch processing). Much faster than checking one at a time. Returns position data for each keyword with interactive table view. Use this when user asks to check rankings for multiple keywords or wants a ranking report.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "keywords": {
+                                    "type": "array",
+                                    "items": {"type": "string"},
+                                    "description": "List of keywords to check rankings for"
+                                },
+                                "domain": {
+                                    "type": "string",
+                                    "description": "Domain to check (e.g., 'example.com')"
+                                },
+                                "location": {
+                                    "type": "string",
+                                    "description": "Location for search results (default: 'United States')",
+                                    "default": "United States"
+                                }
+                            },
+                            "required": ["keywords", "domain"]
+                        }
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
                         "name": "analyze_website",
                         "description": "Crawl and analyze a website to extract targeted keywords and SEO data. Use when user requests website analysis, keyword extraction, or site audit. Scrapes all pages via sitemap and extracts titles, meta descriptions, headings, content, and identifies targeted keywords. Returns comprehensive keyword analysis and SEO recommendations.",
                         "parameters": {
@@ -459,6 +486,8 @@ async def send_message_stream(
                         yield await send_sse_event("status", {"message": "Finding opportunity keywords..."})
                     elif tool_name == "check_ranking":
                         yield await send_sse_event("status", {"message": "Checking rankings..."})
+                    elif tool_name == "check_multiple_rankings":
+                        yield await send_sse_event("status", {"message": "Checking rankings for multiple keywords..."})
                     elif tool_name == "analyze_website":
                         yield await send_sse_event("status", {"message": "Analyzing website..."})
                     elif tool_name == "analyze_backlinks":
@@ -560,6 +589,38 @@ async def send_message_stream(
                                 "role": "tool",
                                 "name": tool_name,
                                 "content": json.dumps(ranking_data)
+                            })
+                        
+                        elif tool_name == "check_multiple_rankings":
+                            keywords = args.get("keywords", [])
+                            domain = args.get("domain")
+                            location = args.get("location", "United States")
+                            
+                            rankings_dict = await rank_checker.check_multiple_rankings(keywords, domain, location)
+                            
+                            # Convert to list format for table view
+                            rankings_list = []
+                            for keyword, data in rankings_dict.items():
+                                rankings_list.append({
+                                    "keyword": keyword,
+                                    "position": data.get("position"),
+                                    "url": data.get("page_url"),
+                                    "title": data.get("title"),
+                                    "description": data.get("description"),
+                                })
+                            
+                            # Store in metadata for data panel
+                            metadata = {
+                                "ranking_data": rankings_list,
+                                "domain": domain,
+                                "location": location
+                            }
+                            
+                            tool_results.append({
+                                "tool_call_id": tool_call["id"],
+                                "role": "tool",
+                                "name": tool_name,
+                                "content": json.dumps({"rankings": rankings_list, "total_checked": len(keywords)})
                             })
                         
                         elif tool_name == "analyze_website":
@@ -1566,9 +1627,9 @@ async def send_message(
                 }
             }
         },
-        {
-            "type": "function",
-            "function": {
+            {
+                "type": "function",
+                "function": {
                 "name": "check_ranking",
                 "description": "Check where a specific domain ranks in Google for a keyword. Returns position (1-100) or None if not ranking.",
                 "parameters": {
@@ -1587,6 +1648,33 @@ async def send_message(
                 }
             }
         },
+            {
+                "type": "function",
+                "function": {
+                    "name": "check_multiple_rankings",
+                    "description": "Check where a domain ranks for multiple keywords at once (batch processing). Much faster than checking one at a time. Returns position data for each keyword with interactive table view. Use this when user asks to check rankings for multiple keywords or wants a ranking report.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "keywords": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "List of keywords to check rankings for"
+                            },
+                            "domain": {
+                                "type": "string",
+                                "description": "Domain to check (e.g., 'example.com')"
+                            },
+                            "location": {
+                                "type": "string",
+                                "description": "Location for search results (default: 'United States')",
+                                "default": "United States"
+                            }
+                        },
+                        "required": ["keywords", "domain"]
+                    }
+                }
+            },
                 {
                     "type": "function",
                     "function": {
@@ -1919,6 +2007,42 @@ async def send_message(
                         logger.info(f"  ✅ {domain} ranks at position {ranking_data['position']} for '{keyword}'")
                     else:
                         logger.info(f"  ℹ️  {domain} not ranking in top 100 for '{keyword}'")
+                
+                elif tool_name == "check_multiple_rankings":
+                    keywords = args.get("keywords", [])
+                    domain = args.get("domain")
+                    location = args.get("location", "United States")
+                    
+                    logger.info(f"  📍 Checking rankings for {len(keywords)} keywords on {domain}")
+                    rankings_dict = await rank_checker.check_multiple_rankings(keywords, domain, location)
+                    
+                    # Convert to list format for table view
+                    rankings_list = []
+                    for keyword, data in rankings_dict.items():
+                        rankings_list.append({
+                            "keyword": keyword,
+                            "position": data.get("position"),
+                            "url": data.get("page_url"),
+                            "title": data.get("title"),
+                            "description": data.get("description"),
+                        })
+                    
+                    # Store in metadata for data panel
+                    message_metadata = {
+                        "ranking_data": rankings_list,
+                        "domain": domain,
+                        "location": location
+                    }
+                    
+                    tool_results.append({
+                        "tool_call_id": tool_call["id"],
+                        "role": "tool",
+                        "name": tool_name,
+                        "content": json.dumps({"rankings": rankings_list, "total_checked": len(keywords)})
+                    })
+                    
+                    ranked_count = sum(1 for r in rankings_list if r["position"] is not None)
+                    logger.info(f"  ✅ Found {ranked_count}/{len(keywords)} keywords ranking in top 100")
                 
                 elif tool_name == "analyze_website":
                     url = args.get("url")
