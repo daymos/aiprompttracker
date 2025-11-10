@@ -75,8 +75,8 @@ class _MessageBubbleState extends State<MessageBubble> {
     final fullText = widget.message.content;
     int currentIndex = 0;
     
-    // Use a faster speed for better UX (20ms per character)
-    const duration = Duration(milliseconds: 20);
+    // Use a faster speed for better UX (14ms per character, 30% faster)
+    const duration = Duration(milliseconds: 14);
     
     void animateNext() {
       if (!mounted || currentIndex >= fullText.length) {
@@ -100,6 +100,17 @@ class _MessageBubbleState extends State<MessageBubble> {
     animateNext();
   }
   
+  void _openDataPanel() {
+    final keywordData = widget.message.messageMetadata?['keyword_data'];
+    if (keywordData == null) return;
+
+    final chatProvider = context.read<ChatProvider>();
+    chatProvider.openDataPanel(
+      data: List<Map<String, dynamic>>.from(keywordData),
+      title: 'Keyword Research Results',
+    );
+  }
+
   void _downloadTableAsCSV() {
     // Get keyword data from message metadata
     final keywordData = widget.message.messageMetadata?['keyword_data'];
@@ -477,22 +488,35 @@ class _MessageBubbleState extends State<MessageBubble> {
                         ),
                 ),
                 
-                // Show CSV download button if table data is present (only after animation completes)
+                // Show data action buttons if table data is present (only after animation completes)
                 if (!isUser && !_isAnimating && widget.message.messageMetadata?['keyword_data'] != null) ...[
                   const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton.icon(
-                      onPressed: _downloadTableAsCSV,
-                      icon: const Icon(Icons.download, size: 16),
-                      label: const Text('Download as CSV'),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        textStyle: const TextStyle(fontSize: 12),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      TextButton.icon(
+                        onPressed: _openDataPanel,
+                        icon: const Icon(Icons.table_chart, size: 16),
+                        label: const Text('View Data Table'),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          textStyle: const TextStyle(fontSize: 12),
+                        ),
                       ),
-                    ),
+                      TextButton.icon(
+                        onPressed: _downloadTableAsCSV,
+                        icon: const Icon(Icons.download, size: 16),
+                        label: const Text('Download CSV'),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          textStyle: const TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
                 

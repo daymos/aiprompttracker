@@ -39,11 +39,19 @@ class ChatProvider with ChangeNotifier {
   bool _isLoading = false;
   String _loadingStatus = 'Thinking...';
   
+  // Data panel state
+  bool _dataPanelOpen = false;
+  List<Map<String, dynamic>> _dataPanelData = [];
+  String _dataPanelTitle = '';
+  
   List<Message> get messages => _messages;
   List<Conversation> get conversations => _conversations;
   String? get currentConversationId => _currentConversationId;
   bool get isLoading => _isLoading;
   String get loadingStatus => _loadingStatus;
+  bool get dataPanelOpen => _dataPanelOpen;
+  List<Map<String, dynamic>> get dataPanelData => _dataPanelData;
+  String get dataPanelTitle => _dataPanelTitle;
   
   void addMessage(Message message) {
     _messages.add(message);
@@ -77,6 +85,19 @@ class ChatProvider with ChangeNotifier {
   void startNewConversation() {
     _currentConversationId = null;
     _messages = [];
+    _dataPanelOpen = false;
+    notifyListeners();
+  }
+  
+  void openDataPanel({required List<Map<String, dynamic>> data, required String title}) {
+    _dataPanelOpen = true;
+    _dataPanelData = data;
+    _dataPanelTitle = title;
+    notifyListeners();
+  }
+  
+  void closeDataPanel() {
+    _dataPanelOpen = false;
     notifyListeners();
   }
 }

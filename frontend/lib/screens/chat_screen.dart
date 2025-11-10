@@ -12,6 +12,7 @@ import '../widgets/theme_switcher.dart';
 import '../widgets/cli_spinner.dart';
 import '../widgets/favicon_widget.dart';
 import '../widgets/grid_pattern_background.dart';
+import '../widgets/data_panel.dart';
 import 'dart:html' as html;
 import 'dart:async';
 import 'package:url_launcher/url_launcher.dart';
@@ -268,6 +269,7 @@ class _ChatScreenState extends State<ChatScreen> {
             role: 'assistant',
             content: data['message'] as String,
             createdAt: DateTime.now(),
+            messageMetadata: data['metadata'] as Map<String, dynamic>?,
           ));
           _scrollToBottom();
         } else if (eventType == 'error') {
@@ -1140,8 +1142,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final projectProvider = context.watch<ProjectProvider>();
     final currentProjectId = projectProvider.selectedProject?.id;
 
-
-    return Column(
+    final chatContent = Column(
         children: [
           // Messages and Input
           Expanded(
@@ -1216,6 +1217,174 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ],
           );
+    
+    // Wrap in Row to support side panel
+    return Row(
+      children: [
+        Expanded(
+          child: chatContent,
+        ),
+        if (chatProvider.dataPanelOpen)
+          DataPanel(
+            data: chatProvider.dataPanelData,
+            columns: _buildKeywordColumns(),
+            title: chatProvider.dataPanelTitle,
+            onClose: () => chatProvider.closeDataPanel(),
+            csvFilename: 'keywords_${DateTime.now().millisecondsSinceEpoch}.csv',
+            projects: projectProvider.allProjects.map((p) => {
+              'id': p.id,
+              'name': p.name,
+            }).toList(),
+            onAddToProject: (projectId, selectedKeywords) async {
+              final authProvider = context.read<AuthProvider>();
+              try {
+                // Add each keyword to the project
+                for (var keyword in selectedKeywords) {
+                  await authProvider.apiService.addKeywordToProject(
+                    projectId,
+                    keyword['keyword'] as String,
+                    keyword['search_volume'] as int?,
+                    keyword['competition'] as String?,
+                  );
+                }
+                
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Successfully added ${selectedKeywords.length} keyword(s) to project'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+                
+                // Refresh the project data if it's the active one
+                if (projectProvider.selectedProject?.id == projectId) {
+                  await projectProvider.loadTrackedKeywords(authProvider.apiService, projectId);
+                }
+              } catch (e) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error adding keywords: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+          ),
+      ],
+    );
+  }
+
+  List<DataColumnConfig> _buildKeywordColumns() {
+    return [
+      DataColumnConfig(
+        id: 'keyword',
+        label: 'Keyword',
+        sortable: true,
+        cellBuilder: (row) => ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 250),
+          child: Text(
+            row['keyword']?.toString() ?? '',
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 11),
+          ),
+        ),
+      ),
+      DataColumnConfig(
+        id: 'search_volume',
+        label: 'Volume',
+        numeric: true,
+        sortable: true,
+        cellBuilder: (row) => Text(
+          _formatNumber(row['search_volume']),
+          style: const TextStyle(fontSize: 11),
+        ),
+        csvFormatter: (value) => value?.toString() ?? '0',
+      ),
+      DataColumnConfig(
+        id: 'competition',
+        label: 'Competition',
+        sortable: true,
+        cellBuilder: (row) => _buildCompetitionChip(row['competition']?.toString() ?? ''),
+        csvFormatter: (value) => value?.toString() ?? '',
+      ),
+      DataColumnConfig(
+        id: 'cpc',
+        label: 'CPC',
+        numeric: true,
+        sortable: true,
+        cellBuilder: (row) => Text(
+          '\$${(row['cpc'] ?? 0).toStringAsFixed(2)}',
+          style: const TextStyle(fontSize: 11),
+        ),
+        csvFormatter: (value) => (value ?? 0).toStringAsFixed(2),
+      ),
+      DataColumnConfig(
+        id: 'intent',
+        label: 'Intent',
+        sortable: true,
+        cellBuilder: (row) => Text(
+          row['intent']?.toString() ?? 'unknown',
+          style: const TextStyle(fontSize: 11),
+        ),
+      ),
+      DataColumnConfig(
+        id: 'trend',
+        label: 'Trend',
+        numeric: true,
+        sortable: true,
+        cellBuilder: (row) => Text(
+          '${(row['trend'] ?? 0).toStringAsFixed(1)}%',
+          style: const TextStyle(fontSize: 11),
+        ),
+        csvFormatter: (value) => (value ?? 0).toStringAsFixed(1),
+      ),
+    ];
+  }
+
+  String _formatNumber(dynamic value) {
+    if (value == null) return '0';
+    final number = value is num ? value : 0;
+    if (number >= 1000000) {
+      return '${(number / 1000000).toStringAsFixed(1)}M';
+    } else if (number >= 1000) {
+      return '${(number / 1000).toStringAsFixed(1)}K';
+    }
+    return number.toString();
+  }
+
+  Widget _buildCompetitionChip(String competition) {
+    Color color;
+    switch (competition.toUpperCase()) {
+      case 'LOW':
+        color = Colors.green;
+        break;
+      case 'MEDIUM':
+        color = Colors.orange;
+        break;
+      case 'HIGH':
+        color = Colors.red;
+        break;
+      default:
+        color = Colors.grey;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(3),
+        border: Border.all(color: color, width: 1),
+      ),
+      child: Text(
+        competition.toUpperCase(),
+        style: TextStyle(
+          color: color,
+          fontSize: 9,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
   }
 
   Widget _buildConversationsView() {
@@ -1987,14 +2156,6 @@ class _ChatScreenState extends State<ChatScreen> {
     return Colors.red[600]!;
   }
   
-  String _formatNumber(int number) {
-    if (number >= 1000000) {
-      return '${(number / 1000000).toStringAsFixed(1)}M';
-    } else if (number >= 1000) {
-      return '${(number / 1000).toStringAsFixed(1)}K';
-    }
-    return number.toString();
-  }
   
   String _getSpamScore(Map<String, dynamic>? backlinksData) {
     if (backlinksData == null) return 'N/A';
