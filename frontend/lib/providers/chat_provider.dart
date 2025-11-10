@@ -38,6 +38,7 @@ class ChatProvider with ChangeNotifier {
   String? _currentConversationId;
   bool _isLoading = false;
   String _loadingStatus = 'Thinking...';
+  List<String> _statusSteps = []; // Track all status steps
   
   // Data panel state
   bool _dataPanelOpen = false;
@@ -49,6 +50,7 @@ class ChatProvider with ChangeNotifier {
   String? get currentConversationId => _currentConversationId;
   bool get isLoading => _isLoading;
   String get loadingStatus => _loadingStatus;
+  List<String> get statusSteps => _statusSteps;
   bool get dataPanelOpen => _dataPanelOpen;
   List<Map<String, dynamic>> get dataPanelData => _dataPanelData;
   String get dataPanelTitle => _dataPanelTitle;
@@ -79,6 +81,17 @@ class ChatProvider with ChangeNotifier {
   void setLoading(bool loading, {String status = 'Thinking...'}) {
     _isLoading = loading;
     _loadingStatus = status;
+    
+    // If starting to load and status is new, add it to the steps
+    if (loading && !_statusSteps.contains(status)) {
+      _statusSteps.add(status);
+    }
+    
+    // If done loading, clear status steps
+    if (!loading) {
+      _statusSteps = [];
+    }
+    
     notifyListeners();
   }
   
@@ -86,6 +99,7 @@ class ChatProvider with ChangeNotifier {
     _currentConversationId = null;
     _messages = [];
     _dataPanelOpen = false;
+    _statusSteps = [];
     notifyListeners();
   }
   

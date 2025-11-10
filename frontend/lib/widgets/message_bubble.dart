@@ -448,7 +448,7 @@ class _MessageBubbleState extends State<MessageBubble> {
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Avatar on the left ONLY for user messages (Claude style)
           if (isUser) ...[

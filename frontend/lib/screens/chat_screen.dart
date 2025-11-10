@@ -1172,20 +1172,41 @@ class _ChatScreenState extends State<ChatScreen> {
                                             color: Theme.of(context).colorScheme.surfaceContainerHighest,
                                             borderRadius: BorderRadius.circular(16),
                                           ),
-                                          child: Row(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              CliSpinner(
-                                                size: 13,
-                                                color: Theme.of(context).colorScheme.primary,
-                                              ),
-                                              const SizedBox(width: 12),
-                                              Text(
-                                                chatProvider.loadingStatus,
-                                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                                  color: Theme.of(context).textTheme.bodySmall?.color,
+                                              // Show all status steps with checkmarks for completed
+                                              for (int i = 0; i < chatProvider.statusSteps.length; i++)
+                                                Padding(
+                                                  padding: EdgeInsets.only(bottom: i < chatProvider.statusSteps.length - 1 ? 6 : 0),
+                                                  child: Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      // Show checkmark for completed steps, spinner for current
+                                                      if (i < chatProvider.statusSteps.length - 1)
+                                                        Icon(
+                                                          Icons.check_circle,
+                                                          size: 16,
+                                                          color: Theme.of(context).colorScheme.primary,
+                                                        )
+                                                      else
+                                                        CliSpinner(
+                                                          size: 13,
+                                                          color: Theme.of(context).colorScheme.primary,
+                                                        ),
+                                                      const SizedBox(width: 10),
+                                                      Text(
+                                                        chatProvider.statusSteps[i],
+                                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                                          color: i < chatProvider.statusSteps.length - 1
+                                                              ? Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7)
+                                                              : Theme.of(context).textTheme.bodySmall?.color,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
                                                 ),
-                                              ),
                                             ],
                                           ),
                                         ),

@@ -244,7 +244,7 @@ async def send_message_stream(
                     "type": "function",
                     "function": {
                         "name": "analyze_website",
-                        "description": "Crawl and analyze a website to extract targeted keywords and SEO data. Use when user requests website analysis, keyword extraction, or site audit. Scrapes all pages via sitemap and extracts titles, meta descriptions, headings, content, and identifies targeted keywords. Returns comprehensive keyword analysis and SEO recommendations.",
+                        "description": "Analyze website content for keyword strategy and positioning. DEFAULT tool for general website analysis requests. Scrapes pages to extract titles, headings, content and suggests keyword opportunities. Use this when user asks to 'analyze site', 'check website', 'look at site' without specifying 'technical'. After analysis, you can suggest running technical audit if helpful.",
                         "parameters": {
                             "type": "object",
                             "properties": {
@@ -1701,7 +1701,7 @@ async def send_message(
                     "type": "function",
                     "function": {
                         "name": "analyze_website",
-                        "description": "Crawl and analyze a website to extract targeted keywords and SEO data. Use when user requests website analysis, keyword extraction, or site audit. Scrapes all pages via sitemap and extracts titles, meta descriptions, headings, content, and identifies targeted keywords. Returns comprehensive keyword analysis and SEO recommendations.",
+                        "description": "Analyze website content for keyword strategy and positioning. DEFAULT tool for general website analysis requests. Scrapes pages to extract titles, headings, content and suggests keyword opportunities. Use this when user asks to 'analyze site', 'check website', 'look at site' without specifying 'technical'. After analysis, you can suggest running technical audit if helpful.",
                         "parameters": {
                             "type": "object",
                             "properties": {
@@ -1718,7 +1718,7 @@ async def send_message(
                     "type": "function",
                     "function": {
                         "name": "analyze_technical_seo",
-                        "description": "Perform comprehensive technical SEO audit to identify issues like missing meta tags, broken links, duplicate content, page speed problems, and more. Returns structured list of issues with severity levels and fix recommendations. Use when user asks about technical SEO, site health, or wants to find and fix technical issues.",
+                        "description": "Run technical SEO audit to find site issues (meta tags, broken links, errors). ONLY use when user explicitly asks for 'technical SEO', 'technical audit', 'technical analysis', 'technical issues', 'on-page problems', 'site errors', 'broken links'. Takes longer (~30 sec) and more expensive. DO NOT use for general site analysis - use analyze_website for that. If unsure, ask user: 'Do you want content analysis or technical issue detection?'",
                         "parameters": {
                             "type": "object",
                             "properties": {
