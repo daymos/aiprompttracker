@@ -490,6 +490,8 @@ async def send_message_stream(
                         yield await send_sse_event("status", {"message": "Checking rankings for multiple keywords..."})
                     elif tool_name == "analyze_website":
                         yield await send_sse_event("status", {"message": "Analyzing website..."})
+                    elif tool_name == "analyze_technical_seo":
+                        yield await send_sse_event("status", {"message": "Running technical SEO audit..."})
                     elif tool_name == "analyze_backlinks":
                         yield await send_sse_event("status", {"message": "Analyzing backlinks..."})
                     elif tool_name == "get_project_keywords":
@@ -633,6 +635,26 @@ async def send_message_stream(
                                 "role": "tool",
                                 "name": tool_name,
                                 "content": json.dumps(website_data)
+                            })
+                        
+                        elif tool_name == "analyze_technical_seo":
+                            url = args.get("url")
+                            
+                            audit_data = await dataforseo_service.analyze_technical_seo(url)
+                            
+                            # Store issues in metadata for data panel
+                            if audit_data.get("issues"):
+                                metadata = {
+                                    "technical_seo_issues": audit_data["issues"],
+                                    "summary": audit_data.get("summary", {}),
+                                    "url": url
+                                }
+                            
+                            tool_results.append({
+                                "tool_call_id": tool_call["id"],
+                                "role": "tool",
+                                "name": tool_name,
+                                "content": json.dumps(audit_data)
                             })
                         
                         elif tool_name == "analyze_backlinks":
@@ -1680,18 +1702,35 @@ async def send_message(
                     "function": {
                         "name": "analyze_website",
                         "description": "Crawl and analyze a website to extract targeted keywords and SEO data. Use when user requests website analysis, keyword extraction, or site audit. Scrapes all pages via sitemap and extracts titles, meta descriptions, headings, content, and identifies targeted keywords. Returns comprehensive keyword analysis and SEO recommendations.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "url": {
-                            "type": "string",
-                            "description": "Full URL of the website to analyze (e.g., 'https://example.com')"
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "url": {
+                                    "type": "string",
+                                    "description": "Full URL of the website to analyze (e.g., 'https://example.com')"
+                                }
+                            },
+                            "required": ["url"]
                         }
-                    },
-                    "required": ["url"]
-                }
-            }
-        },
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "analyze_technical_seo",
+                        "description": "Perform comprehensive technical SEO audit to identify issues like missing meta tags, broken links, duplicate content, page speed problems, and more. Returns structured list of issues with severity levels and fix recommendations. Use when user asks about technical SEO, site health, or wants to find and fix technical issues.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "url": {
+                                    "type": "string",
+                                    "description": "Full URL of the website to audit (e.g., 'https://example.com')"
+                                }
+                            },
+                            "required": ["url"]
+                        }
+                    }
+                },
         {
             "type": "function",
             "function": {
@@ -2063,6 +2102,33 @@ async def send_message(
                     else:
                         logger.warning(f"  ⚠️  Error analyzing {url}: {website_data.get('error')}")
                     
+                elif tool_name == "analyze_technical_seo":
+                    url = args.get("url")
+                    
+                    logger.info(f"  🔍 Running technical SEO audit for: {url}")
+                    audit_data = await dataforseo_service.analyze_technical_seo(url)
+                    
+                    # Store issues in metadata for data panel
+                    if audit_data.get("issues"):
+                        message_metadata = {
+                            "technical_seo_issues": audit_data["issues"],
+                            "summary": audit_data.get("summary", {}),
+                            "url": url
+                        }
+                    
+                    tool_results.append({
+                        "tool_call_id": tool_call["id"],
+                        "role": "tool",
+                        "name": tool_name,
+                        "content": json.dumps(audit_data)
+                    })
+                    
+                    if audit_data.get("error"):
+                        logger.error(f"  ❌ Technical SEO audit failed: {audit_data['error']}")
+                    else:
+                        summary = audit_data.get("summary", {})
+                        logger.info(f"  ✅ Found {summary.get('total_issues', 0)} issues: {summary.get('high', 0)} high, {summary.get('medium', 0)} medium, {summary.get('low', 0)} low")
+                
                 elif tool_name == "analyze_backlinks":
                     domain = args.get("domain")
                     

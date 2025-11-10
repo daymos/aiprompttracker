@@ -1279,6 +1279,8 @@ class _ChatScreenState extends State<ChatScreen> {
     // Detect data type from title or data structure
     if (title.toLowerCase().contains('ranking')) {
       return _buildRankingColumns();
+    } else if (title.toLowerCase().contains('technical') || title.toLowerCase().contains('seo issue')) {
+      return _buildTechnicalSEOColumns();
     }
     // Default to keyword columns
     return _buildKeywordColumns();
@@ -1485,6 +1487,106 @@ class _ChatScreenState extends State<ChatScreen> {
             row['title']?.toString() ?? '',
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontSize: 11),
+          ),
+        ),
+      ),
+    ];
+  }
+
+  List<DataColumnConfig> _buildTechnicalSEOColumns() {
+    return [
+      DataColumnConfig(
+        id: 'severity',
+        label: 'Severity',
+        sortable: true,
+        cellBuilder: (row) {
+          final severity = row['severity']?.toString().toLowerCase() ?? 'low';
+          Color severityColor;
+          IconData severityIcon;
+          
+          if (severity == 'high') {
+            severityColor = Colors.red;
+            severityIcon = Icons.error;
+          } else if (severity == 'medium') {
+            severityColor = Colors.orange;
+            severityIcon = Icons.warning;
+          } else {
+            severityColor = Colors.blue;
+            severityIcon = Icons.info;
+          }
+          
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(severityIcon, size: 14, color: severityColor),
+              const SizedBox(width: 4),
+              Text(
+                severity.toUpperCase(),
+                style: TextStyle(
+                  fontSize: 11,
+                  color: severityColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          );
+        },
+        csvFormatter: (value) => value?.toString() ?? 'low',
+      ),
+      DataColumnConfig(
+        id: 'type',
+        label: 'Issue Type',
+        sortable: true,
+        cellBuilder: (row) => ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 200),
+          child: Text(
+            row['type']?.toString() ?? '',
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ),
+      DataColumnConfig(
+        id: 'page',
+        label: 'Page',
+        sortable: true,
+        cellBuilder: (row) {
+          final page = row['page']?.toString() ?? '';
+          return ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 200),
+            child: Text(
+              page.isEmpty ? '/' : page,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 11),
+            ),
+          );
+        },
+      ),
+      DataColumnConfig(
+        id: 'description',
+        label: 'Description',
+        sortable: true,
+        cellBuilder: (row) => ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 300),
+          child: Text(
+            row['description']?.toString() ?? '',
+            overflow: TextOverflow.ellipsis,
+            maxLines: 2,
+            style: const TextStyle(fontSize: 11),
+          ),
+        ),
+      ),
+      DataColumnConfig(
+        id: 'recommendation',
+        label: 'How to Fix',
+        sortable: true,
+        cellBuilder: (row) => ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 300),
+          child: Text(
+            row['recommendation']?.toString() ?? '',
+            overflow: TextOverflow.ellipsis,
+            maxLines: 2,
+            style: const TextStyle(fontSize: 11, color: Colors.green),
           ),
         ),
       ),

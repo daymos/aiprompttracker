@@ -415,6 +415,263 @@ class DataForSEOService:
         # Default to informational
         return 'informational'
     
+    # ==================== TECHNICAL SEO METHODS ====================
+    
+    async def analyze_technical_seo(self, url: str) -> Dict[str, Any]:
+        """
+        Perform technical SEO audit using DataForSEO OnPage API
+        
+        Returns structured list of technical issues with severity levels
+        
+        Cost: ~$0.10 per audit
+        Time: ~10-30 seconds (crawls site)
+        
+        Returns:
+            {
+                "issues": [
+                    {
+                        "type": "Missing Meta Description",
+                        "severity": "high" | "medium" | "low",
+                        "page": "/about",
+                        "element": "meta[name='description']",
+                        "description": "Page lacks meta description",
+                        "recommendation": "Add 150-160 character description"
+                    },
+                    ...
+                ],
+                "summary": {
+                    "total_issues": 42,
+                    "high": 5,
+                    "medium": 15,
+                    "low": 22,
+                    "pages_crawled": 10
+                }
+            }
+        """
+        logger.info(f"🔍 Starting technical SEO audit for: {url}")
+        
+        if not self.login or not self.password:
+            logger.error("DataForSEO credentials not configured")
+            return {"error": "DataForSEO credentials not configured", "issues": []}
+        
+        try:
+            # Clean URL
+            if not url.startswith(('http://', 'https://')):
+                url = 'https://' + url
+            
+            parsed = urlparse(url)
+            domain = parsed.netloc
+            
+            # Step 1: Start OnPage task
+            task_endpoint = f"{self.base_url}/on_page/task_post"
+            
+            task_payload = [{
+                "target": domain,
+                "max_crawl_pages": 50,  # Limit crawl depth
+                "load_resources": True,
+                "enable_javascript": False,  # Faster crawl
+                "check_spell": False,
+                "calculate_keyword_density": False,
+            }]
+            
+            logger.info(f"📤 Posting OnPage task for {domain}")
+            
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                task_response = await client.post(
+                    task_endpoint,
+                    auth=(self.login, self.password),
+                    json=task_payload
+                )
+                task_response.raise_for_status()
+                task_data = task_response.json()
+                
+                if task_data.get('status_code') != 20000:
+                    error_msg = task_data.get('status_message', 'Unknown error')
+                    logger.error(f"OnPage task failed: {error_msg}")
+                    return {"error": error_msg, "issues": []}
+                
+                task_id = task_data['tasks'][0]['id']
+                logger.info(f"✅ OnPage task started: {task_id}")
+                
+                # Step 2: Wait for task completion (poll every 5 seconds)
+                summary_endpoint = f"{self.base_url}/on_page/summary/{task_id}"
+                max_wait = 60  # 60 seconds max wait
+                waited = 0
+                
+                while waited < max_wait:
+                    await asyncio.sleep(5)
+                    waited += 5
+                    
+                    summary_response = await client.get(
+                        summary_endpoint,
+                        auth=(self.login, self.password)
+                    )
+                    summary_response.raise_for_status()
+                    summary_data = summary_response.json()
+                    
+                    if summary_data.get('status_code') == 20000:
+                        tasks = summary_data.get('tasks', [])
+                        if tasks and tasks[0].get('result'):
+                            logger.info(f"✅ OnPage audit completed after {waited}s")
+                            break
+                    
+                    logger.info(f"⏳ Waiting for OnPage audit... ({waited}s)")
+                
+                # Step 3: Get detailed results
+                pages_endpoint = f"{self.base_url}/on_page/pages/{task_id}"
+                
+                pages_response = await client.get(
+                    pages_endpoint,
+                    auth=(self.login, self.password)
+                )
+                pages_response.raise_for_status()
+                pages_data = pages_response.json()
+                
+                if pages_data.get('status_code') != 20000:
+                    return {"error": "Failed to retrieve audit results", "issues": []}
+                
+                # Parse results into structured issues
+                return self._parse_onpage_results(pages_data, url)
+                
+        except Exception as e:
+            logger.error(f"Error performing technical SEO audit: {e}", exc_info=True)
+            return {"error": str(e), "issues": []}
+    
+    def _parse_onpage_results(self, pages_data: Dict[str, Any], base_url: str) -> Dict[str, Any]:
+        """Parse DataForSEO OnPage results into structured issue list"""
+        
+        issues = []
+        tasks = pages_data.get('tasks', [])
+        
+        if not tasks or not tasks[0].get('result'):
+            return {"issues": [], "summary": {"total_issues": 0}}
+        
+        result = tasks[0]['result'][0]
+        crawl_status = result.get('crawl_status', {})
+        pages = result.get('items', [])
+        
+        logger.info(f"📊 Analyzing {len(pages)} crawled pages")
+        
+        # Track summary stats
+        summary = {
+            "total_issues": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "pages_crawled": len(pages)
+        }
+        
+        # Analyze each page for issues
+        for page in pages:
+            page_url = page.get('url', '')
+            status_code = page.get('status_code', 200)
+            meta = page.get('meta', {})
+            
+            # Issue: Missing meta description
+            if not meta.get('description'):
+                issues.append({
+                    "type": "Missing Meta Description",
+                    "severity": "high",
+                    "page": page_url.replace(base_url, ''),
+                    "element": "<meta name='description'>",
+                    "description": "Page lacks meta description for search results",
+                    "recommendation": "Add unique 150-160 character meta description"
+                })
+                summary["high"] += 1
+            
+            # Issue: Missing or duplicate title
+            title = meta.get('title')
+            if not title:
+                issues.append({
+                    "type": "Missing Title Tag",
+                    "severity": "high",
+                    "page": page_url.replace(base_url, ''),
+                    "element": "<title>",
+                    "description": "Page has no title tag",
+                    "recommendation": "Add unique, descriptive title (50-60 characters)"
+                })
+                summary["high"] += 1
+            elif title and len(title) > 60:
+                issues.append({
+                    "type": "Title Too Long",
+                    "severity": "medium",
+                    "page": page_url.replace(base_url, ''),
+                    "element": f"<title>{title[:50]}...</title>",
+                    "description": f"Title is {len(title)} characters (recommended: 50-60)",
+                    "recommendation": "Shorten title to 50-60 characters"
+                })
+                summary["medium"] += 1
+            
+            # Issue: Missing H1
+            h1_tags = page.get('meta', {}).get('htags', {}).get('h1', [])
+            if not h1_tags:
+                issues.append({
+                    "type": "Missing H1",
+                    "severity": "high",
+                    "page": page_url.replace(base_url, ''),
+                    "element": "<h1>",
+                    "description": "Page has no H1 heading tag",
+                    "recommendation": "Add descriptive H1 tag with primary keyword"
+                })
+                summary["high"] += 1
+            elif len(h1_tags) > 1:
+                issues.append({
+                    "type": "Multiple H1 Tags",
+                    "severity": "medium",
+                    "page": page_url.replace(base_url, ''),
+                    "element": f"{len(h1_tags)} <h1> tags found",
+                    "description": "Page has multiple H1 tags (confuses search engines)",
+                    "recommendation": "Use only one H1 tag per page"
+                })
+                summary["medium"] += 1
+            
+            # Issue: Broken page (4xx, 5xx errors)
+            if status_code >= 400:
+                issues.append({
+                    "type": f"HTTP {status_code} Error",
+                    "severity": "high",
+                    "page": page_url.replace(base_url, ''),
+                    "element": "HTTP Response",
+                    "description": f"Page returns {status_code} error",
+                    "recommendation": "Fix broken page or redirect to working URL"
+                })
+                summary["high"] += 1
+            
+            # Issue: Large page size
+            size = page.get('size', 0)
+            if size > 1000000:  # > 1MB
+                issues.append({
+                    "type": "Large Page Size",
+                    "severity": "low",
+                    "page": page_url.replace(base_url, ''),
+                    "element": f"{size / 1000000:.1f}MB",
+                    "description": f"Page size is {size / 1000000:.1f}MB (slow load time)",
+                    "recommendation": "Optimize images and minify CSS/JS"
+                })
+                summary["low"] += 1
+            
+            # Check for broken links
+            for link in page.get('links', []):
+                if link.get('broken'):
+                    issues.append({
+                        "type": "Broken Link",
+                        "severity": "medium",
+                        "page": page_url.replace(base_url, ''),
+                        "element": f"<a href='{link.get('url', '')[:50]}...'>",
+                        "description": "Link points to non-existent page",
+                        "recommendation": "Update or remove broken link"
+                    })
+                    summary["medium"] += 1
+        
+        summary["total_issues"] = len(issues)
+        
+        logger.info(f"✅ Found {summary['total_issues']} issues: {summary['high']} high, {summary['medium']} medium, {summary['low']} low")
+        
+        return {
+            "issues": issues[:100],  # Limit to 100 most important issues
+            "summary": summary
+        }
+    
     # ==================== RANK CHECKING METHODS ====================
     
     async def check_ranking(self, keyword: str, target_domain: str, location: str = "United States") -> Optional[Dict[str, Any]]:

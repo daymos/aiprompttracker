@@ -121,6 +121,16 @@ class _MessageBubbleState extends State<MessageBubble> {
       );
       return;
     }
+    
+    // Check for technical SEO issues
+    if (metadata['technical_seo_issues'] != null) {
+      final url = metadata['url'] ?? 'Website';
+      chatProvider.openDataPanel(
+        data: List<Map<String, dynamic>>.from(metadata['technical_seo_issues']),
+        title: 'Technical SEO Issues - $url',
+      );
+      return;
+    }
   }
 
   void _downloadTableAsCSV() {
@@ -138,6 +148,13 @@ class _MessageBubbleState extends State<MessageBubble> {
     final rankingData = metadata['ranking_data'];
     if (rankingData != null) {
       _downloadRankingCSV(rankingData, metadata['domain'] ?? 'unknown');
+      return;
+    }
+    
+    // Check for technical SEO issues
+    final technicalSeoIssues = metadata['technical_seo_issues'];
+    if (technicalSeoIssues != null) {
+      _downloadTechnicalSeoCSV(technicalSeoIssues, metadata['url'] ?? 'unknown');
       return;
     }
   }
@@ -230,6 +247,55 @@ class _MessageBubbleState extends State<MessageBubble> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Ranking report downloaded successfully')),
+      );
+    }
+  }
+
+  void _downloadTechnicalSeoCSV(dynamic technicalSeoIssues, String url) {
+    // Convert to CSV
+    final csvContent = StringBuffer();
+    
+    // Header row
+    csvContent.writeln('Severity,Issue Type,Page,Element,Description,How to Fix');
+    
+    // Data rows
+    for (final item in technicalSeoIssues) {
+      final severity = item['severity'] ?? '';
+      final type = item['type'] ?? '';
+      final page = item['page'] ?? '';
+      final element = item['element'] ?? '';
+      final description = item['description'] ?? '';
+      final recommendation = item['recommendation'] ?? '';
+      
+      // Escape commas and quotes in CSV
+      final escapedSeverity = _escapeCsvField(severity.toString());
+      final escapedType = _escapeCsvField(type.toString());
+      final escapedPage = _escapeCsvField(page.toString());
+      final escapedElement = _escapeCsvField(element.toString());
+      final escapedDescription = _escapeCsvField(description.toString());
+      final escapedRecommendation = _escapeCsvField(recommendation.toString());
+      
+      csvContent.writeln('$escapedSeverity,$escapedType,$escapedPage,$escapedElement,$escapedDescription,$escapedRecommendation');
+    }
+    
+    // Create and download the file
+    final bytes = utf8.encode(csvContent.toString());
+    final blob = html.Blob([bytes]);
+    final csvUrl = html.Url.createObjectUrlFromBlob(blob);
+    final anchor = html.document.createElement('a') as html.AnchorElement
+      ..href = csvUrl
+      ..style.display = 'none'
+      ..download = 'technical_seo_audit_${url.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}_${DateTime.now().millisecondsSinceEpoch}.csv';
+    html.document.body?.children.add(anchor);
+    
+    anchor.click();
+    
+    html.document.body?.children.remove(anchor);
+    html.Url.revokeObjectUrl(csvUrl);
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Technical SEO audit downloaded successfully')),
       );
     }
   }
@@ -426,7 +492,11 @@ class _MessageBubbleState extends State<MessageBubble> {
                 ),
                 
                 // Show data action buttons if table data is present (only after animation completes)
-                if (!isUser && !_isAnimating && widget.message.messageMetadata?['keyword_data'] != null) ...[
+                if (!isUser && !_isAnimating && (
+                    widget.message.messageMetadata?['keyword_data'] != null ||
+                    widget.message.messageMetadata?['ranking_data'] != null ||
+                    widget.message.messageMetadata?['technical_seo_issues'] != null
+                )) ...[
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,

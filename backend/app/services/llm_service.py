@@ -750,7 +750,13 @@ WITHOUT DATA:
 - Execute actions, don't list what you CAN do
 - Respond ONLY to what user asked, nothing else
 - Stay on topic, don't mention unrelated projects/websites
-- Be direct and concise"""
+- Be direct and concise
+
+**FORMATTING & READABILITY:**
+- Use paragraphs to break up dense text (add blank lines between ideas)
+- Use bullet points when listing multiple items or capabilities
+- Never write long run-on sentences with semicolons - break them into separate sentences or bullet points
+- Make responses scannable and easy to read"""
     
     def _get_agent_mode_prompt(self) -> str:
         """System prompt for AGENT mode - AI-guided workflow with strategic thinking"""
@@ -891,6 +897,13 @@ Example:
 - If you asked "Would you like me to research these keywords?" and they say "yes"
 - ✅ Good: Immediately use the research_keywords tool and provide new insights
 - ❌ Bad: Re-explaining the same website analysis again
+
+**FORMATTING & READABILITY:**
+
+- **Use paragraphs**: Break up dense text with blank lines between ideas
+- **Use bullet points**: When listing items, capabilities, or steps
+- **Never write run-on sentences**: Don't chain ideas with semicolons - use separate sentences or bullet points
+- **Be scannable**: Make it easy for users to quickly read and understand your response
 
 **REMEMBER:**
 
