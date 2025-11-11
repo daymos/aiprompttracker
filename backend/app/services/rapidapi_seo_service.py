@@ -5,6 +5,7 @@ from urllib.parse import urlparse, urljoin
 from ..config import get_settings
 import xml.etree.ElementTree as ET
 import asyncio
+from .rate_limited_queue import rapidapi_queue
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -18,12 +19,33 @@ class RapidAPISEOService:
             "x-rapidapi-host": "website-analyze-and-seo-audit-pro.p.rapidapi.com",
             "x-rapidapi-key": self.api_key
         }
+        self.queue = rapidapi_queue  # Global rate-limited queue
     
     def _get_api_key(self):
         """Get API key from settings"""
         if not self.api_key:
             logger.error("RAPIDAPI_KEY not configured in settings")
         return self.api_key
+    
+    async def _make_api_request(self, client: httpx.AsyncClient, url: str, params: Dict[str, Any]) -> httpx.Response:
+        """
+        Make API request through rate-limited queue
+        
+        Args:
+            client: httpx AsyncClient
+            url: Full URL to request
+            params: Query parameters
+            
+        Returns:
+            httpx.Response
+        """
+        async def _do_request():
+            response = await client.get(url, params=params, headers=self.headers)
+            response.raise_for_status()
+            return response
+        
+        # Execute through rate-limited queue
+        return await self.queue.execute(_do_request)
     
     async def analyze_technical_seo(self, url: str) -> Dict[str, Any]:
         """
@@ -52,13 +74,12 @@ class RapidAPISEOService:
             logger.info(f"📤 Calling RapidAPI for: {domain}")
             
             async with httpx.AsyncClient(timeout=30.0) as client:
-                # Call onpagepro endpoint for full audit with suggestions
-                response = await client.get(
+                # Call onpagepro endpoint for full audit (via rate-limited queue)
+                response = await self._make_api_request(
+                    client,
                     f"{self.base_url}/onpagepro.php",
-                    params={"website": domain},
-                    headers=self.headers
+                    {"website": domain}
                 )
-                response.raise_for_status()
                 data = response.json()
                 
                 logger.info(f"✅ RapidAPI audit completed successfully")
@@ -272,12 +293,12 @@ class RapidAPISEOService:
             domain = domain.replace('http://', '').replace('https://', '')
             
             async with httpx.AsyncClient(timeout=15.0) as client:
-                response = await client.get(
+                # Make request via rate-limited queue
+                response = await self._make_api_request(
+                    client,
                     f"{self.base_url}/aiseo.php",
-                    params={"url": domain},
-                    headers=self.headers
+                    {"url": domain}
                 )
-                response.raise_for_status()
                 data = response.json()
                 
                 logger.info(f"✅ AI bot access check completed")
@@ -376,12 +397,12 @@ class RapidAPISEOService:
             domain = domain.replace('http://', '').replace('https://', '')
             
             async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.get(
+                # Make request via rate-limited queue
+                response = await self._make_api_request(
+                    client,
                     f"{self.base_url}/speed.php",
-                    params={"website": domain},
-                    headers=self.headers
+                    {"website": domain}
                 )
-                response.raise_for_status()
                 data = response.json()
                 
                 logger.info(f"✅ Performance analysis completed")
@@ -494,7 +515,7 @@ class RapidAPISEOService:
         logger.info(f"🔍 Starting comprehensive technical audit for: {url}")
         
         # Run all three audits in parallel
-        import asyncio
+        # The rate-limited queue handles API rate limiting automatically
         seo_task = self.analyze_technical_seo(url)
         performance_task = self.analyze_performance(url)
         bot_task = self.check_ai_bot_access(url)
@@ -639,8 +660,10 @@ class RapidAPISEOService:
         urls = await self.fetch_sitemap_urls(url, limit=15)
         logger.info(f"📋 Will audit {len(urls)} pages")
         
-        # Run audits in parallel (but limit concurrency to avoid rate limits)
-        semaphore = asyncio.Semaphore(3)  # Max 3 concurrent requests
+        # Run audits in parallel with controlled concurrency
+        # The rate-limited queue handles API rate limiting, but we still
+        # limit concurrency to avoid too many simultaneous operations
+        semaphore = asyncio.Semaphore(5)  # Max 5 concurrent page audits
         
         async def audit_with_semaphore(page_url: str):
             async with semaphore:
@@ -749,8 +772,9 @@ class RapidAPISEOService:
                 'seo_issues_low': sum(1 for i in seo_issues if i.get('severity') == 'low'),
             })
         
-        # Calculate aggregates
-        avg_performance = sum(perf_scores) / len(perf_scores) if perf_scores else 0
+        # Calculate aggregates (exclude failed audits with score 0)
+        valid_perf_scores = [s for s in perf_scores if s > 0]
+        avg_performance = sum(valid_perf_scores) / len(valid_perf_scores) if valid_perf_scores else 0
         total_seo_issues = len(all_seo_issues)
         
         # Calculate average Core Web Vitals
@@ -787,13 +811,14 @@ class RapidAPISEOService:
         ][:10]  # Top 10 most common issues
         
         # Create aggregate performance metrics including Core Web Vitals
+        successful_audits = len(valid_perf_scores)
         performance_metrics = [
             {
                 'metric_name': 'Performance Score',
                 'score': round(avg_performance, 1),
                 'value': f'{round(avg_performance, 1)}/100',
                 'rating': 'Good' if avg_performance >= 90 else ('Needs Improvement' if avg_performance >= 50 else 'Poor'),
-                'description': f'Average performance score across {total_pages} pages'
+                'description': f'Average performance score across {successful_audits} pages' + (f' ({total_pages - successful_audits} failed)' if total_pages != successful_audits else '')
             }
         ]
         

@@ -281,30 +281,9 @@ async def add_keyword_to_project(
     db.commit()
     db.refresh(tracked_keyword)
     
-    # Check initial ranking
-    ranking_result = await rank_checker.check_ranking(request.keyword, project.target_url)
-    
-    ranking_page = None
-    is_correct_page = None
-    
-    if ranking_result:
-        ranking_page = ranking_result.get('url')
-        initial_ranking = KeywordRanking(
-            id=str(uuid.uuid4()),
-            tracked_keyword_id=tracked_keyword.id,
-            position=ranking_result.get('position'),
-            page_url=ranking_page
-        )
-        db.add(initial_ranking)
-        db.commit()
-        
-        # Check if correct page is ranking
-        if tracked_keyword.target_page:
-            # User specified a target page, check if it matches
-            is_correct_page = tracked_keyword.target_page in (ranking_page or '')
-        else:
-            # No target specified, any page from the domain is correct
-            is_correct_page = ranking_page is not None
+    # ⚡ SKIP initial ranking check to make adding keywords FAST
+    # Rankings will be checked on manual refresh or scheduled background task
+    logger.info(f"✅ Added keyword '{request.keyword}' - ranking will be checked on next refresh")
     
     return TrackedKeywordResponse(
         id=tracked_keyword.id,
@@ -312,11 +291,11 @@ async def add_keyword_to_project(
         search_volume=tracked_keyword.search_volume,
         competition=tracked_keyword.competition,
         seo_difficulty=tracked_keyword.seo_difficulty,
-        current_position=ranking_result.get('position') if ranking_result else None,
+        current_position=None,  # Will be populated on first refresh
         target_position=tracked_keyword.target_position,
         target_page=tracked_keyword.target_page,
-        ranking_page=ranking_page,
-        is_correct_page=is_correct_page,
+        ranking_page=None,  # Will be populated on first refresh
+        is_correct_page=None,  # Will be determined on first refresh
         source=tracked_keyword.source or "manual",
         is_active=bool(tracked_keyword.is_active) if hasattr(tracked_keyword, 'is_active') else True,
         created_at=tracked_keyword.created_at.isoformat()
@@ -518,23 +497,15 @@ async def toggle_keyword_active(
     # Toggle is_active
     keyword.is_active = 0 if keyword.is_active else 1
     
-    # If activating, check initial ranking
+    # ⚡ SKIP initial ranking check to make toggling FAST
+    # Rankings will be checked on manual refresh or scheduled background task
     if keyword.is_active == 1:
-        ranking_result = await rank_checker.check_ranking(keyword.keyword, project.target_url)
-        
-        if ranking_result:
-            initial_ranking = KeywordRanking(
-                id=str(uuid.uuid4()),
-                tracked_keyword_id=keyword.id,
-                position=ranking_result.get('position'),
-                page_url=ranking_result.get('url')
-            )
-            db.add(initial_ranking)
+        logger.info(f"✅ Activated keyword '{keyword.keyword}' - ranking will be checked on next refresh")
     
     db.commit()
     
     action = "activated" if keyword.is_active else "deactivated"
-    return {"message": f"Keyword {action} successfully", "is_active": bool(keyword.is_active)}
+    return {"message": f"Keyword {action} successfully. Use 'Refresh Rankings' to check positions.", "is_active": bool(keyword.is_active)}
 
 @router.post("/test-rank-check")
 async def test_rank_check(

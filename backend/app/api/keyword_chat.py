@@ -292,14 +292,42 @@ async def send_message_stream(
                 {
                     "type": "function",
                     "function": {
+                        "name": "expand_and_research_keywords",
+                        "description": "🧠 INTELLIGENT keyword research using LLM expansion + multi-angle fetching. Use when: (1) User wants COMPREHENSIVE research, (2) User says 'find ALL keywords', 'explore everything', 'cast a wide net', (3) You need to discover keywords from DIFFERENT angles (competitors, problems, features). This tool is MORE POWERFUL than regular research - it generates diverse seed keywords, fetches from multiple angles in parallel, then uses AI reasoning to rank opportunities. Use this for deep research. Use regular 'research_keywords' for quick/simple lookups.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "topic": {
+                                    "type": "string",
+                                    "description": "The main topic/niche to research (e.g., 'seo tools', 'project management software')"
+                                },
+                                "expansion_strategy": {
+                                    "type": "string",
+                                    "enum": ["comprehensive", "competitor_focused", "problem_solution", "feature_based"],
+                                    "description": "How to expand the search: 'comprehensive' (multiple angles), 'competitor_focused' (alternatives/comparisons), 'problem_solution' (problems & solutions), 'feature_based' (specific features)",
+                                    "default": "comprehensive"
+                                },
+                                "location": {
+                                    "type": "string",
+                                    "description": "Search scope: 'global' or country code like 'US', 'UK', 'CA'. Default is 'US'.",
+                                    "default": "US"
+                                }
+                            },
+                            "required": ["topic"]
+                        }
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
                         "name": "find_opportunity_keywords",
-                        "description": "Find LOW DIFFICULTY opportunity keywords (high volume + easy to rank). Uses SEO difficulty scores (0-100) from DataForSEO to identify REAL ranking opportunities, not just ad competition. Perfect for: 'easy to rank', 'low competition', 'low KD', 'opportunity', 'quick wins', 'low hanging fruit'. Returns keywords sorted by organic ranking potential. Note: Only supports location-specific searches (not global).",
+                        "description": "Find LOW DIFFICULTY opportunity keywords (high volume + easy to rank). Uses SEO difficulty scores (0-100) from DataForSEO to identify REAL ranking opportunities, not just ad competition. Perfect for: 'easy to rank', 'low competition', 'low KD', 'opportunity', 'quick wins', 'low hanging fruit'. Returns keywords sorted by organic ranking potential. Note: Only supports location-specific searches (not global). CRITICAL: Use the NICHE/TOPIC as seed keyword (e.g., 'seo tools', 'semrush alternative'), NEVER the domain name.",
                         "parameters": {
                             "type": "object",
                             "properties": {
                                 "keyword": {
                                     "type": "string",
-                                    "description": "The seed keyword to find opportunities for"
+                                    "description": "The seed keyword representing the NICHE/TOPIC to find opportunities for. IMPORTANT: Derive from tracked keywords - if project tracks 'best semrush alternative', use 'semrush alternative' or 'seo tools' as seed. NEVER use the domain name literally (e.g., 'keywords.chat' is WRONG, 'seo tools' is CORRECT)."
                                 },
                                 "location": {
                                     "type": "string",
@@ -714,10 +742,41 @@ async def send_message_stream(
                             location = args.get("location", "US")
                             limit = args.get("limit", 50)  # Fetch more keywords for data panel
                             
+                            # Status: Fetching suggestions
+                            yield await send_sse_event("status", {"message": f"📡 Fetching keyword suggestions for '{keyword_or_topic}'..."})
                             keyword_data = await keyword_service.analyze_keywords(keyword_or_topic, location=location, limit=limit)
                             
                             # Note: SERP analysis removed to reduce latency and API costs
                             # Keyword data already includes: search_volume, competition, CPC, intent, trend
+                            
+                            if keyword_data:
+                                # Status: Enriching with SEO difficulty
+                                yield await send_sse_event("status", {"message": f"📊 Enriching {len(keyword_data)} keywords with SEO difficulty..."})
+                            
+                            # ⚡ FILTER OUT ALREADY-TRACKED KEYWORDS (DATABASE-LEVEL)
+                            # Filter against ALL user's tracked keywords across ALL projects
+                            if keyword_data:
+                                yield await send_sse_event("status", {"message": "🔍 Filtering out already-tracked keywords..."})
+                                
+                                user_projects = db.query(Project).filter(Project.user_id == user.id).all()
+                                project_ids = [p.id for p in user_projects]
+                                
+                                tracked = db.query(TrackedKeyword).filter(
+                                    TrackedKeyword.project_id.in_(project_ids),
+                                    TrackedKeyword.is_active == 1
+                                ).all()
+                                tracked_keywords_lower = {kw.keyword.lower().strip() for kw in tracked}
+                                
+                                original_count = len(keyword_data)
+                                keyword_data = [
+                                    kw for kw in keyword_data 
+                                    if kw.get("keyword", "").lower().strip() not in tracked_keywords_lower
+                                ]
+                                filtered_count = original_count - len(keyword_data)
+                                
+                                if filtered_count > 0:
+                                    logger.info(f"🔍 Filtered out {filtered_count} already-tracked keywords from {len(tracked)} total tracked. {len(keyword_data)} remain.")
+                                    yield await send_sse_event("status", {"message": f"✅ Found {len(keyword_data)} new keywords (filtered out {filtered_count} already tracked)"})
                             
                             response_data = {
                                 "keywords": keyword_data,
@@ -736,6 +795,67 @@ async def send_message_stream(
                                 "role": "tool",
                                 "name": tool_name,
                                 "content": json_content
+                            })
+                        
+                        elif tool_name == "expand_and_research_keywords":
+                            topic = args.get("topic")
+                            expansion_strategy = args.get("expansion_strategy", "comprehensive")
+                            location = args.get("location", "US")
+                            
+                            # Import intelligent keyword service
+                            from ..services.intelligent_keyword_service import IntelligentKeywordService
+                            intelligent_service = IntelligentKeywordService(keyword_service, llm_service)
+                            
+                            # Build user context for intelligent research
+                            tracked_keywords = []
+                            if project:
+                                tracked_keywords = db.query(TrackedKeyword).filter(
+                                    TrackedKeyword.project_id == project.id
+                                ).all()
+                            
+                            user_context = {
+                                "tracked_keywords": [kw.keyword for kw in tracked_keywords],
+                                "project_name": project.name if project else "",
+                                "project_url": project.target_url if project else ""
+                            }
+                            
+                            # Status: Phase 1 - Expand
+                            yield await send_sse_event("status", {"message": f"🧠 Phase 1: Generating diverse seed keywords for '{topic}'..."})
+                            
+                            # Perform intelligent expand → fetch → contract
+                            logger.info(f"🧠 Starting intelligent keyword research for: {topic}")
+                            
+                            # Status: Phase 2 - Fetch
+                            yield await send_sse_event("status", {"message": "📥 Phase 2: Fetching keywords from multiple angles..."})
+                            
+                            result = await intelligent_service.expand_and_research(
+                                topic=topic,
+                                user_context=user_context,
+                                location=location,
+                                expansion_strategy=expansion_strategy
+                            )
+                            
+                            # Status: Phase 3 - Complete
+                            yield await send_sse_event("status", {"message": f"✅ Found {len(result['keywords'])} keywords from {result.get('total_fetched', 0)} analyzed"})
+                            
+                            # Store in metadata for side panel (auto-open)
+                            metadata = {"keyword_data": result["keywords"]}
+                            
+                            # Return comprehensive result to LLM
+                            response_data = {
+                                "keywords": result["keywords"],
+                                "total_found": len(result["keywords"]),
+                                "total_fetched": result.get("total_fetched", 0),
+                                "seeds_used": result.get("seeds_used", []),
+                                "reasoning": result.get("reasoning", ""),
+                                "expansion_strategy": expansion_strategy
+                            }
+                            
+                            tool_results.append({
+                                "tool_call_id": tool_call["id"],
+                                "role": "tool",
+                                "name": tool_name,
+                                "content": json.dumps(response_data)
                             })
                         
                         elif tool_name == "find_opportunity_keywords":
@@ -833,9 +953,22 @@ async def send_message_stream(
                             url = args.get("url")
                             mode = args.get("mode", "single")
                             
+                            # Status updates based on mode
+                            if mode == "full":
+                                yield await send_sse_event("status", {"message": "📄 Fetching sitemap..."})
+                            else:
+                                yield await send_sse_event("status", {"message": "🔍 Analyzing SEO tags & structure..."})
+                            
                             # Run comprehensive audit (SEO + Performance + AI Bots)
                             # Mode: "single" for one page, "full" for sitemap-based multi-page audit
                             audit_data = await rapidapi_seo_service.comprehensive_site_audit(url, mode=mode)
+                            
+                            # Status: Complete
+                            if mode == "full":
+                                page_count = len(audit_data.get("page_summaries", []))
+                                yield await send_sse_event("status", {"message": f"✅ Audited {page_count} pages"})
+                            else:
+                                yield await send_sse_event("status", {"message": "✅ Audit complete"})
                             
                             # Store separate datasets in metadata for tabbed view
                             if audit_data.get("raw_data"):
@@ -1651,6 +1784,9 @@ OVERVIEW:
                     conversation_history.append(result)
                 
                 # Get final response with tools still available to avoid confusing the model
+                # Status: Generating response
+                yield await send_sse_event("status", {"message": "✍️ Writing response..."})
+                
                 # The LLM can decide if it needs to call more tools or provide a final response
                 assistant_response, reasoning, follow_up_tools = await llm_service.chat_with_tools(
                     user_message="Based on the tool results above, provide a clear and helpful response to the user.",
@@ -1901,13 +2037,13 @@ async def send_message(
             "type": "function",
             "function": {
                 "name": "find_opportunity_keywords",
-                "description": "Find LOW DIFFICULTY opportunity keywords (high volume + easy to rank). Uses SEO difficulty scores (0-100) from DataForSEO to identify REAL ranking opportunities, not just ad competition. Perfect for: 'easy to rank', 'low competition', 'low KD', 'opportunity', 'quick wins', 'low hanging fruit'. Returns keywords sorted by organic ranking potential. Note: Only supports location-specific searches (not global).",
+                "description": "Find LOW DIFFICULTY opportunity keywords (high volume + easy to rank). Uses SEO difficulty scores (0-100) from DataForSEO to identify REAL ranking opportunities, not just ad competition. Perfect for: 'easy to rank', 'low competition', 'low KD', 'opportunity', 'quick wins', 'low hanging fruit'. Returns keywords sorted by organic ranking potential. Note: Only supports location-specific searches (not global). CRITICAL: Use the NICHE/TOPIC as seed keyword (e.g., 'seo tools', 'semrush alternative'), NEVER the domain name.",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "keyword": {
                             "type": "string",
-                            "description": "The seed keyword to find opportunities for"
+                            "description": "The seed keyword representing the NICHE/TOPIC to find opportunities for. IMPORTANT: Derive from tracked keywords - if project tracks 'best semrush alternative', use 'semrush alternative' or 'seo tools' as seed. NEVER use the domain name literally (e.g., 'keywords.chat' is WRONG, 'seo tools' is CORRECT)."
                         },
                         "location": {
                             "type": "string",
@@ -2282,6 +2418,28 @@ async def send_message(
                     
                     # Note: SERP analysis removed to reduce latency and API costs
                     # Keyword data already includes: search_volume, competition, CPC, intent, trend
+                    
+                    # ⚡ FILTER OUT ALREADY-TRACKED KEYWORDS (DATABASE-LEVEL)
+                    # Filter against ALL user's tracked keywords across ALL projects
+                    if keyword_data:
+                        user_projects = db.query(Project).filter(Project.user_id == user.id).all()
+                        project_ids = [p.id for p in user_projects]
+                        
+                        tracked = db.query(TrackedKeyword).filter(
+                            TrackedKeyword.project_id.in_(project_ids),
+                            TrackedKeyword.is_active == 1
+                        ).all()
+                        tracked_keywords_lower = {kw.keyword.lower().strip() for kw in tracked}
+                        
+                        original_count = len(keyword_data)
+                        keyword_data = [
+                            kw for kw in keyword_data 
+                            if kw.get("keyword", "").lower().strip() not in tracked_keywords_lower
+                        ]
+                        filtered_count = original_count - len(keyword_data)
+                        
+                        if filtered_count > 0:
+                            logger.info(f"🔍 Filtered out {filtered_count} already-tracked keywords from {len(tracked)} total tracked. {len(keyword_data)} remain.")
                     
                     # Build response
                     response_data = {
