@@ -207,7 +207,7 @@ class _MessageBubbleState extends State<MessageBubble> {
       return;
     }
   }
-
+  
   void _downloadTableAsCSV() {
     final metadata = widget.message.messageMetadata;
     if (metadata == null) return;
@@ -446,8 +446,8 @@ class _MessageBubbleState extends State<MessageBubble> {
       final escapedTitle = _escapeCsvField(title.toString());
       
       csvContent.writeln('$escapedKeyword,$position,$escapedUrl,$escapedTitle');
-    }
-    
+  }
+  
     // Create and download the file
     final bytes = utf8.encode(csvContent.toString());
     final blob = html.Blob([bytes]);
@@ -462,9 +462,9 @@ class _MessageBubbleState extends State<MessageBubble> {
     
     html.document.body?.children.remove(anchor);
     html.Url.revokeObjectUrl(url);
-    
+
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Ranking report downloaded successfully')),
       );
     }
@@ -512,12 +512,12 @@ class _MessageBubbleState extends State<MessageBubble> {
     html.document.body?.children.remove(anchor);
     html.Url.revokeObjectUrl(csvUrl);
     
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Technical SEO audit downloaded successfully')),
-      );
-    }
-  }
+          );
+        }
+      }
 
   void _downloadAIBotAccessCSV(dynamic aiBotAccess, String url) {
     // Convert to CSV
@@ -556,9 +556,9 @@ class _MessageBubbleState extends State<MessageBubble> {
     
     html.document.body?.children.remove(anchor);
     html.Url.revokeObjectUrl(csvUrl);
-    
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('AI bot access report downloaded successfully')),
       );
     }
@@ -604,12 +604,12 @@ class _MessageBubbleState extends State<MessageBubble> {
     html.document.body?.children.remove(anchor);
     html.Url.revokeObjectUrl(csvUrl);
     
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Performance report downloaded successfully')),
-      );
+        );
+      }
     }
-  }
 
   String _escapeCsvField(String field) {
     // Escape fields containing commas, quotes, or newlines
@@ -618,7 +618,7 @@ class _MessageBubbleState extends State<MessageBubble> {
     }
     return field;
   }
-  
+
   Future<void> _createProjectAndPin() async {
     final nameController = TextEditingController();
     final urlController = TextEditingController();
@@ -828,17 +828,17 @@ class _MessageBubbleState extends State<MessageBubble> {
                         ),
                       ),
                       TextButton.icon(
-                        onPressed: _downloadTableAsCSV,
-                        icon: const Icon(Icons.download, size: 16),
+                      onPressed: _downloadTableAsCSV,
+                      icon: const Icon(Icons.download, size: 16),
                         label: const Text('Download CSV'),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          textStyle: const TextStyle(fontSize: 12),
-                        ),
-                      ),
-                    ],
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        textStyle: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ],
                   ),
                 ],
 
