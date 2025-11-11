@@ -3,6 +3,7 @@ import logging
 from typing import List, Dict, Any, Optional
 from ..config import get_settings
 from .google_keyword_insight_service import GoogleKeywordInsightService
+from .dataforseo_service import DataForSEOService
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -15,10 +16,16 @@ class KeywordService:
     - Predictable pricing (subscription vs pay-per-use)
     - Same data quality (Google Ads API source)
     - Dedicated keyword research endpoints
+    
+    Still uses DataForSEO for:
+    - SEO keyword difficulty scores (not available in Google Ads API)
+    - Backlink analysis
+    - Rank checking
     """
     
     def __init__(self):
         self.google_kw = GoogleKeywordInsightService()
+        self.dataforseo = DataForSEOService()
     
     async def get_keyword_ideas(self, seed_keyword: str, location: str = "us") -> List[Dict[str, Any]]:
         """Get keyword ideas using Google Keyword Insight API (supports global locations)"""
@@ -75,27 +82,72 @@ class KeywordService:
             return []
     
     async def get_opportunity_keywords(self, seed_keyword: str, location: str = "us", num: int = 10) -> List[Dict[str, Any]]:
-        """Find opportunity keywords (high volume, low competition) using Google Keyword Insight API
+        """Find opportunity keywords (high volume, low SEO difficulty) using Google Keyword Insight + DataForSEO
         
-        Uses dedicated /topkeys endpoint optimized for finding the sweet spot keywords
+        Strategy:
+        1. Get candidates from Google Keyword Insight's /topkeys (high volume + low ad competition)
+        2. Enrich with SEO difficulty from DataForSEO
+        3. Re-sort by REAL opportunity: high volume + LOW SEO difficulty
         """
         
         logger.info(f"💎 Finding opportunity keywords for '{seed_keyword}'")
         
         try:
-            # Use Google Keyword Insight's dedicated opportunity endpoint
+            # Step 1: Get opportunity candidates (fetches 3x to ensure good results after filtering)
             opportunities = await self.google_kw.get_opportunity_keywords(
                 keyword=seed_keyword,
                 location=location,
-                num=num
+                num=num * 3  # Get more candidates for better filtering
             )
             
-            if opportunities:
-                logger.info(f"✅ Found {len(opportunities)} opportunity keywords")
-            else:
+            if not opportunities:
                 logger.warning(f"No opportunity keywords found for '{seed_keyword}'")
+                return []
             
-            return opportunities
+            # Step 2: Extract keyword strings for SEO difficulty lookup
+            keyword_strings = [kw['keyword'] for kw in opportunities if kw.get('keyword')]
+            
+            if not keyword_strings:
+                return opportunities[:num]
+            
+            # Step 3: Enrich with SEO difficulty from DataForSEO
+            logger.info(f"📊 Fetching SEO difficulty for {len(keyword_strings)} opportunity candidates...")
+            difficulty_scores = await self.dataforseo.get_keyword_difficulty(
+                keywords=keyword_strings,
+                location=location
+            )
+            
+            # Step 4: Enrich and calculate REAL opportunity score
+            for kw in opportunities:
+                keyword_text = kw.get('keyword', '')
+                
+                # Rename ad competition for clarity
+                if 'competition' in kw:
+                    kw['ad_competition'] = kw.pop('competition')
+                
+                # Add SEO difficulty
+                seo_diff = difficulty_scores.get(keyword_text)
+                kw['seo_difficulty'] = seo_diff
+                
+                # Recalculate opportunity score using ORGANIC difficulty (not ad competition)
+                # Formula: volume * (1 - difficulty/100) = higher is better
+                if seo_diff is not None:
+                    volume = kw.get('search_volume', 0)
+                    # Normalize SEO difficulty to 0-1 scale and invert (lower difficulty = better)
+                    difficulty_factor = 1 - (seo_diff / 100.0)
+                    kw['real_opportunity_score'] = volume * difficulty_factor
+                else:
+                    # Fall back to ad competition if SEO difficulty unavailable
+                    kw['real_opportunity_score'] = kw.get('opportunity_score', 0)
+            
+            # Step 5: Sort by REAL opportunity (organic ranking potential)
+            opportunities.sort(key=lambda x: x.get('real_opportunity_score', 0), reverse=True)
+            
+            # Return top N with best organic ranking potential
+            result = opportunities[:num]
+            logger.info(f"✅ Found {len(result)} opportunity keywords (with SEO difficulty)")
+            
+            return result
             
         except Exception as e:
             logger.error(f"Error finding opportunity keywords: {e}", exc_info=True)
@@ -109,13 +161,18 @@ class KeywordService:
         """
         Analyze keywords - main entry point for keyword research
         
-        Returns enriched keyword data with search volume, competition, CPC, etc.
+        Returns enriched keyword data with:
+        - Search volume
+        - Ad competition (Google Ads bidding competition)
+        - SEO difficulty (organic ranking difficulty 0-100)
+        - CPC data
+        - Trends
         """
         
         logger.info(f"📊 Analyzing keywords for: '{seed_keyword}'")
         
         try:
-            # Get keyword suggestions from DataForSEO
+            # Get keyword suggestions from Google Keyword Insight
             keywords = await self.get_keyword_ideas(seed_keyword, location)
             
             if not keywords:
@@ -124,13 +181,30 @@ class KeywordService:
             # Limit results
             keywords = keywords[:limit]
             
-            # DEBUG: Log first keyword to see format
-            if keywords:
-                logger.info(f"📊 Sample keyword data: {keywords[0]}")
+            # Extract keyword strings for difficulty lookup
+            keyword_strings = [kw['keyword'] for kw in keywords if kw.get('keyword')]
             
-            # Keywords are already in the correct format from GoogleKeywordInsightService
-            # No need to transform - just return them directly
-            logger.info(f"✅ Analyzed {len(keywords)} keywords")
+            # Fetch SEO difficulty scores from DataForSEO
+            difficulty_scores = {}
+            if keyword_strings:
+                logger.info(f"📊 Fetching SEO difficulty for {len(keyword_strings)} keywords...")
+                difficulty_scores = await self.dataforseo.get_keyword_difficulty(
+                    keywords=keyword_strings,
+                    location=location
+                )
+            
+            # Enrich keywords with SEO difficulty
+            for kw in keywords:
+                keyword_text = kw.get('keyword', '')
+                
+                # Rename 'competition' to 'ad_competition' for clarity
+                if 'competition' in kw:
+                    kw['ad_competition'] = kw.pop('competition')
+                
+                # Add SEO difficulty
+                kw['seo_difficulty'] = difficulty_scores.get(keyword_text, None)
+            
+            logger.info(f"✅ Analyzed {len(keywords)} keywords with SEO difficulty")
             
             return keywords
             

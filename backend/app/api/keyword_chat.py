@@ -281,8 +281,8 @@ async def send_message_stream(
                                 },
                                 "limit": {
                                     "type": "integer",
-                                    "description": "Number of keywords to return. Use 50 to provide comprehensive data for the user to explore in the data table view (default 50)",
-                                    "default": 50
+                                    "description": "Number of keywords to return. Use 100 by default to provide comprehensive data for filtering and exploration (default 100)",
+                                    "default": 100
                                 }
                             },
                             "required": ["keyword_or_topic"]
@@ -293,7 +293,7 @@ async def send_message_stream(
                     "type": "function",
                     "function": {
                         "name": "find_opportunity_keywords",
-                        "description": "Find opportunity keywords (high-potential, low-competition keywords that are easier to rank for). Use when user asks for 'easy to rank', 'low competition', 'opportunity', or 'quick wins' keywords. Note: Only supports location-specific searches (not global).",
+                        "description": "Find LOW DIFFICULTY opportunity keywords (high volume + easy to rank). Uses SEO difficulty scores (0-100) from DataForSEO to identify REAL ranking opportunities, not just ad competition. Perfect for: 'easy to rank', 'low competition', 'low KD', 'opportunity', 'quick wins', 'low hanging fruit'. Returns keywords sorted by organic ranking potential. Note: Only supports location-specific searches (not global).",
                         "parameters": {
                             "type": "object",
                             "properties": {
@@ -746,28 +746,23 @@ async def send_message_stream(
                             opportunity_data = await keyword_service.get_opportunity_keywords(keyword, location=location, num=limit)
                             
                             if opportunity_data:
-                                processed_data = []
+                                # Opportunity keywords are already in the correct format (includes seo_difficulty)
+                                # Just need to ensure consistent field names
                                 for item in opportunity_data:
-                                    volume = item.get("volume", 0)
-                                    competition = item.get("competition_level", "UNKNOWN")
-                                    avg_cpc = (item.get("low_bid", 0) + item.get("high_bid", 0)) / 2 if item.get("high_bid") else 0
-                                    
-                                    processed_data.append({
-                                        "keyword": item.get("text", ""),
-                                        "search_volume": volume,
-                                        "competition": competition,
-                                        "competition_index": item.get("competition_index", 0),
-                                        "cpc": round(avg_cpc, 2),
-                                        "trend": item.get("trend", 0),
-                                        "intent": item.get("intent", "unknown"),
-                                        "opportunity_score": "HIGH"
-                                    })
+                                    # Ensure all required fields exist
+                                    if 'cpc' not in item and 'low_bid' in item and 'high_bid' in item:
+                                        item['cpc'] = round((item.get('low_bid', 0) + item.get('high_bid', 0)) / 2, 2)
+                                    if 'intent' not in item:
+                                        item['intent'] = 'informational'
+                                
+                                # Store in metadata for side panel (auto-open)
+                                metadata = {"keyword_data": opportunity_data}
                                 
                                 tool_results.append({
                                     "tool_call_id": tool_call["id"],
                                     "role": "tool",
                                     "name": tool_name,
-                                    "content": json.dumps(processed_data)
+                                    "content": json.dumps(opportunity_data)
                                 })
                             else:
                                 tool_results.append({
@@ -1906,7 +1901,7 @@ async def send_message(
             "type": "function",
             "function": {
                 "name": "find_opportunity_keywords",
-                "description": "Find opportunity keywords (high-potential, low-competition keywords that are easier to rank for). Use when user asks for 'easy to rank', 'low competition', 'opportunity', or 'quick wins' keywords. Note: Only supports location-specific searches (not global).",
+                "description": "Find LOW DIFFICULTY opportunity keywords (high volume + easy to rank). Uses SEO difficulty scores (0-100) from DataForSEO to identify REAL ranking opportunities, not just ad competition. Perfect for: 'easy to rank', 'low competition', 'low KD', 'opportunity', 'quick wins', 'low hanging fruit'. Returns keywords sorted by organic ranking potential. Note: Only supports location-specific searches (not global).",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -2314,32 +2309,26 @@ async def send_message(
                     logger.info(f"  🎯 Finding opportunity keywords for: {keyword} (location: {location.upper()})")
                     opportunity_data = await keyword_service.get_opportunity_keywords(keyword, location=location, num=limit)
                     
-                    # Process the data to match our format
                     if opportunity_data:
-                        processed_data = []
+                        # Opportunity keywords are already in the correct format (includes seo_difficulty)
+                        # Just need to ensure consistent field names
                         for item in opportunity_data:
-                            volume = item.get("volume", 0)
-                            competition = item.get("competition_level", "UNKNOWN")
-                            avg_cpc = (item.get("low_bid", 0) + item.get("high_bid", 0)) / 2 if item.get("high_bid") else 0
-                            
-                            processed_data.append({
-                                "keyword": item.get("text", ""),
-                                "search_volume": volume,
-                                "competition": competition,
-                                "competition_index": item.get("competition_index", 0),
-                                "cpc": round(avg_cpc, 2),
-                                "trend": item.get("trend", 0),
-                                "intent": item.get("intent", "unknown"),
-                                "opportunity_score": "HIGH"  # These are pre-filtered opportunity keywords
-                            })
+                            # Ensure all required fields exist
+                            if 'cpc' not in item and 'low_bid' in item and 'high_bid' in item:
+                                item['cpc'] = round((item.get('low_bid', 0) + item.get('high_bid', 0)) / 2, 2)
+                            if 'intent' not in item:
+                                item['intent'] = 'informational'
+                        
+                        # Store in message metadata for side panel
+                        message_metadata = {"keyword_data": opportunity_data}
                         
                         tool_results.append({
                             "tool_call_id": tool_call["id"],
                             "role": "tool",
                             "name": tool_name,
-                            "content": json.dumps(processed_data)
+                            "content": json.dumps(opportunity_data)
                         })
-                        logger.info(f"  ✅ Found {len(processed_data)} opportunity keywords")
+                        logger.info(f"  ✅ Found {len(opportunity_data)} opportunity keywords with SEO difficulty")
                     else:
                         tool_results.append({
                             "tool_call_id": tool_call["id"],

@@ -38,6 +38,7 @@ class AddKeywordRequest(BaseModel):
     keyword: str
     search_volume: Optional[int] = None
     competition: Optional[str] = None
+    seo_difficulty: Optional[int] = None  # 0-100 organic ranking difficulty
     target_page: Optional[str] = None  # Specific page to track (e.g., "/blog/seo-tips")
 
 class ProjectResponse(BaseModel):
@@ -55,6 +56,7 @@ class TrackedKeywordResponse(BaseModel):
     keyword: str
     search_volume: Optional[int]
     competition: Optional[str]
+    seo_difficulty: Optional[int]  # 0-100 organic ranking difficulty
     current_position: Optional[int]
     target_position: int
     target_page: Optional[str]  # Desired page to rank
@@ -148,16 +150,24 @@ async def _auto_detect_keywords_background(project_id: str, target_url: str):
                 logger.info(f"[Background] Fetching search volume for {len(keywords)} keywords (task mode, will take 1-5 min)")
                 volume_data = await dataforseo_service.get_search_volume(keywords, location="US", use_task_mode=True)
             
-            # Save keywords as INACTIVE suggestions (is_active=0) with volume data
+            # Fetch SEO difficulty for all keywords
+            difficulty_data = {}
+            if keywords:
+                logger.info(f"[Background] Fetching SEO difficulty for {len(keywords)} keywords")
+                difficulty_data = await dataforseo_service.get_keyword_difficulty(keywords, location="US")
+            
+            # Save keywords as INACTIVE suggestions (is_active=0) with volume and difficulty data
             saved_count = 0
             for keyword_text in keywords:
                 search_volume = volume_data.get(keyword_text, 0) if volume_data else None
+                seo_difficulty = difficulty_data.get(keyword_text) if difficulty_data else None
                 
                 tracked_keyword = TrackedKeyword(
                     id=str(uuid.uuid4()),
                     project_id=project_id,
                     keyword=keyword_text,
                     search_volume=search_volume,
+                    seo_difficulty=seo_difficulty,
                     source="auto_detected",
                     is_active=0  # Inactive by default - user must activate to track
                 )
@@ -165,7 +175,7 @@ async def _auto_detect_keywords_background(project_id: str, target_url: str):
                 saved_count += 1
             
             db.commit()
-            logger.info(f"[Background] ✅ Auto-detected and saved {saved_count} keyword suggestions with search volumes")
+            logger.info(f"[Background] ✅ Auto-detected and saved {saved_count} keyword suggestions with search volumes and SEO difficulty")
         else:
             logger.warning(f"[Background] Failed to auto-detect keywords: {website_data.get('error') if website_data else 'No data'}")
     except Exception as e:
@@ -263,6 +273,7 @@ async def add_keyword_to_project(
         keyword=request.keyword,
         search_volume=search_volume,
         competition=competition,
+        seo_difficulty=request.seo_difficulty,
         target_page=request.target_page,
         is_active=1  # Manually added keywords are active by default
     )
@@ -300,6 +311,7 @@ async def add_keyword_to_project(
         keyword=tracked_keyword.keyword,
         search_volume=tracked_keyword.search_volume,
         competition=tracked_keyword.competition,
+        seo_difficulty=tracked_keyword.seo_difficulty,
         current_position=ranking_result.get('position') if ranking_result else None,
         target_position=tracked_keyword.target_position,
         target_page=tracked_keyword.target_page,
@@ -367,6 +379,7 @@ async def get_project_keywords(
             keyword=kw.keyword,
             search_volume=kw.search_volume,
             competition=kw.competition,
+            seo_difficulty=kw.seo_difficulty,
             current_position=latest_ranking.position if latest_ranking else None,
             target_position=kw.target_position,
             target_page=kw.target_page,

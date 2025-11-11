@@ -208,6 +208,7 @@ class ApiService {
     String keyword,
     int? searchVolume,
     String? competition,
+    int? seoDifficulty,
   ) async {
     final response = await http.post(
       Uri.parse('$baseUrl/project/$projectId/keywords'),
@@ -216,6 +217,7 @@ class ApiService {
         'keyword': keyword,
         'search_volume': searchVolume,
         'competition': competition,
+        'seo_difficulty': seoDifficulty,
       }),
     );
     

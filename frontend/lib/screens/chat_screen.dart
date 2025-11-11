@@ -1276,7 +1276,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     projectId,
                     keyword['keyword'] as String,
                     keyword['search_volume'] as int?,
-                    keyword['competition'] as String?,
+                    keyword['ad_competition'] as String? ?? keyword['competition'] as String?,
+                    keyword['seo_difficulty'] as int?,
                   );
                 }
                 
@@ -1351,10 +1352,49 @@ class _ChatScreenState extends State<ChatScreen> {
         csvFormatter: (value) => value?.toString() ?? '0',
       ),
       DataColumnConfig(
-        id: 'competition',
-        label: 'Competition',
+        id: 'ad_competition',
+        label: 'Ad Comp',
         sortable: true,
-        cellBuilder: (row) => _buildCompetitionChip(row['competition']?.toString() ?? ''),
+        cellBuilder: (row) => _buildCompetitionChip(row['ad_competition']?.toString() ?? ''),
+        csvFormatter: (value) => value?.toString() ?? '',
+      ),
+      DataColumnConfig(
+        id: 'seo_difficulty',
+        label: 'SEO Diff',
+        numeric: true,
+        sortable: true,
+        cellBuilder: (row) {
+          final difficulty = row['seo_difficulty'];
+          if (difficulty == null) {
+            return const Text('-', style: TextStyle(fontSize: 11, color: Colors.grey));
+          }
+          
+          // Color based on difficulty
+          Color difficultyColor;
+          if (difficulty < 30) {
+            difficultyColor = Colors.green;
+          } else if (difficulty < 60) {
+            difficultyColor = Colors.orange;
+          } else {
+            difficultyColor = Colors.red;
+          }
+          
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: difficultyColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              difficulty.toString(),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: difficultyColor,
+              ),
+            ),
+          );
+        },
         csvFormatter: (value) => value?.toString() ?? '',
       ),
       DataColumnConfig(
@@ -2869,6 +2909,12 @@ class _ChatScreenState extends State<ChatScreen> {
     return Colors.red[600]!;
   }
   
+  Color _getSeoDifficultyColor(int difficulty) {
+    if (difficulty < 30) return Colors.green[600]!;  // Easy
+    if (difficulty < 60) return Colors.orange[600]!; // Moderate
+    return Colors.red[600]!;  // Hard
+  }
+  
   
   String _getSpamScore(Map<String, dynamic>? backlinksData) {
     if (backlinksData == null) return 'N/A';
@@ -4316,20 +4362,48 @@ class _ChatScreenState extends State<ChatScreen> {
                                                       color: Colors.grey[500],
                                                     ),
                                                   ),
-                                                  const SizedBox(width: 16),
-                                                  Icon(
-                                                    Icons.trending_up,
-                                                    size: 14,
-                                                    color: Colors.grey[500],
-                                                  ),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    keyword.competition?.toUpperCase() ?? 'UNKNOWN',
-                                                    style: TextStyle(
-                                                      fontSize: 13,
+                                                  if (keyword.competition != null && 
+                                                      keyword.competition!.toUpperCase() != 'UNKNOWN' &&
+                                                      keyword.competition!.toUpperCase() != 'UNSPECIFIED') ...[
+                                                    const SizedBox(width: 16),
+                                                    Icon(
+                                                      Icons.trending_up,
+                                                      size: 14,
                                                       color: Colors.grey[500],
                                                     ),
-                                                  ),
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      'Ad: ${keyword.competition!.toUpperCase()}',
+                                                      style: TextStyle(
+                                                        fontSize: 13,
+                                                        color: Colors.grey[500],
+                                                      ),
+                                                    ),
+                                                  ],
+                                                  if (keyword.seoDifficulty != null) ...[
+                                                    const SizedBox(width: 16),
+                                                    Icon(
+                                                      Icons.bar_chart,
+                                                      size: 14,
+                                                      color: Colors.grey[500],
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                      decoration: BoxDecoration(
+                                                        color: _getSeoDifficultyColor(keyword.seoDifficulty!).withOpacity(0.1),
+                                                        borderRadius: BorderRadius.circular(4),
+                                                      ),
+                                                      child: Text(
+                                                        'KD ${keyword.seoDifficulty}',
+                                                        style: TextStyle(
+                                                          fontSize: 13,
+                                                          fontWeight: FontWeight.bold,
+                                                          color: _getSeoDifficultyColor(keyword.seoDifficulty!),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ],
                                               ),
                                             ],
@@ -5657,6 +5731,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     keywordController.text.trim(),
                     null, // Let backend fetch search volume
                     null, // Let backend determine competition
+                    null, // No SEO difficulty for manual adds
                   );
 
                   if (context.mounted) {

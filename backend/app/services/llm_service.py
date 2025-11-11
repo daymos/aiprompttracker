@@ -725,17 +725,46 @@ Then provide your response to the user (the reasoning tag will be hidden from th
 **PROVIDING RESULTS:**
 
 WITH REAL KEYWORD DATA:
-If keywords have SERP analysis (serp_insight field):
-| Keyword | Searches/mo | Competition | SERP Reality |
-|---------|-------------|-------------|--------------|
-| keyword | volume | LOW/MED/HIGH | serp_insight |
+🚨 CRITICAL: Show MAXIMUM 5 keywords in chat. Use this EXACT format:
 
-If NO SERP analysis:
-| Keyword | Searches/mo | Competition |
-|---------|-------------|-------------|
-| keyword | volume | LOW/MED/HIGH |
+| Keyword | Searches/mo | Ad Comp | SEO Diff |
+|---------|-------------|---------|----------|
+| keyword | volume | LOW/MED/HIGH | 0-100 score |
+
+- Ad Comp = 'ad_competition' field (Google Ads bidding competition)
+- SEO Diff = 'seo_difficulty' field (organic ranking difficulty, KEY METRIC)
+- After table: "📊 View all [total] keywords in side panel →"
+- Focus analysis on SEO Difficulty (60-100=hard, 30-60=moderate, 0-30=easy)
+- Recommend keywords with best opportunity (high volume + lower SEO diff)
 
 Then: "Want me to track these?"
+
+**CRITICAL: KEYWORD FILTERING WORKFLOW**
+
+🚨 IF USER HAS KEYWORD DATA IN CONVERSATION HISTORY (check tool_results from previous messages):
+   → NEVER call research_keywords or find_opportunity_keywords again
+   → FILTER the existing data by the user's criteria
+   → Present filtered results in 5-row table format
+
+**FILTERING RULES:**
+- "easier" / "low difficulty" / "low KD" → seo_difficulty < 50
+- "very easy" / "super easy" → seo_difficulty < 30
+- "long-tail" → keyword.split().length >= 3 AND search_volume < 5000
+- "low volume acceptable" → Don't filter by volume, just by difficulty
+- "high volume" → search_volume > 10000
+- "questions" → keyword contains "how", "what", "why", "where", "when"
+- "commercial intent" → keyword contains "buy", "best", "vs", "review", "price"
+- "informational" → keyword contains "how", "guide", "what", "tips"
+
+**WHEN USER ASKS FOR MORE:**
+- "more keywords" / "50 more" / "give me more" → Filter existing data with a DIFFERENT criteria or show previously hidden results
+- Sort by seo_difficulty ASC to show easiest first
+- If they want quantity, show you have X total keywords in side panel and you're showing the best filtered ones
+
+**ONLY use find_opportunity_keywords IF:**
+- User explicitly wants to research a DIFFERENT topic/niche
+- This is the first keyword request (no existing data)
+- User says "new search" or "fresh search"
 
 WITH WEBSITE DATA:
 1-2 sentences about what the site does.
@@ -1038,12 +1067,31 @@ You're not just answering questions - you're building a comprehensive SEO strate
             user_content += f"Do NOT make up any keyword data. Apologize and explain the API is currently unavailable.\n"
             user_content += f"Suggest they try again later or contact support if the issue persists.\n"
         elif keyword_data:
-            user_content += f"\n\n[REAL KEYWORD DATA AVAILABLE]\n"
-            user_content += f"Source: RapidAPI keyword research\n"
-            user_content += f"Data: {keyword_data}\n"
-            user_content += f"\nYou have the actual keyword data RIGHT NOW. DISPLAY it in a table format immediately.\n"
-            user_content += f"DO NOT say 'I'm pulling data' or 'I'll share when ready' - the data is already here.\n"
-            user_content += f"Format as a markdown table with columns: Keyword | Searches/mo | Competition | SERP Reality (if available)\n"
+            # Sort by search volume and get top 5
+            sorted_keywords = sorted(keyword_data, key=lambda x: x.get('search_volume', 0), reverse=True)[:5]
+            total_count = len(keyword_data)
+            
+            # Build the exact table format for LLM
+            table_header = "| Keyword | Searches/mo | Ad Comp | SEO Diff |\n|---------|-------------|---------|----------|"
+            table_rows = []
+            for kw in sorted_keywords:
+                keyword = kw.get('keyword', 'N/A')
+                volume = f"{kw.get('search_volume', 0):,}"
+                ad_comp = kw.get('ad_competition', 'N/A')
+                seo_diff = kw.get('seo_difficulty', 'N/A')
+                table_rows.append(f"| {keyword} | {volume} | {ad_comp} | {seo_diff} |")
+            
+            formatted_table = table_header + "\n" + "\n".join(table_rows)
+            
+            user_content += f"\n\n[KEYWORD RESEARCH RESULTS]\n\n"
+            user_content += f"🚨 CRITICAL INSTRUCTION: Copy this EXACT table into your response. DO NOT modify the format or add extra rows:\n\n"
+            user_content += f"{formatted_table}\n\n"
+            user_content += f"After the table, add: '📊 View all {total_count} keywords in the side panel →'\n\n"
+            user_content += f"Then provide analysis focusing on:\n"
+            user_content += f"1. SEO Difficulty scores (60-100 = very hard, 30-60 = moderate, 0-30 = easy)\n"
+            user_content += f"2. Which keywords have best opportunity (high volume + lower SEO difficulty)\n"
+            user_content += f"3. Strategic recommendations for targeting\n\n"
+            user_content += f"Full dataset ({total_count} keywords) available in side panel.\n"
         else:
             user_content += f"\n\n[NO KEYWORD DATA AVAILABLE]\n"
             

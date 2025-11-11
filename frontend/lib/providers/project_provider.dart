@@ -34,6 +34,7 @@ class TrackedKeyword {
   final String keyword;
   final int? searchVolume;
   final String? competition;
+  final int? seoDifficulty;  // 0-100 organic ranking difficulty
   final int? currentPosition;
   final int targetPosition;
   final String source; // "manual" or "auto_detected"
@@ -46,6 +47,7 @@ class TrackedKeyword {
     required this.keyword,
     this.searchVolume,
     this.competition,
+    this.seoDifficulty,
     this.currentPosition,
     required this.targetPosition,
     this.source = 'manual', // Default for backward compatibility
@@ -183,6 +185,7 @@ class ProjectProvider with ChangeNotifier {
           keyword: k['keyword'],
           searchVolume: k['search_volume'],
           competition: k['competition'],
+          seoDifficulty: k['seo_difficulty'],
           currentPosition: k['current_position'],
           targetPosition: k['target_position'],
           source: k['source'] ?? 'manual',
@@ -198,7 +201,7 @@ class ProjectProvider with ChangeNotifier {
     }
   }
 
-  Future<void> addKeyword(ApiService apiService, String keyword, int? searchVolume, String? competition, {String? projectId}) async {
+  Future<void> addKeyword(ApiService apiService, String keyword, int? searchVolume, String? competition, int? seoDifficulty, {String? projectId}) async {
     final targetProjectId = projectId ?? _selectedProject?.id;
     if (targetProjectId == null) return;
 
@@ -208,6 +211,7 @@ class ProjectProvider with ChangeNotifier {
         keyword,
         searchVolume,
         competition,
+        seoDifficulty,
       );
 
       final List<RankingHistoryPoint> history = [];
@@ -225,6 +229,7 @@ class ProjectProvider with ChangeNotifier {
         keyword: response['keyword'],
         searchVolume: response['search_volume'],
         competition: response['competition'],
+        seoDifficulty: response['seo_difficulty'],
         currentPosition: response['current_position'],
         targetPosition: response['target_position'],
         source: response['source'] ?? 'manual',

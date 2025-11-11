@@ -28,7 +28,8 @@ class TrackedKeyword(Base):
     project_id = Column(String, ForeignKey("projects.id"), nullable=False, index=True)
     keyword = Column(String, nullable=False)
     search_volume = Column(Integer, nullable=True)
-    competition = Column(String, nullable=True)  # LOW, MEDIUM, HIGH
+    competition = Column(String, nullable=True)  # LOW, MEDIUM, HIGH (Google Ads competition)
+    seo_difficulty = Column(Integer, nullable=True)  # 0-100 organic ranking difficulty
     target_position = Column(Integer, default=10)  # Goal ranking position
     target_page = Column(String, nullable=True)  # Specific page to track (e.g., "/blog/seo-tips")
     source = Column(String, default="manual")  # "manual" or "auto_detected"

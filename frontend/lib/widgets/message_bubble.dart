@@ -51,6 +51,7 @@ class _MessageBubbleState extends State<MessageBubble> {
         _displayedText = widget.message.content;
         _isAnimating = false;
       });
+      _autoOpenDataPanelIfNeeded();
       return;
     }
     
@@ -61,6 +62,7 @@ class _MessageBubbleState extends State<MessageBubble> {
         _displayedText = widget.message.content;
         _isAnimating = false;
       });
+      _autoOpenDataPanelIfNeeded();
       return;
     }
     
@@ -82,6 +84,9 @@ class _MessageBubbleState extends State<MessageBubble> {
             _isAnimating = false;
             _displayedText = fullText;
           });
+          
+          // Auto-open data panel after animation completes if keyword data is present
+          _autoOpenDataPanelIfNeeded();
         }
         return;
       }
@@ -95,6 +100,19 @@ class _MessageBubbleState extends State<MessageBubble> {
     }
     
     animateNext();
+  }
+  
+  void _autoOpenDataPanelIfNeeded() {
+    // Auto-open data panel if keyword data is present (for new messages)
+    if (widget.message.messageMetadata != null && 
+        widget.message.messageMetadata!['keyword_data'] != null) {
+      // Slight delay to ensure the UI is ready
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (mounted) {
+          _openDataPanel();
+        }
+      });
+    }
   }
   
   void _openDataPanel() {
@@ -365,13 +383,14 @@ class _MessageBubbleState extends State<MessageBubble> {
     final csvContent = StringBuffer();
     
     // Header row
-    csvContent.writeln('Keyword,Avg. Monthly Searches,Competition,CPC,SERP Reality');
+    csvContent.writeln('Keyword,Avg. Monthly Searches,Ad Competition,SEO Difficulty,CPC,SERP Reality');
     
     // Data rows
     for (final item in keywordData) {
       final keyword = item['keyword'] ?? '';
       final volume = item['search_volume'] ?? '';
-      final competition = item['competition'] ?? '';
+      final adCompetition = item['ad_competition'] ?? item['competition'] ?? '';
+      final seoDifficulty = item['seo_difficulty'] ?? '';
       final cpc = item['cpc'] ?? '';
       final serpInsight = item['serp_insight'] ?? '';
       
@@ -379,7 +398,7 @@ class _MessageBubbleState extends State<MessageBubble> {
       final escapedKeyword = _escapeCsvField(keyword.toString());
       final escapedSerpInsight = _escapeCsvField(serpInsight.toString());
       
-      csvContent.writeln('$escapedKeyword,$volume,$competition,$cpc,$escapedSerpInsight');
+      csvContent.writeln('$escapedKeyword,$volume,$adCompetition,$seoDifficulty,$cpc,$escapedSerpInsight');
     }
     
     // Create blob and download

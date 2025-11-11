@@ -902,3 +902,77 @@ class DataForSEOService:
         except Exception as e:
             logger.error(f"Error getting SERP analysis: {e}")
             return None
+    
+    async def get_keyword_difficulty(
+        self,
+        keywords: List[str],
+        location: str = "us"
+    ) -> Dict[str, int]:
+        """
+        Get SEO difficulty scores for keywords using DataForSEO Labs
+        
+        Returns dict mapping keyword -> difficulty score (0-100)
+        Higher score = harder to rank organically
+        
+        Endpoint: /dataforseo_labs/google/bulk_keyword_difficulty/live
+        Cost: $0.02 per keyword (DataForSEO Labs pricing)
+        Speed: ~2-3 seconds (bulk request)
+        Max: 1,000 keywords per request
+        """
+        if not keywords:
+            return {}
+        
+        logger.info(f"📊 Fetching keyword difficulty for {len(keywords)} keywords")
+        
+        try:
+            # DataForSEO Labs keyword difficulty endpoint (correct one!)
+            endpoint = f"{self.base_url}/dataforseo_labs/google/bulk_keyword_difficulty/live"
+            
+            payload = [{
+                "keywords": keywords,
+                "location_code": self._get_location_code(location),
+                "language_name": "English"
+            }]
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    endpoint,
+                    json=payload,
+                    auth=(self.login, self.password),
+                    timeout=30.0
+                )
+                response.raise_for_status()
+                data = response.json()
+                
+                # Log response structure for debugging
+                logger.info(f"📥 DataForSEO response status: {data.get('status_code')}")
+                
+                # Extract difficulty scores
+                result = {}
+                if data.get("tasks") and len(data["tasks"]) > 0:
+                    task = data["tasks"][0]
+                    logger.info(f"🔍 Task status: {task.get('status_message')}, result present: {task.get('result') is not None}")
+                    
+                    if task.get("result") and len(task["result"]) > 0:
+                        # DataForSEO Labs API has nested structure: result[0]['items']
+                        result_wrapper = task["result"][0]
+                        items = result_wrapper.get("items", [])
+                        logger.info(f"🔍 Found {len(items)} keyword items in response")
+                        
+                        for item in items:
+                            keyword = item.get("keyword")
+                            difficulty = item.get("keyword_difficulty")
+                            if keyword and difficulty is not None:
+                                result[keyword] = difficulty
+                        
+                        logger.info(f"✅ Got keyword difficulty for {len(result)} keywords")
+                    else:
+                        logger.warning(f"⚠️  No result in task. Task status: {task.get('status_message')}")
+                else:
+                    logger.warning(f"⚠️  No tasks in response. Response keys: {data.keys()}")
+                
+                return result
+                
+        except Exception as e:
+            logger.error(f"❌ Error getting keyword difficulty: {e}", exc_info=True)
+            return {}
