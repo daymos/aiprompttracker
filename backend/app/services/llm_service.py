@@ -891,6 +891,19 @@ You have powerful research capabilities:
 - "technical audit" → analyze_technical_seo ✓
 - "check for technical issues" → analyze_technical_seo ✓
 
+**analyze_technical_seo MODE SELECTION:**
+- **DEFAULT: mode="single"** (fast, 5-7 sec) - audits ONE specific page
+  - "check this page" → mode="single"
+  - "audit https://example.com/blog/post" → mode="single"
+  - Any specific URL provided → mode="single"
+  
+- **USE: mode="full"** (slower, 30-60 sec) - crawls sitemap, audits up to 15 pages
+  - "audit my entire site" → mode="full"
+  - "full site audit" → mode="full"
+  - "check all pages" → mode="full"
+  - "whole website audit" → mode="full"
+  - Just domain without specific path + "audit" → mode="full"
+
 **If user asks about keywords, content, strategy → use analyze_website**
 - "analyze my site" → analyze_website ✓
 - "what keywords should I target" → analyze_website ✓

@@ -402,13 +402,19 @@ async def send_message_stream(
                     "type": "function",
                     "function": {
                         "name": "analyze_technical_seo",
-                        "description": "Run COMPREHENSIVE technical audit covering: 1) Technical SEO (meta tags, headings, broken links, images), 2) Performance (Core Web Vitals, LCP, FCP, CLS, TBT, Speed Index), 3) AI Bot Access (GPTBot, Claude, Perplexity, etc). Returns unified view of all issues. Use when user says 'technical' + (health check, audit, analysis, issues, errors, performance). Fast (~5-7 sec). DO NOT use for keyword/content analysis.",
+                        "description": "Run COMPREHENSIVE technical audit covering: 1) Technical SEO (meta tags, headings, broken links, images), 2) Performance (Core Web Vitals, LCP, FCP, CLS, TBT, Speed Index), 3) AI Bot Access (GPTBot, Claude, Perplexity, etc). Returns unified view of all issues. MODE: 'single' (default, fast ~5-7 sec) audits ONE page. MODE: 'full' (~30-60 sec) crawls sitemap and audits up to 15 pages with aggregate stats. Use 'full' when user says: 'full site', 'entire site', 'all pages', 'whole website'. Use 'single' for specific URLs or quick checks. DO NOT use for keyword/content analysis.",
                         "parameters": {
                             "type": "object",
                             "properties": {
                                 "url": {
                                     "type": "string",
                                     "description": "Full URL of the website to audit (e.g., 'https://example.com')"
+                                },
+                                "mode": {
+                                    "type": "string",
+                                    "enum": ["single", "full"],
+                                    "description": "Audit mode: 'single' for one page (fast), 'full' for sitemap-based multi-page audit (slower)",
+                                    "default": "single"
                                 }
                             },
                             "required": ["url"]
@@ -667,7 +673,18 @@ async def send_message_stream(
                     elif tool_name == "analyze_website":
                         yield await send_sse_event("status", {"message": "Analyzing website..."})
                     elif tool_name == "analyze_technical_seo":
-                        yield await send_sse_event("status", {"message": "Running technical SEO audit..."})
+                        # Check mode from args to show appropriate status
+                        mode = tool_call.get("function", {}).get("arguments", {})
+                        if isinstance(mode, str):
+                            import json as json_lib
+                            mode = json_lib.loads(mode).get("mode", "single")
+                        else:
+                            mode = mode.get("mode", "single")
+                        
+                        if mode == "full":
+                            yield await send_sse_event("status", {"message": "Crawling sitemap & auditing multiple pages..."})
+                        else:
+                            yield await send_sse_event("status", {"message": "Running technical SEO audit..."})
                     elif tool_name == "check_ai_bot_access":
                         yield await send_sse_event("status", {"message": "Checking AI bot access..."})
                     elif tool_name == "analyze_performance":
@@ -819,23 +836,44 @@ async def send_message_stream(
                         
                         elif tool_name == "analyze_technical_seo":
                             url = args.get("url")
+                            mode = args.get("mode", "single")
                             
                             # Run comprehensive audit (SEO + Performance + AI Bots)
-                            audit_data = await rapidapi_seo_service.comprehensive_technical_audit(url)
+                            # Mode: "single" for one page, "full" for sitemap-based multi-page audit
+                            audit_data = await rapidapi_seo_service.comprehensive_site_audit(url, mode=mode)
                             
                             # Store separate datasets in metadata for tabbed view
                             if audit_data.get("raw_data"):
                                 raw = audit_data["raw_data"]
-                                metadata = {
-                                    "technical_audit_tabs": {
-                                        "seo_issues": raw["seo"].get("issues", []),
-                                        "performance": raw["performance"].get("metrics", []),
-                                        "ai_bots": raw["bots"].get("bots", [])
-                                    },
-                                    "summary": audit_data.get("summary", {}),
-                                    "url": url
-                                }
-                                logger.info(f"✅ Set metadata for technical audit with {len(raw['seo'].get('issues', []))} SEO issues, {len(raw['performance'].get('metrics', []))} performance metrics, {len(raw['bots'].get('bots', []))} bots")
+                                
+                                if mode == "full":
+                                    # Full site audit - include page summaries and common issues
+                                    metadata = {
+                                        "technical_audit_tabs": {
+                                            "seo_issues": raw["seo"].get("issues", []),
+                                            "performance": raw["performance"].get("metrics", []),
+                                            "ai_bots": raw["bots"].get("bots", [])
+                                        },
+                                        "summary": audit_data.get("summary", {}),
+                                        "page_summaries": audit_data.get("page_summaries", []),
+                                        "common_issues": audit_data.get("common_issues", []),
+                                        "url": url,
+                                        "mode": "full"
+                                    }
+                                    logger.info(f"✅ Set metadata for FULL SITE audit: {len(audit_data.get('page_summaries', []))} pages, {len(raw['seo'].get('issues', []))} total SEO issues")
+                                else:
+                                    # Single page audit
+                                    metadata = {
+                                        "technical_audit_tabs": {
+                                            "seo_issues": raw["seo"].get("issues", []),
+                                            "performance": raw["performance"].get("metrics", []),
+                                            "ai_bots": raw["bots"].get("bots", [])
+                                        },
+                                        "summary": audit_data.get("summary", {}),
+                                        "url": url,
+                                        "mode": "single"
+                                    }
+                                    logger.info(f"✅ Set metadata for single page audit: {len(raw['seo'].get('issues', []))} SEO issues, {len(raw['performance'].get('metrics', []))} performance metrics, {len(raw['bots'].get('bots', []))} bots")
                                 
                                 # Save audit to database if project exists
                                 save_technical_audit(db, user.id, url, audit_data)
@@ -1960,13 +1998,19 @@ async def send_message(
                     "type": "function",
                     "function": {
                         "name": "analyze_technical_seo",
-                        "description": "Run COMPREHENSIVE technical audit covering: 1) Technical SEO (meta tags, headings, broken links, images), 2) Performance (Core Web Vitals, LCP, FCP, CLS, TBT, Speed Index), 3) AI Bot Access (GPTBot, Claude, Perplexity, etc). Returns unified view of all issues. Use when user says 'technical' + (health check, audit, analysis, issues, errors, performance). Fast (~5-7 sec). DO NOT use for keyword/content analysis.",
+                        "description": "Run COMPREHENSIVE technical audit covering: 1) Technical SEO (meta tags, headings, broken links, images), 2) Performance (Core Web Vitals, LCP, FCP, CLS, TBT, Speed Index), 3) AI Bot Access (GPTBot, Claude, Perplexity, etc). Returns unified view of all issues. MODE: 'single' (default, fast ~5-7 sec) audits ONE page. MODE: 'full' (~30-60 sec) crawls sitemap and audits up to 15 pages with aggregate stats. Use 'full' when user says: 'full site', 'entire site', 'all pages', 'whole website'. Use 'single' for specific URLs or quick checks. DO NOT use for keyword/content analysis.",
                         "parameters": {
                             "type": "object",
                             "properties": {
                                 "url": {
                                     "type": "string",
                                     "description": "Full URL of the website to audit (e.g., 'https://example.com')"
+                                },
+                                "mode": {
+                                    "type": "string",
+                                    "enum": ["single", "full"],
+                                    "description": "Audit mode: 'single' for one page (fast), 'full' for sitemap-based multi-page audit (slower)",
+                                    "default": "single"
                                 }
                             },
                             "required": ["url"]
@@ -2381,22 +2425,41 @@ async def send_message(
                     
                 elif tool_name == "analyze_technical_seo":
                     url = args.get("url")
+                    mode = args.get("mode", "single")
                     
-                    logger.info(f"  🔍 Running comprehensive technical audit for: {url}")
-                    audit_data = await rapidapi_seo_service.comprehensive_technical_audit(url)
+                    logger.info(f"  🔍 Running comprehensive technical audit for: {url} (mode: {mode})")
+                    audit_data = await rapidapi_seo_service.comprehensive_site_audit(url, mode=mode)
                     
                     # Store separate datasets in metadata for tabbed view
                     if audit_data.get("raw_data"):
                         raw = audit_data["raw_data"]
-                        message_metadata = {
-                            "technical_audit_tabs": {
-                                "seo_issues": raw["seo"].get("issues", []),
-                                "performance": raw["performance"].get("metrics", []),
-                                "ai_bots": raw["bots"].get("bots", [])
-                            },
-                            "summary": audit_data.get("summary", {}),
-                            "url": url
-                        }
+                        
+                        if mode == "full":
+                            # Full site audit - include page summaries and common issues
+                            message_metadata = {
+                                "technical_audit_tabs": {
+                                    "seo_issues": raw["seo"].get("issues", []),
+                                    "performance": raw["performance"].get("metrics", []),
+                                    "ai_bots": raw["bots"].get("bots", [])
+                                },
+                                "summary": audit_data.get("summary", {}),
+                                "page_summaries": audit_data.get("page_summaries", []),
+                                "common_issues": audit_data.get("common_issues", []),
+                                "url": url,
+                                "mode": "full"
+                            }
+                        else:
+                            # Single page audit
+                            message_metadata = {
+                                "technical_audit_tabs": {
+                                    "seo_issues": raw["seo"].get("issues", []),
+                                    "performance": raw["performance"].get("metrics", []),
+                                    "ai_bots": raw["bots"].get("bots", [])
+                                },
+                                "summary": audit_data.get("summary", {}),
+                                "url": url,
+                                "mode": "single"
+                            }
                         
                         # Save audit to database if project exists
                         save_technical_audit(db, user.id, url, audit_data)

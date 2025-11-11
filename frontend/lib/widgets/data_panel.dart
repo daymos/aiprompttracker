@@ -68,8 +68,16 @@ class _DataPanelState extends State<DataPanel> with SingleTickerProviderStateMix
     
     // Initialize tabs if present
     if (widget.tabs != null && widget.tabs!.isNotEmpty) {
-      _currentTab = widget.tabs!.keys.first;
-      _tabController = TabController(length: widget.tabs!.length, vsync: this);
+      // Default to Performance tab if it exists, otherwise use first tab
+      _currentTab = widget.tabs!.keys.contains('Performance') 
+          ? 'Performance' 
+          : widget.tabs!.keys.first;
+      final initialIndex = widget.tabs!.keys.toList().indexOf(_currentTab!);
+      _tabController = TabController(
+        length: widget.tabs!.length, 
+        vsync: this,
+        initialIndex: initialIndex,
+      );
       _sortedData = List.from(widget.tabs![_currentTab!]!);
     } else {
       _sortedData = List.from(widget.data);
@@ -280,13 +288,15 @@ class _DataPanelState extends State<DataPanel> with SingleTickerProviderStateMix
                               ),
                             ),
                             const SizedBox(height: 4),
-                            Text(
-                              '${_sortedData.length} items',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[400],
+                            // Only show item count for tabs with tabular data (not Performance dashboard)
+                            if (widget.tabs == null || _currentTab != 'Performance')
+                              Text(
+                                '${_sortedData.length} items',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[400],
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       ),

@@ -1,8 +1,10 @@
 import httpx
-from typing import Dict, Any
+from typing import Dict, Any, List
 import logging
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 from ..config import get_settings
+import xml.etree.ElementTree as ET
+import asyncio
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -560,6 +562,312 @@ class RapidAPISEOService:
                 "seo": seo_results,
                 "performance": performance_results,
                 "bots": bot_results
+            }
+        }
+    
+    async def fetch_sitemap_urls(self, url: str, limit: int = 15) -> List[str]:
+        """
+        Fetch and parse sitemap.xml to get list of URLs
+        
+        Args:
+            url: Base website URL
+            limit: Maximum number of URLs to return
+            
+        Returns:
+            List of URLs from sitemap
+        """
+        parsed = urlparse(url)
+        base_url = f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme else f"https://{parsed.netloc if parsed.netloc else parsed.path}"
+        sitemap_url = urljoin(base_url, '/sitemap.xml')
+        
+        logger.info(f"🗺️  Fetching sitemap from: {sitemap_url}")
+        
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(sitemap_url)
+                
+                if response.status_code != 200:
+                    logger.warning(f"Sitemap not found at {sitemap_url}, using base URL only")
+                    return [url]
+                
+                # Parse XML
+                root = ET.fromstring(response.content)
+                
+                # Handle different sitemap formats
+                # Standard sitemap namespace
+                ns = {'ns': 'http://www.sitemaps.org/schemas/sitemap/0.9'}
+                
+                # Try to find URLs with namespace
+                urls = [loc.text for loc in root.findall('.//ns:loc', ns) if loc.text]
+                
+                # If no URLs found, try without namespace
+                if not urls:
+                    urls = [loc.text for loc in root.findall('.//loc') if loc.text]
+                
+                if not urls:
+                    logger.warning("No URLs found in sitemap, using base URL only")
+                    return [url]
+                
+                # Limit the number of URLs
+                urls = urls[:limit]
+                logger.info(f"✅ Found {len(urls)} URLs in sitemap (limited to {limit})")
+                return urls
+                
+        except Exception as e:
+            logger.error(f"Error fetching sitemap: {e}")
+            return [url]  # Fallback to single URL
+    
+    async def comprehensive_site_audit(self, url: str, mode: str = "single") -> Dict[str, Any]:
+        """
+        Run comprehensive audit - single page or full site based on mode
+        
+        Args:
+            url: Website URL
+            mode: "single" for single page, "full" for sitemap-based full site audit
+                
+        Returns:
+            Audit results with aggregated stats for full mode
+        """
+        if mode == "single":
+            # Current behavior - audit single page
+            return await self.comprehensive_technical_audit(url)
+        
+        # Full site audit - fetch sitemap and audit multiple pages
+        logger.info(f"🌐 Starting FULL SITE audit for: {url}")
+        
+        # Get URLs from sitemap
+        urls = await self.fetch_sitemap_urls(url, limit=15)
+        logger.info(f"📋 Will audit {len(urls)} pages")
+        
+        # Run audits in parallel (but limit concurrency to avoid rate limits)
+        semaphore = asyncio.Semaphore(3)  # Max 3 concurrent requests
+        
+        async def audit_with_semaphore(page_url: str):
+            async with semaphore:
+                try:
+                    result = await self.comprehensive_technical_audit(page_url)
+                    result['url'] = page_url  # Ensure URL is included
+                    return result
+                except Exception as e:
+                    logger.error(f"Error auditing {page_url}: {e}")
+                    return None
+        
+        # Run all audits in parallel
+        audit_results = await asyncio.gather(*[audit_with_semaphore(u) for u in urls])
+        
+        # Filter out failed audits
+        audit_results = [r for r in audit_results if r is not None]
+        
+        if not audit_results:
+            logger.error("All page audits failed")
+            return {"error": "Failed to audit any pages", "pages": []}
+        
+        logger.info(f"✅ Completed audits for {len(audit_results)} pages")
+        
+        # Aggregate results
+        return self._aggregate_site_audit(audit_results, url)
+    
+    def _aggregate_site_audit(self, page_audits: List[Dict[str, Any]], base_url: str) -> Dict[str, Any]:
+        """
+        Aggregate multiple page audits into site-wide summary
+        
+        Args:
+            page_audits: List of individual page audit results
+            base_url: Base website URL
+            
+        Returns:
+            Aggregated audit results
+        """
+        total_pages = len(page_audits)
+        
+        # Aggregate performance scores
+        perf_scores = []
+        all_seo_issues = []
+        all_bot_data = []
+        
+        # Aggregate Core Web Vitals
+        fcp_values = []
+        lcp_values = []
+        cls_values = []
+        tbt_values = []
+        tti_values = []
+        
+        # Per-page summary for detailed view
+        page_summaries = []
+        
+        for audit in page_audits:
+            raw_data = audit.get('raw_data', {})
+            page_url = audit.get('url', 'Unknown')
+            
+            # Performance
+            perf_data = raw_data.get('performance', {})
+            perf_metrics = perf_data.get('metrics', [])
+            
+            # Extract overall performance score
+            perf_score_metric = next((m for m in perf_metrics if 'Performance Score' in m.get('metric_name', '')), None)
+            perf_score = perf_score_metric.get('score', 0) if perf_score_metric else 0
+            perf_scores.append(perf_score)
+            
+            # Extract Core Web Vitals
+            for metric in perf_metrics:
+                name = metric.get('metric_name', '')
+                value = metric.get('value')
+                score = metric.get('score', 0)
+                
+                if 'FCP' in name and value:
+                    fcp_values.append({'value': value, 'score': score})
+                elif 'LCP' in name and value:
+                    lcp_values.append({'value': value, 'score': score})
+                elif 'CLS' in name and value:
+                    cls_values.append({'value': value, 'score': score})
+                elif 'TBT' in name and value:
+                    tbt_values.append({'value': value, 'score': score})
+                elif 'TTI' in name and value:
+                    tti_values.append({'value': value, 'score': score})
+            
+            # SEO issues
+            seo_data = raw_data.get('seo', {})
+            seo_issues = seo_data.get('issues', [])
+            
+            # Add page context to each issue
+            for issue in seo_issues:
+                issue['page_url'] = page_url
+                all_seo_issues.append(issue)
+            
+            # Bots (just use first page's data since it's site-wide)
+            if not all_bot_data:
+                bot_data = raw_data.get('bots', {})
+                all_bot_data = bot_data.get('bots', [])
+            
+            # Create page summary
+            page_summaries.append({
+                'url': page_url,
+                'performance_score': perf_score,
+                'seo_issues_count': len(seo_issues),
+                'seo_issues_high': sum(1 for i in seo_issues if i.get('severity') == 'high'),
+                'seo_issues_medium': sum(1 for i in seo_issues if i.get('severity') == 'medium'),
+                'seo_issues_low': sum(1 for i in seo_issues if i.get('severity') == 'low'),
+            })
+        
+        # Calculate aggregates
+        avg_performance = sum(perf_scores) / len(perf_scores) if perf_scores else 0
+        total_seo_issues = len(all_seo_issues)
+        
+        # Calculate average Core Web Vitals
+        avg_fcp_score = sum(m['score'] for m in fcp_values) / len(fcp_values) if fcp_values else 0
+        avg_lcp_score = sum(m['score'] for m in lcp_values) / len(lcp_values) if lcp_values else 0
+        avg_cls_score = sum(m['score'] for m in cls_values) / len(cls_values) if cls_values else 0
+        avg_tbt_score = sum(m['score'] for m in tbt_values) / len(tbt_values) if tbt_values else 0
+        avg_tti_score = sum(m['score'] for m in tti_values) / len(tti_values) if tti_values else 0
+        
+        # Use the first value as representative (or could show range)
+        avg_fcp_value = fcp_values[0]['value'] if fcp_values else 'N/A'
+        avg_lcp_value = lcp_values[0]['value'] if lcp_values else 'N/A'
+        avg_cls_value = cls_values[0]['value'] if cls_values else 'N/A'
+        avg_tbt_value = tbt_values[0]['value'] if tbt_values else 'N/A'
+        avg_tti_value = tti_values[0]['value'] if tti_values else 'N/A'
+        
+        # Find most common issues
+        issue_types = {}
+        for issue in all_seo_issues:
+            issue_type = issue.get('type', 'Unknown')
+            if issue_type not in issue_types:
+                issue_types[issue_type] = []
+            issue_types[issue_type].append(issue)
+        
+        common_issues = [
+            {
+                'type': issue_type,
+                'count': len(issues),
+                'severity': issues[0].get('severity', 'low'),
+                'example_page': issues[0].get('page_url', ''),
+                'recommendation': issues[0].get('recommendation', '')
+            }
+            for issue_type, issues in sorted(issue_types.items(), key=lambda x: len(x[1]), reverse=True)
+        ][:10]  # Top 10 most common issues
+        
+        # Create aggregate performance metrics including Core Web Vitals
+        performance_metrics = [
+            {
+                'metric_name': 'Performance Score',
+                'score': round(avg_performance, 1),
+                'value': f'{round(avg_performance, 1)}/100',
+                'rating': 'Good' if avg_performance >= 90 else ('Needs Improvement' if avg_performance >= 50 else 'Poor'),
+                'description': f'Average performance score across {total_pages} pages'
+            }
+        ]
+        
+        # Add Core Web Vitals if available
+        if fcp_values:
+            performance_metrics.append({
+                'metric_name': 'FCP (First Contentful Paint)',
+                'score': round(avg_fcp_score, 1),
+                'value': avg_fcp_value,
+                'rating': 'Good' if avg_fcp_score >= 90 else ('Needs Improvement' if avg_fcp_score >= 50 else 'Poor'),
+                'description': 'First Contentful Paint - when first content appears'
+            })
+        
+        if lcp_values:
+            performance_metrics.append({
+                'metric_name': 'LCP (Largest Contentful Paint)',
+                'score': round(avg_lcp_score, 1),
+                'value': avg_lcp_value,
+                'rating': 'Good' if avg_lcp_score >= 90 else ('Needs Improvement' if avg_lcp_score >= 50 else 'Poor'),
+                'description': 'Largest Contentful Paint - when main content loads'
+            })
+        
+        if cls_values:
+            performance_metrics.append({
+                'metric_name': 'CLS (Cumulative Layout Shift)',
+                'score': round(avg_cls_score, 1),
+                'value': avg_cls_value,
+                'rating': 'Good' if avg_cls_score >= 90 else ('Needs Improvement' if avg_cls_score >= 50 else 'Poor'),
+                'description': 'Cumulative Layout Shift - visual stability'
+            })
+        
+        if tbt_values:
+            performance_metrics.append({
+                'metric_name': 'TBT (Total Blocking Time)',
+                'score': round(avg_tbt_score, 1),
+                'value': avg_tbt_value,
+                'rating': 'Good' if avg_tbt_score >= 90 else ('Needs Improvement' if avg_tbt_score >= 50 else 'Poor'),
+                'description': 'Total Blocking Time - how long page is blocked from user input'
+            })
+        
+        if tti_values:
+            performance_metrics.append({
+                'metric_name': 'TTI (Time to Interactive)',
+                'score': round(avg_tti_score, 1),
+                'value': avg_tti_value,
+                'rating': 'Good' if avg_tti_score >= 90 else ('Needs Improvement' if avg_tti_score >= 50 else 'Poor'),
+                'description': 'Time to Interactive - when page becomes fully interactive'
+            })
+        
+        # Build summary
+        summary = {
+            'mode': 'full',
+            'total_pages_audited': total_pages,
+            'avg_performance_score': round(avg_performance, 1),
+            'total_seo_issues': total_seo_issues,
+            'total_issues_high': sum(1 for i in all_seo_issues if i.get('severity') == 'high'),
+            'total_issues_medium': sum(1 for i in all_seo_issues if i.get('severity') == 'medium'),
+            'total_issues_low': sum(1 for i in all_seo_issues if i.get('severity') == 'low'),
+            'bots_allowed': sum(1 for b in all_bot_data if b.get('status') == 'Allowed'),
+            'bots_checked': len(all_bot_data),
+            'url': base_url
+        }
+        
+        return {
+            'summary': summary,
+            'common_issues': common_issues,
+            'page_summaries': page_summaries,
+            'raw_data': {
+                'seo': {'issues': all_seo_issues},
+                'performance': {
+                    'metrics': performance_metrics,
+                    'avg_score': avg_performance
+                },
+                'bots': {'bots': all_bot_data}
             }
         }
 

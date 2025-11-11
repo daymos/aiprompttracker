@@ -126,15 +126,24 @@ class _MessageBubbleState extends State<MessageBubble> {
     if (metadata['technical_audit_tabs'] != null) {
       final url = metadata['url'] ?? 'Website';
       final tabs = metadata['technical_audit_tabs'] as Map<String, dynamic>;
+      final mode = metadata['mode'] ?? 'single';
+      
+      // Build tab map
+      final tabsMap = <String, List<Map<String, dynamic>>>{
+        'SEO Issues': List<Map<String, dynamic>>.from(tabs['seo_issues'] ?? []),
+        'Performance': List<Map<String, dynamic>>.from(tabs['performance'] ?? []),
+        'AI Bots': List<Map<String, dynamic>>.from(tabs['ai_bots'] ?? []),
+      };
+      
+      // Add Page Summaries tab for full site audits
+      if (mode == 'full' && metadata['page_summaries'] != null) {
+        tabsMap['Page Summaries'] = List<Map<String, dynamic>>.from(metadata['page_summaries']);
+      }
       
       // Open with tabbed data - will be handled specially by the provider
       chatProvider.openTabbedDataPanel(
-        tabs: {
-          'SEO Issues': List<Map<String, dynamic>>.from(tabs['seo_issues'] ?? []),
-          'Performance': List<Map<String, dynamic>>.from(tabs['performance'] ?? []),
-          'AI Bots': List<Map<String, dynamic>>.from(tabs['ai_bots'] ?? []),
-        },
-        title: 'Complete Technical Audit - $url',
+        tabs: tabsMap,
+        title: mode == 'full' ? 'Full Site Audit - $url' : 'Page Audit - $url',
         url: url,
       );
       return;

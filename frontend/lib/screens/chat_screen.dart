@@ -1259,6 +1259,8 @@ class _ChatScreenState extends State<ChatScreen> {
               'SEO Issues': _buildTechnicalSEOColumns(),
               'Performance': _buildPerformanceColumns(),
               'AI Bots': _buildAIBotAccessColumns(),
+              if (chatProvider.dataPanelTabs!.containsKey('Page Summaries'))
+                'Page Summaries': _buildPageSummaryColumns(),
             } : null,
             dataPanelUrl: chatProvider.dataPanelUrl,
             projects: projectProvider.allProjects.map((p) => {
@@ -1711,6 +1713,153 @@ class _ChatScreenState extends State<ChatScreen> {
             style: const TextStyle(fontSize: 11),
           ),
         ),
+      ),
+    ];
+  }
+
+  List<DataColumnConfig> _buildPageSummaryColumns() {
+    return [
+      DataColumnConfig(
+        id: 'url',
+        label: 'Page URL',
+        sortable: true,
+        cellBuilder: (row) => ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 350),
+          child: Text(
+            row['url']?.toString() ?? '',
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ),
+      DataColumnConfig(
+        id: 'performance_score',
+        label: 'Performance',
+        sortable: true,
+        cellBuilder: (row) {
+          final score = (row['performance_score'] as num?)?.toDouble() ?? 0.0;
+          Color scoreColor;
+          if (score >= 90) {
+            scoreColor = Colors.green;
+          } else if (score >= 50) {
+            scoreColor = Colors.orange;
+          } else {
+            scoreColor = Colors.red;
+          }
+          
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: scoreColor,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '${score.toStringAsFixed(0)}/100',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: scoreColor,
+                ),
+              ),
+            ],
+          );
+        },
+        csvFormatter: (value) => value?.toString() ?? '0',
+      ),
+      DataColumnConfig(
+        id: 'seo_issues_count',
+        label: 'Total Issues',
+        sortable: true,
+        cellBuilder: (row) {
+          final count = row['seo_issues_count'] as int? ?? 0;
+          return Text(
+            count.toString(),
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: count > 0 ? Colors.orange : Colors.green,
+            ),
+          );
+        },
+        csvFormatter: (value) => value?.toString() ?? '0',
+      ),
+      DataColumnConfig(
+        id: 'seo_issues_high',
+        label: 'High',
+        sortable: true,
+        cellBuilder: (row) {
+          final count = row['seo_issues_high'] as int? ?? 0;
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: count > 0 ? Colors.red.withOpacity(0.1) : Colors.transparent,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              count.toString(),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: count > 0 ? Colors.red : Colors.grey,
+              ),
+            ),
+          );
+        },
+        csvFormatter: (value) => value?.toString() ?? '0',
+      ),
+      DataColumnConfig(
+        id: 'seo_issues_medium',
+        label: 'Medium',
+        sortable: true,
+        cellBuilder: (row) {
+          final count = row['seo_issues_medium'] as int? ?? 0;
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: count > 0 ? Colors.orange.withOpacity(0.1) : Colors.transparent,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              count.toString(),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: count > 0 ? Colors.orange : Colors.grey,
+              ),
+            ),
+          );
+        },
+        csvFormatter: (value) => value?.toString() ?? '0',
+      ),
+      DataColumnConfig(
+        id: 'seo_issues_low',
+        label: 'Low',
+        sortable: true,
+        cellBuilder: (row) {
+          final count = row['seo_issues_low'] as int? ?? 0;
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: count > 0 ? Colors.yellow.withOpacity(0.1) : Colors.transparent,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              count.toString(),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: count > 0 ? Colors.yellow[700] : Colors.grey,
+              ),
+            ),
+          );
+        },
+        csvFormatter: (value) => value?.toString() ?? '0',
       ),
     ];
   }
@@ -4694,7 +4843,11 @@ class _ChatScreenState extends State<ChatScreen> {
         final latestAudit = audits.first;
         final performanceScore = latestAudit['performance_score'] ?? 0;
         final seoIssues = latestAudit['seo_issues_count'] ?? 0;
+        final seoIssuesHigh = latestAudit['seo_issues_high'] ?? 0;
+        final seoIssuesMedium = latestAudit['seo_issues_medium'] ?? 0;
+        final seoIssuesLow = latestAudit['seo_issues_low'] ?? 0;
         final botsAllowed = latestAudit['bots_allowed'] ?? 0;
+        final botsBlocked = latestAudit['bots_blocked'] ?? 0;
         final botsChecked = latestAudit['bots_checked'] ?? 0;
         
         // Calculate trends
@@ -4748,36 +4901,31 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
               const SizedBox(height: 32),
               
-              // Latest Metrics Summary
+              // Latest Metrics Summary - Enhanced with more detail
               Row(
                 children: [
                   Expanded(
-                    child: _buildHealthMetricCard(
-                      'Performance',
-                      '${performanceScore.toInt()}/100',
-                      Icons.speed,
-                      _getScoreColor(performanceScore),
-                      trend: perfTrend,
+                    child: _buildEnhancedPerformanceCard(
+                      latestAudit, 
+                      perfTrend,
                     ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: _buildHealthMetricCard(
-                      'SEO Issues',
-                      '$seoIssues',
-                      Icons.warning_amber,
-                      seoIssues == 0 ? Colors.green : (seoIssues < 5 ? Colors.orange : Colors.red),
-                      trend: seoTrend,
-                      inverseTrend: true, // For issues, negative is good
+                    child: _buildEnhancedSEOIssuesCard(
+                      seoIssues,
+                      seoIssuesHigh,
+                      seoIssuesMedium,
+                      seoIssuesLow,
+                      seoTrend,
                     ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: _buildHealthMetricCard(
-                      'AI Bot Access',
-                      '$botsAllowed/$botsChecked',
-                      Icons.smart_toy,
-                      botsAllowed == botsChecked ? Colors.green : Colors.orange,
+                    child: _buildEnhancedBotAccessCard(
+                      botsAllowed,
+                      botsBlocked,
+                      botsChecked,
                     ),
                   ),
                 ],
@@ -4999,33 +5147,206 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildAuditHistoryItem(Map<String, dynamic> audit) {
-    final date = DateTime.parse(audit['created_at']);
+    return _ExpandableAuditHistoryItem(audit: audit, getScoreColor: _getScoreColor);
+  }
+
+  Widget _buildEnhancedPerformanceCard(Map<String, dynamic> audit, double? trend) {
     final performanceScore = audit['performance_score'] ?? 0;
-    final seoIssues = audit['seo_issues_count'] ?? 0;
-    final coreWebVitals = audit['core_web_vitals'] as Map?;
+    final lcpValue = audit['lcp_value'] ?? 'N/A';
+    final fcpValue = audit['fcp_value'] ?? 'N/A';
+    final clsValue = audit['cls_value'] ?? 'N/A';
     
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: const Color(0xFF2A2A2A),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _getScoreColor(performanceScore).withOpacity(0.3)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Date
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
             children: [
-              Text(
-                '${date.month}/${date.day}/${date.year}',
-                style: const TextStyle(
-                  fontSize: 12,
+              Icon(Icons.speed, color: _getScoreColor(performanceScore), size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                'Performance',
+                style: TextStyle(
+                  fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '${performanceScore.toInt()}/100',
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: _getScoreColor(performanceScore),
+            ),
+          ),
+          if (trend != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(
+                  trend > 0 ? Icons.trending_up : (trend < 0 ? Icons.trending_down : Icons.trending_flat),
+                  size: 16,
+                  color: trend > 0 ? Colors.green : (trend < 0 ? Colors.red : Colors.grey),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '${trend > 0 ? '+' : ''}${trend.toStringAsFixed(1)}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: trend > 0 ? Colors.green : (trend < 0 ? Colors.red : Colors.grey),
+                  ),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 12),
+          Divider(color: Colors.grey[800]),
+          const SizedBox(height: 12),
+          Text(
+            'Core Web Vitals',
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey[400],
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _buildVitalRow('LCP', lcpValue),
+          _buildVitalRow('FCP', fcpValue),
+          _buildVitalRow('CLS', clsValue),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVitalRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey[500],
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEnhancedSEOIssuesCard(int total, int high, int medium, int low, double? trend) {
+    final color = total == 0 ? Colors.green : (total < 5 ? Colors.orange : Colors.red);
+    
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2A2A2A),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.warning_amber, color: color, size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                'SEO Issues',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '$total',
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          if (trend != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(
+                  trend < 0 ? Icons.trending_down : (trend > 0 ? Icons.trending_up : Icons.trending_flat),
+                  size: 16,
+                  color: trend < 0 ? Colors.green : (trend > 0 ? Colors.red : Colors.grey),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '${trend > 0 ? '+' : ''}${trend.toStringAsFixed(0)}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: trend < 0 ? Colors.green : (trend > 0 ? Colors.red : Colors.grey),
+                  ),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 12),
+          Divider(color: Colors.grey[800]),
+          const SizedBox(height: 12),
+          Text(
+            'By Severity',
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey[400],
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _buildSeverityRow('High', high, Colors.red),
+          _buildSeverityRow('Medium', medium, Colors.orange),
+          _buildSeverityRow('Low', low, Colors.yellow[700]!),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSeverityRow(String label, int count, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 6),
               Text(
-                '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}',
+                label,
                 style: TextStyle(
                   fontSize: 11,
                   color: Colors.grey[500],
@@ -5033,64 +5354,104 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ],
           ),
-          const SizedBox(width: 24),
-          
-          // Performance Score
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: _getScoreColor(performanceScore).withOpacity(0.2),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.speed, size: 16),
-                const SizedBox(width: 4),
-                Text(
-                  '${performanceScore.toInt()}/100',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+          Text(
+            '$count',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: count > 0 ? color : Colors.grey[600],
             ),
           ),
-          const SizedBox(width: 12),
-          
-          // SEO Issues
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: (seoIssues == 0 ? Colors.green : Colors.orange).withOpacity(0.2),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.warning_amber, size: 16),
-                const SizedBox(width: 4),
-                Text(
-                  '$seoIssues issue${seoIssues == 1 ? '' : 's'}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEnhancedBotAccessCard(int allowed, int blocked, int checked) {
+    final color = allowed == checked ? Colors.green : Colors.orange;
+    
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2A2A2A),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.smart_toy, color: color, size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                'AI Bot Access',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
                 ),
-              ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '$allowed/$checked',
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: color,
             ),
           ),
-          const SizedBox(width: 12),
-          
-          // Core Web Vitals chips
-          if (coreWebVitals != null) ...[
-            _buildVitalChip('LCP', coreWebVitals['lcp']?['value'] ?? 'N/A'),
-            const SizedBox(width: 4),
-            _buildVitalChip('FCP', coreWebVitals['fcp']?['value'] ?? 'N/A'),
-            const SizedBox(width: 4),
-            _buildVitalChip('CLS', coreWebVitals['cls']?['value'] ?? 'N/A'),
-          ],
+          const SizedBox(height: 20),
+          Divider(color: Colors.grey[800]),
+          const SizedBox(height: 12),
+          Text(
+            'Breakdown',
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey[400],
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _buildBotRow('Allowed', allowed, Colors.green),
+          _buildBotRow('Blocked', blocked, Colors.red),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBotRow(String label, int count, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Icon(
+                label == 'Allowed' ? Icons.check_circle : Icons.block,
+                size: 12,
+                color: color,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey[500],
+                ),
+              ),
+            ],
+          ),
+          Text(
+            '$count',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: count > 0 ? color : Colors.grey[600],
+            ),
+          ),
         ],
       ),
     );
@@ -5550,4 +5911,441 @@ class LineChartPainter extends CustomPainter {
     return oldDelegate.data != data || oldDelegate.color != color;
   }
 }
+
+// Expandable Audit History Item Widget
+class _ExpandableAuditHistoryItem extends StatefulWidget {
+  final Map<String, dynamic> audit;
+  final Color Function(double) getScoreColor;
+
+  const _ExpandableAuditHistoryItem({
+    required this.audit,
+    required this.getScoreColor,
+  });
+
+  @override
+  State<_ExpandableAuditHistoryItem> createState() => __ExpandableAuditHistoryItemState();
+}
+
+class __ExpandableAuditHistoryItemState extends State<_ExpandableAuditHistoryItem> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final date = DateTime.parse(widget.audit['created_at']);
+    final performanceScore = widget.audit['performance_score'] ?? 0;
+    final seoIssues = widget.audit['seo_issues_count'] ?? 0;
+    final seoIssuesHigh = widget.audit['seo_issues_high'] ?? 0;
+    final seoIssuesMedium = widget.audit['seo_issues_medium'] ?? 0;
+    final seoIssuesLow = widget.audit['seo_issues_low'] ?? 0;
+    final lcpValue = widget.audit['lcp_value'] ?? 'N/A';
+    final fcpValue = widget.audit['fcp_value'] ?? 'N/A';
+    final clsValue = widget.audit['cls_value'] ?? 'N/A';
+    final tbtValue = widget.audit['tbt_value'] ?? 'N/A';
+    final ttiValue = widget.audit['tti_value'] ?? 'N/A';
+    final fullAuditData = widget.audit['full_audit_data'] as Map<String, dynamic>?;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2A2A2A),
+        borderRadius: BorderRadius.circular(8),
+        border: _isExpanded ? Border.all(color: Colors.grey[700]!, width: 1) : null,
+      ),
+      child: Column(
+        children: [
+          // Main row (always visible)
+          InkWell(
+            onTap: () {
+              setState(() {
+                _isExpanded = !_isExpanded;
+              });
+            },
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  // Date
+                  SizedBox(
+                    width: 80,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${date.month}/${date.day}/${date.year}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey[500],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  
+                  // Performance Score
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: widget.getScoreColor(performanceScore).withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.speed, size: 16),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${performanceScore.toInt()}/100',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  
+                  // SEO Issues
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: (seoIssues == 0 ? Colors.green : Colors.orange).withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.warning_amber, size: 16),
+                        const SizedBox(width: 4),
+                        Text(
+                          '$seoIssues issue${seoIssues == 1 ? '' : 's'}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  
+                  // Core Web Vitals chips
+                  _buildVitalChip('LCP', lcpValue),
+                  const SizedBox(width: 4),
+                  _buildVitalChip('FCP', fcpValue),
+                  const SizedBox(width: 4),
+                  _buildVitalChip('CLS', clsValue),
+                  
+                  const Spacer(),
+                  
+                  // Expand/Collapse icon
+                  Icon(
+                    _isExpanded ? Icons.expand_less : Icons.expand_more,
+                    color: Colors.grey[400],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          // Expanded details
+          if (_isExpanded) ...[
+            Divider(color: Colors.grey[800], height: 1),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Performance Metrics Section
+                  Text(
+                    'Performance Metrics',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[300],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(child: _buildMetricCard('LCP', lcpValue)),
+                      const SizedBox(width: 8),
+                      Expanded(child: _buildMetricCard('FCP', fcpValue)),
+                      const SizedBox(width: 8),
+                      Expanded(child: _buildMetricCard('CLS', clsValue)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(child: _buildMetricCard('TBT', tbtValue)),
+                      const SizedBox(width: 8),
+                      Expanded(child: _buildMetricCard('TTI', ttiValue)),
+                      const SizedBox(width: 8),
+                      const Expanded(child: SizedBox()), // Empty space
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  
+                  // SEO Issues Section
+                  if (seoIssues > 0) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'SEO Issues Breakdown',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[300],
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            _buildSeverityBadge('High', seoIssuesHigh, Colors.red),
+                            const SizedBox(width: 8),
+                            _buildSeverityBadge('Med', seoIssuesMedium, Colors.orange),
+                            const SizedBox(width: 8),
+                            _buildSeverityBadge('Low', seoIssuesLow, Colors.yellow[700]!),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    if (fullAuditData != null && fullAuditData['raw_data'] != null) ...[
+                      _buildIssuesList(fullAuditData),
+                    ] else ...[
+                      Text(
+                        'No detailed issue data available',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                    ],
+                  ] else ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: Colors.green.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.check_circle, color: Colors.green, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            'No SEO issues found! 🎉',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey[300],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVitalChip(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.grey[800],
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        '$label: $value',
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMetricCard(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.grey[850],
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              color: Colors.grey[500],
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSeverityBadge(String label, int count, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withOpacity(0.5)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: color,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '$count',
+            style: TextStyle(
+              fontSize: 11,
+              color: color,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIssuesList(Map<String, dynamic> fullAuditData) {
+    final rawData = fullAuditData['raw_data'] as Map?;
+    if (rawData == null) {
+      return const SizedBox.shrink();
+    }
+
+    final seoData = rawData['seo'] as Map?;
+    if (seoData == null) {
+      return const SizedBox.shrink();
+    }
+
+    final issues = seoData['issues'] as List? ?? [];
+    if (issues.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    // Limit to first 5 issues for brevity
+    final displayIssues = issues.take(5).toList();
+
+    return Column(
+      children: [
+        ...displayIssues.map((issue) => _buildIssueItem(issue as Map<String, dynamic>)).toList(),
+        if (issues.length > 5) ...[
+          const SizedBox(height: 8),
+          Text(
+            '+ ${issues.length - 5} more issues',
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey[500],
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildIssueItem(Map<String, dynamic> issue) {
+    final severity = issue['severity'] ?? 'low';
+    final type = issue['type'] ?? 'Unknown';
+    final description = issue['description'] ?? 'No description';
+    
+    Color severityColor;
+    if (severity == 'high') {
+      severityColor = Colors.red;
+    } else if (severity == 'medium') {
+      severityColor = Colors.orange;
+    } else {
+      severityColor = Colors.yellow[700]!;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.grey[850],
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: severityColor.withOpacity(0.3)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            margin: const EdgeInsets.only(top: 4),
+            decoration: BoxDecoration(
+              color: severityColor,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  type,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey[400],
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
 
