@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Header
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from typing import List, Optional, AsyncIterator
+from typing import List, Optional, AsyncIterator, Dict, Any
 import uuid
 import re
 import logging
@@ -15,11 +15,14 @@ from ..models.user import User
 from ..models.conversation import Conversation, Message
 from ..models.project import Project, TrackedKeyword
 from ..models.pin import PinnedItem
+from ..models.technical_audit import TechnicalAudit
 from ..services.keyword_service import KeywordService
 from ..services.llm_service import LLMService
 from ..services.rank_checker import RankCheckerService
 from ..services.rapidapi_backlinks_service import RapidAPIBacklinkService
 from ..services.dataforseo_backlinks_service import DataForSEOBacklinksService
+from ..services.dataforseo_service import DataForSEOService
+from ..services.rapidapi_seo_service import RapidAPISEOService
 from ..services.web_scraper import WebScraperService
 from ..services.gsc_service import GSCService
 from ..models.backlink_analysis import BacklinkAnalysis
@@ -34,8 +37,129 @@ llm_service = LLMService()
 rank_checker = RankCheckerService()
 backlink_service = RapidAPIBacklinkService()
 dataforseo_backlink_service = DataForSEOBacklinksService()
+dataforseo_service = DataForSEOService()
+rapidapi_seo_service = RapidAPISEOService()
 web_scraper = WebScraperService()
 gsc_service = GSCService()
+
+
+def save_technical_audit(
+    db: Session,
+    user_id: str,
+    url: str,
+    audit_data: Dict[str, Any]
+) -> Optional[TechnicalAudit]:
+    """
+    Save technical audit results to database if a matching project exists
+    
+    Returns the saved TechnicalAudit or None if no matching project
+    """
+    try:
+        # Find project by URL (match domain)
+        from urllib.parse import urlparse
+        parsed_url = urlparse(url)
+        domain = parsed_url.netloc or parsed_url.path
+        domain = domain.replace('www.', '').replace('http://', '').replace('https://', '').strip('/').lower()
+        
+        # Find projects where target_url contains this domain
+        projects = db.query(Project).filter(
+            Project.user_id == user_id
+        ).all()
+        
+        matching_project = None
+        for p in projects:
+            if p.target_url:
+                p_parsed = urlparse(p.target_url)
+                p_domain = (p_parsed.netloc or p_parsed.path).replace('www.', '').replace('http://', '').replace('https://', '').strip('/').lower()
+                if domain in p_domain or p_domain in domain:
+                    matching_project = p
+                    break
+        
+        if not matching_project:
+            logger.info(f"📊 No matching project found for {url} (domain: {domain})")
+            return None
+        
+        # Extract metrics from audit data
+        raw_data = audit_data.get("raw_data", {})
+        perf_data = raw_data.get("performance", {})
+        seo_data = raw_data.get("seo", {})
+        bot_data = raw_data.get("bots", {})
+        
+        metrics = perf_data.get("metrics", [])
+        seo_issues = seo_data.get("issues", [])
+        bots = bot_data.get("bots", [])
+        
+        # Parse performance metrics
+        perf_metrics = {}
+        for metric in metrics:
+            name = metric.get("metric_name", "")
+            if "Performance Score" in name:
+                perf_metrics["performance_score"] = metric.get("score", 0)
+            elif "FCP" in name:
+                perf_metrics["fcp_value"] = metric.get("value")
+                perf_metrics["fcp_score"] = metric.get("score", 0)
+            elif "LCP" in name:
+                perf_metrics["lcp_value"] = metric.get("value")
+                perf_metrics["lcp_score"] = metric.get("score", 0)
+            elif "CLS" in name:
+                perf_metrics["cls_value"] = metric.get("value")
+                perf_metrics["cls_score"] = metric.get("score", 0)
+            elif "TBT" in name:
+                perf_metrics["tbt_value"] = metric.get("value")
+                perf_metrics["tbt_score"] = metric.get("score", 0)
+            elif "TTI" in name:
+                perf_metrics["tti_value"] = metric.get("value")
+                perf_metrics["tti_score"] = metric.get("score", 0)
+        
+        # Count SEO issues by severity
+        seo_high = sum(1 for issue in seo_issues if issue.get("severity") == "high")
+        seo_medium = sum(1 for issue in seo_issues if issue.get("severity") == "medium")
+        seo_low = sum(1 for issue in seo_issues if issue.get("severity") == "low")
+        
+        # Count bot access
+        bots_allowed = sum(1 for bot in bots if bot.get("status") == "Allowed")
+        bots_blocked = sum(1 for bot in bots if bot.get("status") == "Blocked")
+        
+        # Create audit record
+        audit = TechnicalAudit(
+            id=str(uuid.uuid4()),
+            project_id=matching_project.id,
+            url=url,
+            audit_type="comprehensive",
+            performance_score=perf_metrics.get("performance_score"),
+            fcp_value=perf_metrics.get("fcp_value"),
+            fcp_score=perf_metrics.get("fcp_score"),
+            lcp_value=perf_metrics.get("lcp_value"),
+            lcp_score=perf_metrics.get("lcp_score"),
+            cls_value=perf_metrics.get("cls_value"),
+            cls_score=perf_metrics.get("cls_score"),
+            tbt_value=perf_metrics.get("tbt_value"),
+            tbt_score=perf_metrics.get("tbt_score"),
+            tti_value=perf_metrics.get("tti_value"),
+            tti_score=perf_metrics.get("tti_score"),
+            seo_issues_count=len(seo_issues),
+            seo_issues_high=seo_high,
+            seo_issues_medium=seo_medium,
+            seo_issues_low=seo_low,
+            bots_checked=len(bots),
+            bots_allowed=bots_allowed,
+            bots_blocked=bots_blocked,
+            full_audit_data=audit_data,
+            created_by=user_id
+        )
+        
+        db.add(audit)
+        db.commit()
+        db.refresh(audit)
+        
+        logger.info(f"💾 Saved technical audit for project '{matching_project.name}' (score: {perf_metrics.get('performance_score', 0):.0f})")
+        return audit
+        
+    except Exception as e:
+        logger.error(f"Error saving technical audit: {e}", exc_info=True)
+        db.rollback()
+        return None
+
 
 class ChatRequest(BaseModel):
     message: str
@@ -244,7 +368,7 @@ async def send_message_stream(
                     "type": "function",
                     "function": {
                         "name": "analyze_website",
-                        "description": "Analyze website content for keyword strategy and positioning. DEFAULT tool for general website analysis requests. Scrapes pages to extract titles, headings, content and suggests keyword opportunities. Use this when user asks to 'analyze site', 'check website', 'look at site' without specifying 'technical'. After analysis, you can suggest running technical audit if helpful.",
+                        "description": "Analyze website content for keyword strategy and positioning. Scrapes pages to extract titles, headings, content and suggests keyword opportunities. Use when user asks about: keywords, content, positioning, SEO strategy. DO NOT use if user says 'technical' - use analyze_technical_seo instead. If request is ambiguous, ask which type of analysis they want.",
                         "parameters": {
                             "type": "object",
                             "properties": {
@@ -271,6 +395,57 @@ async def send_message_stream(
                                 }
                             },
                             "required": ["domain"]
+                        }
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "analyze_technical_seo",
+                        "description": "Run COMPREHENSIVE technical audit covering: 1) Technical SEO (meta tags, headings, broken links, images), 2) Performance (Core Web Vitals, LCP, FCP, CLS, TBT, Speed Index), 3) AI Bot Access (GPTBot, Claude, Perplexity, etc). Returns unified view of all issues. Use when user says 'technical' + (health check, audit, analysis, issues, errors, performance). Fast (~5-7 sec). DO NOT use for keyword/content analysis.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "url": {
+                                    "type": "string",
+                                    "description": "Full URL of the website to audit (e.g., 'https://example.com')"
+                                }
+                            },
+                            "required": ["url"]
+                        }
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "check_ai_bot_access",
+                        "description": "Check which AI bots can access and crawl the website (GPTBot, Claude-Web, Perplexity, etc.). Use when user asks about: AI crawlers, bot access, AI search visibility, which AI can see their site. Very fast (~1 sec).",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "url": {
+                                    "type": "string",
+                                    "description": "Full URL of the website to check (e.g., 'https://example.com')"
+                                }
+                            },
+                            "required": ["url"]
+                        }
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "analyze_performance",
+                        "description": "Run full performance audit with Core Web Vitals (LCP, FCP, CLS, TBT, Speed Index). Use when user asks about: site speed, performance, load time, Core Web Vitals, Lighthouse score, page speed. Takes ~15 sec.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "url": {
+                                    "type": "string",
+                                    "description": "Full URL of the website to analyze (e.g., 'https://example.com')"
+                                }
+                            },
+                            "required": ["url"]
                         }
                     }
                 },
@@ -474,6 +649,7 @@ async def send_message_stream(
             # Execute tool calls with status updates
             if tool_calls:
                 tool_results = []
+                metadata = None  # Initialize metadata to store data panel info
                 
                 for tool_call in tool_calls:
                     tool_name = tool_call["name"]
@@ -492,6 +668,10 @@ async def send_message_stream(
                         yield await send_sse_event("status", {"message": "Analyzing website..."})
                     elif tool_name == "analyze_technical_seo":
                         yield await send_sse_event("status", {"message": "Running technical SEO audit..."})
+                    elif tool_name == "check_ai_bot_access":
+                        yield await send_sse_event("status", {"message": "Checking AI bot access..."})
+                    elif tool_name == "analyze_performance":
+                        yield await send_sse_event("status", {"message": "Analyzing performance & Core Web Vitals..."})
                     elif tool_name == "analyze_backlinks":
                         yield await send_sse_event("status", {"message": "Analyzing backlinks..."})
                     elif tool_name == "get_project_keywords":
@@ -640,13 +820,45 @@ async def send_message_stream(
                         elif tool_name == "analyze_technical_seo":
                             url = args.get("url")
                             
-                            audit_data = await dataforseo_service.analyze_technical_seo(url)
+                            # Run comprehensive audit (SEO + Performance + AI Bots)
+                            audit_data = await rapidapi_seo_service.comprehensive_technical_audit(url)
                             
-                            # Store issues in metadata for data panel
-                            if audit_data.get("issues"):
+                            # Store separate datasets in metadata for tabbed view
+                            if audit_data.get("raw_data"):
+                                raw = audit_data["raw_data"]
                                 metadata = {
-                                    "technical_seo_issues": audit_data["issues"],
+                                    "technical_audit_tabs": {
+                                        "seo_issues": raw["seo"].get("issues", []),
+                                        "performance": raw["performance"].get("metrics", []),
+                                        "ai_bots": raw["bots"].get("bots", [])
+                                    },
                                     "summary": audit_data.get("summary", {}),
+                                    "url": url
+                                }
+                                logger.info(f"✅ Set metadata for technical audit with {len(raw['seo'].get('issues', []))} SEO issues, {len(raw['performance'].get('metrics', []))} performance metrics, {len(raw['bots'].get('bots', []))} bots")
+                                
+                                # Save audit to database if project exists
+                                save_technical_audit(db, user.id, url, audit_data)
+                            else:
+                                logger.warning(f"⚠️ No raw_data in audit_data: {audit_data.keys()}")
+                            
+                            tool_results.append({
+                                "tool_call_id": tool_call["id"],
+                                "role": "tool",
+                                "name": tool_name,
+                                "content": json.dumps(audit_data)
+                            })
+                        
+                        elif tool_name == "check_ai_bot_access":
+                            url = args.get("url")
+                            
+                            bot_data = await rapidapi_seo_service.check_ai_bot_access(url)
+                            
+                            # Store bot access data in metadata for data panel
+                            if not bot_data.get("error") and bot_data.get("bots"):
+                                metadata = {
+                                    "ai_bot_access": bot_data["bots"],
+                                    "summary": bot_data.get("summary", {}),
                                     "url": url
                                 }
                             
@@ -654,7 +866,27 @@ async def send_message_stream(
                                 "tool_call_id": tool_call["id"],
                                 "role": "tool",
                                 "name": tool_name,
-                                "content": json.dumps(audit_data)
+                                "content": json.dumps(bot_data)
+                            })
+                        
+                        elif tool_name == "analyze_performance":
+                            url = args.get("url")
+                            
+                            performance_data = await rapidapi_seo_service.analyze_performance(url)
+                            
+                            # Store performance metrics in metadata for data panel
+                            if not performance_data.get("error") and performance_data.get("metrics"):
+                                metadata = {
+                                    "performance_data": performance_data["metrics"],
+                                    "summary": performance_data.get("summary", {}),
+                                    "url": url
+                                }
+                            
+                            tool_results.append({
+                                "tool_call_id": tool_call["id"],
+                                "role": "tool",
+                                "name": tool_name,
+                                "content": json.dumps(performance_data)
                             })
                         
                         elif tool_name == "analyze_backlinks":
@@ -1417,7 +1649,9 @@ OVERVIEW:
             
             # Save assistant message (only if we have content)
             if assistant_response:
-                metadata = {}
+                # Don't reset metadata if it was set during tool execution
+                if 'metadata' not in locals() or metadata is None:
+                    metadata = {}
                 if reasoning:
                     metadata["reasoning"] = reasoning
                 
@@ -1486,10 +1720,18 @@ OVERVIEW:
                 "conversation_id": conversation.id
             }
             
-            # Include metadata if available (for keyword data, etc.)
-            if assistant_response and 'metadata' in locals() and metadata:
-                message_data["metadata"] = metadata
+            # Debug: Print metadata state
+            logger.info(f"🔍 DEBUG: About to check metadata. metadata={metadata}, type={type(metadata)}, bool={bool(metadata) if metadata else 'N/A'}")
             
+            # Include metadata if available (for keyword data, etc.)
+            # Check if metadata exists and is not just an empty dict
+            if assistant_response and 'metadata' in locals() and metadata is not None and (isinstance(metadata, dict) and len(metadata) > 0):
+                logger.info(f"📊 Including metadata in SSE response: {list(metadata.keys())}")
+                message_data["metadata"] = metadata
+            else:
+                logger.warning(f"⚠️ No metadata to include. assistant_response={bool(assistant_response)}, metadata_in_locals={'metadata' in locals()}, metadata_value={metadata}, metadata_type={type(metadata) if 'metadata' in locals() else 'NOT IN LOCALS'}")
+            
+            logger.info(f"🚀 Final message_data keys: {list(message_data.keys())}")
             yield await send_sse_event("message", message_data)
             
             # Send done event
@@ -1701,7 +1943,7 @@ async def send_message(
                     "type": "function",
                     "function": {
                         "name": "analyze_website",
-                        "description": "Analyze website content for keyword strategy and positioning. DEFAULT tool for general website analysis requests. Scrapes pages to extract titles, headings, content and suggests keyword opportunities. Use this when user asks to 'analyze site', 'check website', 'look at site' without specifying 'technical'. After analysis, you can suggest running technical audit if helpful.",
+                        "description": "Analyze website content for keyword strategy and positioning. Scrapes pages to extract titles, headings, content and suggests keyword opportunities. Use when user asks about: keywords, content, positioning, SEO strategy. DO NOT use if user says 'technical' - use analyze_technical_seo instead. If request is ambiguous, ask which type of analysis they want.",
                         "parameters": {
                             "type": "object",
                             "properties": {
@@ -1718,13 +1960,47 @@ async def send_message(
                     "type": "function",
                     "function": {
                         "name": "analyze_technical_seo",
-                        "description": "Run technical SEO audit to find site issues (meta tags, broken links, errors). ONLY use when user explicitly asks for 'technical SEO', 'technical audit', 'technical analysis', 'technical issues', 'on-page problems', 'site errors', 'broken links'. Takes longer (~30 sec) and more expensive. DO NOT use for general site analysis - use analyze_website for that. If unsure, ask user: 'Do you want content analysis or technical issue detection?'",
+                        "description": "Run COMPREHENSIVE technical audit covering: 1) Technical SEO (meta tags, headings, broken links, images), 2) Performance (Core Web Vitals, LCP, FCP, CLS, TBT, Speed Index), 3) AI Bot Access (GPTBot, Claude, Perplexity, etc). Returns unified view of all issues. Use when user says 'technical' + (health check, audit, analysis, issues, errors, performance). Fast (~5-7 sec). DO NOT use for keyword/content analysis.",
                         "parameters": {
                             "type": "object",
                             "properties": {
                                 "url": {
                                     "type": "string",
                                     "description": "Full URL of the website to audit (e.g., 'https://example.com')"
+                                }
+                            },
+                            "required": ["url"]
+                        }
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "check_ai_bot_access",
+                        "description": "Check which AI bots can access and crawl the website (GPTBot, Claude-Web, Perplexity, etc.). Use when user asks about: AI crawlers, bot access, AI search visibility, which AI can see their site. Very fast (~1 sec).",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "url": {
+                                    "type": "string",
+                                    "description": "Full URL of the website to check (e.g., 'https://example.com')"
+                                }
+                            },
+                            "required": ["url"]
+                        }
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "analyze_performance",
+                        "description": "Run full performance audit with Core Web Vitals (LCP, FCP, CLS, TBT, Speed Index). Use when user asks about: site speed, performance, load time, Core Web Vitals, Lighthouse score, page speed. Takes ~15 sec.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "url": {
+                                    "type": "string",
+                                    "description": "Full URL of the website to analyze (e.g., 'https://example.com')"
                                 }
                             },
                             "required": ["url"]
@@ -1949,6 +2225,7 @@ async def send_message(
     if tool_calls:
         logger.info(f"🛠️  Executing {len(tool_calls)} tool calls")
         tool_results = []
+        message_metadata = None  # Initialize metadata to store data panel info
         
         for tool_call in tool_calls:
             tool_name = tool_call["name"]
@@ -2105,16 +2382,24 @@ async def send_message(
                 elif tool_name == "analyze_technical_seo":
                     url = args.get("url")
                     
-                    logger.info(f"  🔍 Running technical SEO audit for: {url}")
-                    audit_data = await dataforseo_service.analyze_technical_seo(url)
+                    logger.info(f"  🔍 Running comprehensive technical audit for: {url}")
+                    audit_data = await rapidapi_seo_service.comprehensive_technical_audit(url)
                     
-                    # Store issues in metadata for data panel
-                    if audit_data.get("issues"):
+                    # Store separate datasets in metadata for tabbed view
+                    if audit_data.get("raw_data"):
+                        raw = audit_data["raw_data"]
                         message_metadata = {
-                            "technical_seo_issues": audit_data["issues"],
+                            "technical_audit_tabs": {
+                                "seo_issues": raw["seo"].get("issues", []),
+                                "performance": raw["performance"].get("metrics", []),
+                                "ai_bots": raw["bots"].get("bots", [])
+                            },
                             "summary": audit_data.get("summary", {}),
                             "url": url
                         }
+                        
+                        # Save audit to database if project exists
+                        save_technical_audit(db, user.id, url, audit_data)
                     
                     tool_results.append({
                         "tool_call_id": tool_call["id"],
@@ -2124,10 +2409,64 @@ async def send_message(
                     })
                     
                     if audit_data.get("error"):
-                        logger.error(f"  ❌ Technical SEO audit failed: {audit_data['error']}")
+                        logger.error(f"  ❌ Comprehensive audit failed: {audit_data['error']}")
                     else:
                         summary = audit_data.get("summary", {})
-                        logger.info(f"  ✅ Found {summary.get('total_issues', 0)} issues: {summary.get('high', 0)} high, {summary.get('medium', 0)} medium, {summary.get('low', 0)} low")
+                        logger.info(f"  ✅ Comprehensive audit completed: {summary.get('total_items', 0)} items, Performance: {summary.get('performance_score', 0):.0f}/100, Bots: {summary.get('bots_allowed', 0)}/{summary.get('bots_checked', 0)} allowed")
+                
+                elif tool_name == "check_ai_bot_access":
+                    url = args.get("url")
+                    
+                    logger.info(f"  🤖 Checking AI bot access for: {url}")
+                    bot_data = await rapidapi_seo_service.check_ai_bot_access(url)
+                    
+                    # Store bot access data in metadata for data panel
+                    if not bot_data.get("error") and bot_data.get("bots"):
+                        message_metadata = {
+                            "ai_bot_access": bot_data["bots"],
+                            "summary": bot_data.get("summary", {}),
+                            "url": url
+                        }
+                    
+                    tool_results.append({
+                        "tool_call_id": tool_call["id"],
+                        "role": "tool",
+                        "name": tool_name,
+                        "content": json.dumps(bot_data)
+                    })
+                    
+                    if bot_data.get("error"):
+                        logger.error(f"  ❌ AI bot check failed: {bot_data['error']}")
+                    else:
+                        summary = bot_data.get("summary", {})
+                        logger.info(f"  ✅ AI bot access check completed: {summary.get('allowed', 0)}/{summary.get('total_bots', 0)} bots allowed")
+                
+                elif tool_name == "analyze_performance":
+                    url = args.get("url")
+                    
+                    logger.info(f"  ⚡ Analyzing performance for: {url}")
+                    performance_data = await rapidapi_seo_service.analyze_performance(url)
+                    
+                    # Store performance metrics in metadata for data panel
+                    if not performance_data.get("error") and performance_data.get("metrics"):
+                        message_metadata = {
+                            "performance_data": performance_data["metrics"],
+                            "summary": performance_data.get("summary", {}),
+                            "url": url
+                        }
+                    
+                    tool_results.append({
+                        "tool_call_id": tool_call["id"],
+                        "role": "tool",
+                        "name": tool_name,
+                        "content": json.dumps(performance_data)
+                    })
+                    
+                    if performance_data.get("error"):
+                        logger.error(f"  ❌ Performance analysis failed: {performance_data['error']}")
+                    else:
+                        summary = performance_data.get("summary", {})
+                        logger.info(f"  ✅ Performance analysis completed: Overall score {summary.get('overall_score', 0):.0f}/100")
                 
                 elif tool_name == "analyze_backlinks":
                     domain = args.get("domain")
@@ -2901,9 +3240,11 @@ OVERVIEW:
     
     # Save assistant message (only if we have content)
     if assistant_response:
-        metadata = {}
+        # Don't reset message_metadata if it was set during tool execution
+        if 'message_metadata' not in locals() or message_metadata is None:
+            message_metadata = {}
         if reasoning:
-            metadata["reasoning"] = reasoning
+            message_metadata["reasoning"] = reasoning
         
         # Save keyword data in metadata if tools were used
         if tool_calls and len(tool_calls) > 0:
@@ -2916,7 +3257,7 @@ OVERVIEW:
                                 import json as json_module
                                 result_data = json_module.loads(result.get("content", "{}"))
                                 if "keywords" in result_data:
-                                    metadata["keyword_data"] = result_data["keywords"]
+                                    message_metadata["keyword_data"] = result_data["keywords"]
                                     break
                             except:
                                 pass
@@ -2926,7 +3267,7 @@ OVERVIEW:
             conversation_id=conversation.id,
             role="assistant",
             content=assistant_response,
-            message_metadata=metadata if metadata else None
+            message_metadata=message_metadata if message_metadata else None
         )
         db.add(assistant_message)
         db.commit()
@@ -3214,4 +3555,75 @@ def extract_keywords_from_message(message: str) -> List[str]:
         return [' '.join(words[:3])]
     
     return []
+
+
+@router.get("/project/{project_id}/technical-audits")
+async def get_project_audits(
+    project_id: str,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Get technical audit history for a project
+    
+    Returns audit results ordered by date (newest first) with performance trends
+    """
+    token = authorization.replace("Bearer ", "")
+    user = get_current_user(token, db)
+    
+    # Verify project belongs to user
+    project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.user_id == user.id
+    ).first()
+    
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Get all audits for this project
+    audits = db.query(TechnicalAudit).filter(
+        TechnicalAudit.project_id == project_id
+    ).order_by(TechnicalAudit.created_at.desc()).all()
+    
+    # Format response with trends
+    audit_history = []
+    for i, audit in enumerate(audits):
+        audit_dict = {
+            "id": audit.id,
+            "url": audit.url,
+            "audit_type": audit.audit_type,
+            "created_at": audit.created_at.isoformat(),
+            "performance_score": audit.performance_score,
+            "seo_issues_count": audit.seo_issues_count,
+            "seo_issues_high": audit.seo_issues_high,
+            "seo_issues_medium": audit.seo_issues_medium,
+            "seo_issues_low": audit.seo_issues_low,
+            "bots_checked": audit.bots_checked,
+            "bots_allowed": audit.bots_allowed,
+            "bots_blocked": audit.bots_blocked,
+            "core_web_vitals": {
+                "fcp": {"value": audit.fcp_value, "score": audit.fcp_score},
+                "lcp": {"value": audit.lcp_value, "score": audit.lcp_score},
+                "cls": {"value": audit.cls_value, "score": audit.cls_score},
+                "tbt": {"value": audit.tbt_value, "score": audit.tbt_score},
+                "tti": {"value": audit.tti_value, "score": audit.tti_score},
+            }
+        }
+        
+        # Calculate trend vs previous audit
+        if i < len(audits) - 1:
+            prev_audit = audits[i + 1]
+            if audit.performance_score and prev_audit.performance_score:
+                audit_dict["performance_trend"] = audit.performance_score - prev_audit.performance_score
+            if audit.seo_issues_count and prev_audit.seo_issues_count:
+                audit_dict["seo_issues_trend"] = prev_audit.seo_issues_count - audit.seo_issues_count  # Positive = improvement
+        
+        audit_history.append(audit_dict)
+    
+    return {
+        "project_id": project_id,
+        "project_name": project.name,
+        "total_audits": len(audits),
+        "audits": audit_history
+    }
 

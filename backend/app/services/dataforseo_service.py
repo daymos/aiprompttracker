@@ -466,15 +466,15 @@ class DataForSEOService:
             task_endpoint = f"{self.base_url}/on_page/task_post"
             
             task_payload = [{
-                "target": domain,
-                "max_crawl_pages": 50,  # Limit crawl depth
-                "load_resources": True,
-                "enable_javascript": False,  # Faster crawl
+                "target": url,  # Must be full URL with protocol
+                "max_crawl_pages": 50,
+                "load_resources": False,  # Don't load CSS/JS resources (faster)
+                "enable_javascript": False,
                 "check_spell": False,
                 "calculate_keyword_density": False,
             }]
             
-            logger.info(f"📤 Posting OnPage task for {domain}")
+            logger.info(f"📤 Posting OnPage task for {url}")
             
             async with httpx.AsyncClient(timeout=60.0) as client:
                 task_response = await client.post(
@@ -495,7 +495,7 @@ class DataForSEOService:
                 
                 # Step 2: Wait for task completion (poll every 5 seconds)
                 summary_endpoint = f"{self.base_url}/on_page/summary/{task_id}"
-                max_wait = 60  # 60 seconds max wait
+                max_wait = 90  # 90 seconds max wait for crawl to complete
                 waited = 0
                 
                 while waited < max_wait:
@@ -512,23 +512,37 @@ class DataForSEOService:
                     if summary_data.get('status_code') == 20000:
                         tasks = summary_data.get('tasks', [])
                         if tasks and tasks[0].get('result'):
-                            logger.info(f"✅ OnPage audit completed after {waited}s")
-                            break
+                            result_info = tasks[0].get('result', [])
+                            if result_info and len(result_info) > 0:
+                                items_count = result_info[0].get('items_count', 0)
+                                crawl_progress = result_info[0].get('crawl_progress', 'unknown')
+                                logger.info(f"📊 Crawl progress: {crawl_progress}, items_count: {items_count}")
+                                
+                                # Exit as soon as crawl is finished (items_count is unreliable in summary)
+                                if crawl_progress == 'finished':
+                                    logger.info(f"✅ OnPage crawl finished after {waited}s (summary shows {items_count} items)")
+                                    break
                     
-                    logger.info(f"⏳ Waiting for OnPage audit... ({waited}s)")
+                    logger.info(f"⏳ Waiting for OnPage crawl to complete... ({waited}s)")
                 
-                # Step 3: Get detailed results
-                pages_endpoint = f"{self.base_url}/on_page/pages/{task_id}"
+                # Step 3: Get detailed page results using POST to /pages endpoint
+                pages_endpoint = f"{self.base_url}/on_page/pages"
+                pages_payload = [{"id": task_id}]
                 
-                pages_response = await client.get(
+                pages_response = await client.post(
                     pages_endpoint,
-                    auth=(self.login, self.password)
+                    auth=(self.login, self.password),
+                    json=pages_payload
                 )
                 pages_response.raise_for_status()
                 pages_data = pages_response.json()
                 
+                logger.info(f"📥 Pages API response status: {pages_data.get('status_code')}")
+                
                 if pages_data.get('status_code') != 20000:
-                    return {"error": "Failed to retrieve audit results", "issues": []}
+                    error_msg = pages_data.get('status_message', 'Failed to retrieve page details')
+                    logger.error(f"Pages API error: {error_msg}")
+                    return {"error": error_msg, "issues": []}
                 
                 # Parse results into structured issues
                 return self._parse_onpage_results(pages_data, url)
@@ -544,11 +558,16 @@ class DataForSEOService:
         tasks = pages_data.get('tasks', [])
         
         if not tasks or not tasks[0].get('result'):
+            logger.warning("No tasks or results in pages_data")
             return {"issues": [], "summary": {"total_issues": 0}}
         
-        result = tasks[0]['result'][0]
+        result = tasks[0]['result'][0] if tasks[0]['result'] else {}
+        if not result:
+            logger.warning("Empty result in pages_data")
+            return {"issues": [], "summary": {"total_issues": 0}}
+        
         crawl_status = result.get('crawl_status', {})
-        pages = result.get('items', [])
+        pages = result.get('items') or []  # Handle None explicitly
         
         logger.info(f"📊 Analyzing {len(pages)} crawled pages")
         

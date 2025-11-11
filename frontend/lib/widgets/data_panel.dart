@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:html' as html;
 import 'dart:convert';
+import 'performance_dashboard.dart';
 
 /// Column definition for the data table
 class DataColumnConfig {
@@ -29,6 +30,10 @@ class DataPanel extends StatefulWidget {
   final List<Map<String, dynamic>> projects;
   final Function(String projectId, List<Map<String, dynamic>>)? onAddToProject;
   final String? csvFilename;
+  // For tabbed views (technical audits)
+  final Map<String, List<Map<String, dynamic>>>? tabs;
+  final Map<String, List<DataColumnConfig>>? tabColumns;
+  final String? dataPanelUrl;
 
   const DataPanel({
     super.key,
@@ -39,34 +44,87 @@ class DataPanel extends StatefulWidget {
     this.projects = const [],
     this.onAddToProject,
     this.csvFilename,
+    this.tabs,
+    this.tabColumns,
+    this.dataPanelUrl,
   });
 
   @override
   State<DataPanel> createState() => _DataPanelState();
 }
 
-class _DataPanelState extends State<DataPanel> {
+class _DataPanelState extends State<DataPanel> with SingleTickerProviderStateMixin {
   String? _sortColumn;
   bool _sortAscending = false;
   final Set<int> _selectedRows = {};
   List<Map<String, dynamic>> _sortedData = [];
   double _panelWidth = 600; // Default width, can be resized
+  TabController? _tabController;
+  String? _currentTab;
 
   @override
   void initState() {
     super.initState();
-    _sortedData = List.from(widget.data);
+    
+    // Initialize tabs if present
+    if (widget.tabs != null && widget.tabs!.isNotEmpty) {
+      _currentTab = widget.tabs!.keys.first;
+      _tabController = TabController(length: widget.tabs!.length, vsync: this);
+      _sortedData = List.from(widget.tabs![_currentTab!]!);
+    } else {
+      _sortedData = List.from(widget.data);
+    }
+    
     // Sort by first numeric column by default
-    final defaultSortColumn = widget.columns.firstWhere(
+    final columns = _getCurrentColumns();
+    final defaultSortColumn = columns.firstWhere(
       (col) => col.numeric && col.sortable,
-      orElse: () => widget.columns.first,
+      orElse: () => columns.first,
     );
     _sortColumn = defaultSortColumn.id;
     _onSort(_sortColumn!);
   }
+  
+  @override
+  void dispose() {
+    _tabController?.dispose();
+    super.dispose();
+  }
+  
+  List<DataColumnConfig> _getCurrentColumns() {
+    if (widget.tabs != null && _currentTab != null && widget.tabColumns != null) {
+      return widget.tabColumns![_currentTab!] ?? widget.columns;
+    }
+    return widget.columns;
+  }
+  
+  List<Map<String, dynamic>> _getCurrentData() {
+    if (widget.tabs != null && _currentTab != null) {
+      return widget.tabs![_currentTab!] ?? [];
+    }
+    return widget.data;
+  }
+  
+  void _onTabChanged(String tabName) {
+    setState(() {
+      _currentTab = tabName;
+      _sortedData = List.from(widget.tabs![tabName]!);
+      _selectedRows.clear();
+      
+      // Reset sort for new tab
+      final columns = _getCurrentColumns();
+      final defaultSortColumn = columns.firstWhere(
+        (col) => col.numeric && col.sortable,
+        orElse: () => columns.first,
+      );
+      _sortColumn = defaultSortColumn.id;
+      _onSort(_sortColumn!);
+    });
+  }
 
   void _onSort(String columnId) {
-    final column = widget.columns.firstWhere((col) => col.id == columnId);
+    final columns = _getCurrentColumns();
+    final column = columns.firstWhere((col) => col.id == columnId);
     if (!column.sortable) return;
 
     setState(() {
@@ -111,12 +169,14 @@ class _DataPanelState extends State<DataPanel> {
     // Build CSV content
     final csvContent = StringBuffer();
     
+    final columns = _getCurrentColumns();
+    
     // Headers
-    csvContent.writeln(widget.columns.map((col) => col.label).join(','));
+    csvContent.writeln(columns.map((col) => col.label).join(','));
     
     // Data rows
     for (var row in _sortedData) {
-      final values = widget.columns.map((col) {
+      final values = columns.map((col) {
         final value = row[col.id];
         if (col.csvFormatter != null) {
           return col.csvFormatter!(value);
@@ -221,7 +281,7 @@ class _DataPanelState extends State<DataPanel> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '${widget.data.length} items',
+                              '${_sortedData.length} items',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey[400],
@@ -239,35 +299,74 @@ class _DataPanelState extends State<DataPanel> {
                   ),
                 ),
 
-                // Actions bar
-                Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: Colors.grey[800]!, width: 1),
-              ),
-            ),
-                  child: Row(
-                    children: [
-                      Text(
-                        '${_selectedRows.length} selected',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[400],
-                        ),
+                // Tabs bar (if tabbed view)
+                if (widget.tabs != null && widget.tabs!.isNotEmpty)
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(color: Colors.grey[800]!, width: 1),
                       ),
-                      const SizedBox(width: 16),
-                      TextButton.icon(
-                        onPressed: _downloadCSV,
-                        icon: const Icon(Icons.download, size: 16),
-                        label: const Text('Export CSV'),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
+                    ),
+                    child: Row(
+                      children: widget.tabs!.keys.map((tabName) {
+                        final isActive = tabName == _currentTab;
+                        return GestureDetector(
+                          onTap: () => _onTabChanged(tabName),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(
+                                  color: isActive ? Theme.of(context).colorScheme.primary : Colors.transparent,
+                                  width: 2,
+                                ),
+                              ),
+                            ),
+                            child: Text(
+                              tabName,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                                color: isActive ? Colors.white : Colors.grey[400],
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+
+                // Actions bar - hide for Performance dashboard
+                if (_currentTab != 'Performance')
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(color: Colors.grey[800]!, width: 1),
                       ),
-                      if (widget.onAddToProject != null && widget.projects.isNotEmpty) ...[
+                    ),
+                    child: Row(
+                      children: [
+                        Text(
+                          '${_selectedRows.length} selected',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[400],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        TextButton.icon(
+                          onPressed: _downloadCSV,
+                          icon: const Icon(Icons.download, size: 16),
+                          label: const Text('Export CSV'),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                        ),
+                        // Only show "Add to Project" for keywords, not for audits
+                        if (widget.tabs == null && widget.onAddToProject != null && widget.projects.isNotEmpty) ...[
                         const SizedBox(width: 8),
                         PopupMenuButton<String>(
                           onSelected: (projectId) => _addSelectedToProject(projectId),
@@ -326,19 +425,24 @@ class _DataPanelState extends State<DataPanel> {
                   ),
                 ),
 
-                // Data table
+                // Data content - either dashboard or table
                 Expanded(
-                  child: NotificationListener<ScrollNotification>(
-                    onNotification: (notification) {
-                      // Prevent browser back gesture on horizontal scroll
-                      return true;
-                    },
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.vertical,
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        child: DataTable(
+                  child: _currentTab == 'Performance' 
+                    ? PerformanceDashboard(
+                        metrics: _sortedData,
+                        url: widget.dataPanelUrl ?? widget.title,
+                      )
+                    : NotificationListener<ScrollNotification>(
+                        onNotification: (notification) {
+                          // Prevent browser back gesture on horizontal scroll
+                          return true;
+                        },
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.vertical,
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            child: DataTable(
                           horizontalMargin: 12,
                           columnSpacing: 16,
                           headingRowHeight: 40,
@@ -357,7 +461,7 @@ class _DataPanelState extends State<DataPanel> {
                                 : null;
                           }),
                           showCheckboxColumn: true,
-                          columns: widget.columns.map((col) {
+                          columns: _getCurrentColumns().map((col) {
                             return DataColumn(
                               label: Text(col.label),
                               onSort: col.sortable ? (_, __) => _onSort(col.id) : null,
@@ -379,7 +483,7 @@ class _DataPanelState extends State<DataPanel> {
                                   }
                                 });
                               },
-                              cells: widget.columns.map((col) {
+                              cells: _getCurrentColumns().map((col) {
                                 if (col.cellBuilder != null) {
                                   return DataCell(col.cellBuilder!(item));
                                 }

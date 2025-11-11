@@ -504,6 +504,19 @@ class ApiService {
       throw Exception('Failed to get indexing status: ${response.body}');
     }
   }
+
+  Future<Map<String, dynamic>> get(String path) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl$path'),
+      headers: _headers(),
+    );
+    
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to GET $path: ${response.body}');
+    }
+  }
 }
 
 

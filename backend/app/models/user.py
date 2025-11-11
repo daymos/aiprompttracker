@@ -27,4 +27,5 @@ class User(Base):
     
     conversations = relationship("Conversation", back_populates="user")
     projects = relationship("Project", back_populates="user")
+    technical_audits = relationship("TechnicalAudit", back_populates="user")
 

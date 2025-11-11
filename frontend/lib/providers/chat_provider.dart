@@ -44,6 +44,8 @@ class ChatProvider with ChangeNotifier {
   bool _dataPanelOpen = false;
   List<Map<String, dynamic>> _dataPanelData = [];
   String _dataPanelTitle = '';
+  Map<String, List<Map<String, dynamic>>>? _dataPanelTabs;
+  String? _dataPanelUrl;
   
   List<Message> get messages => _messages;
   List<Conversation> get conversations => _conversations;
@@ -54,6 +56,8 @@ class ChatProvider with ChangeNotifier {
   bool get dataPanelOpen => _dataPanelOpen;
   List<Map<String, dynamic>> get dataPanelData => _dataPanelData;
   String get dataPanelTitle => _dataPanelTitle;
+  Map<String, List<Map<String, dynamic>>>? get dataPanelTabs => _dataPanelTabs;
+  String? get dataPanelUrl => _dataPanelUrl;
   
   void addMessage(Message message) {
     _messages.add(message);
@@ -107,11 +111,28 @@ class ChatProvider with ChangeNotifier {
     _dataPanelOpen = true;
     _dataPanelData = data;
     _dataPanelTitle = title;
+    _dataPanelTabs = null; // Clear tabs for single-data view
+    _dataPanelUrl = null;
+    notifyListeners();
+  }
+  
+  void openTabbedDataPanel({
+    required Map<String, List<Map<String, dynamic>>> tabs,
+    required String title,
+    String? url,
+  }) {
+    _dataPanelOpen = true;
+    _dataPanelTabs = tabs;
+    _dataPanelTitle = title;
+    _dataPanelUrl = url;
+    _dataPanelData = []; // Clear single data for tabbed view
     notifyListeners();
   }
   
   void closeDataPanel() {
     _dataPanelOpen = false;
+    _dataPanelTabs = null;
+    _dataPanelUrl = null;
     notifyListeners();
   }
 }

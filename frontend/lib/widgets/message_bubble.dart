@@ -122,7 +122,35 @@ class _MessageBubbleState extends State<MessageBubble> {
       return;
     }
     
-    // Check for technical SEO issues
+    // Check for tabbed technical audit (SEO + Performance + AI Bots)
+    if (metadata['technical_audit_tabs'] != null) {
+      final url = metadata['url'] ?? 'Website';
+      final tabs = metadata['technical_audit_tabs'] as Map<String, dynamic>;
+      
+      // Open with tabbed data - will be handled specially by the provider
+      chatProvider.openTabbedDataPanel(
+        tabs: {
+          'SEO Issues': List<Map<String, dynamic>>.from(tabs['seo_issues'] ?? []),
+          'Performance': List<Map<String, dynamic>>.from(tabs['performance'] ?? []),
+          'AI Bots': List<Map<String, dynamic>>.from(tabs['ai_bots'] ?? []),
+        },
+        title: 'Complete Technical Audit - $url',
+        url: url,
+      );
+      return;
+    }
+    
+    // Check for comprehensive audit (legacy unified view)
+    if (metadata['comprehensive_audit'] != null) {
+      final url = metadata['url'] ?? 'Website';
+      chatProvider.openDataPanel(
+        data: List<Map<String, dynamic>>.from(metadata['comprehensive_audit']),
+        title: 'Complete Technical Audit - $url',
+      );
+      return;
+    }
+    
+    // Check for technical SEO issues (legacy)
     if (metadata['technical_seo_issues'] != null) {
       final url = metadata['url'] ?? 'Website';
       chatProvider.openDataPanel(
@@ -131,11 +159,45 @@ class _MessageBubbleState extends State<MessageBubble> {
       );
       return;
     }
+    
+    // Check for AI bot access data
+    if (metadata['ai_bot_access'] != null) {
+      final url = metadata['url'] ?? 'Website';
+      chatProvider.openDataPanel(
+        data: List<Map<String, dynamic>>.from(metadata['ai_bot_access']),
+        title: 'AI Bot Access - $url',
+      );
+      return;
+    }
+    
+    // Check for performance data
+    if (metadata['performance_data'] != null) {
+      final url = metadata['url'] ?? 'Website';
+      chatProvider.openDataPanel(
+        data: List<Map<String, dynamic>>.from(metadata['performance_data']),
+        title: 'Performance & Core Web Vitals - $url',
+      );
+      return;
+    }
   }
 
   void _downloadTableAsCSV() {
     final metadata = widget.message.messageMetadata;
     if (metadata == null) return;
+    
+    // Check for tabbed technical audit (new structure)
+    final tabbedAudit = metadata['technical_audit_tabs'];
+    if (tabbedAudit != null) {
+      _downloadTabbedAuditCSV(tabbedAudit, metadata['url'] ?? 'unknown');
+      return;
+    }
+    
+    // Check for comprehensive audit (legacy)
+    final comprehensiveAudit = metadata['comprehensive_audit'];
+    if (comprehensiveAudit != null) {
+      _downloadComprehensiveAuditCSV(comprehensiveAudit, metadata['url'] ?? 'unknown');
+      return;
+    }
     
     // Check for keyword data
     final keywordData = metadata['keyword_data'];
@@ -156,6 +218,135 @@ class _MessageBubbleState extends State<MessageBubble> {
     if (technicalSeoIssues != null) {
       _downloadTechnicalSeoCSV(technicalSeoIssues, metadata['url'] ?? 'unknown');
       return;
+    }
+    
+    // Check for AI bot access data
+    final aiBotAccess = metadata['ai_bot_access'];
+    if (aiBotAccess != null) {
+      _downloadAIBotAccessCSV(aiBotAccess, metadata['url'] ?? 'unknown');
+      return;
+    }
+    
+    // Check for performance data
+    final performanceData = metadata['performance_data'];
+    if (performanceData != null) {
+      _downloadPerformanceCSV(performanceData, metadata['url'] ?? 'unknown');
+      return;
+    }
+  }
+
+  void _downloadTabbedAuditCSV(dynamic tabbedAudit, String url) {
+    // Convert all tabs to a single CSV
+    final csvContent = StringBuffer();
+    final tabs = tabbedAudit as Map<String, dynamic>;
+    
+    // SEO Issues
+    final seoIssues = tabs['seo_issues'] as List?;
+    if (seoIssues != null && seoIssues.isNotEmpty) {
+      csvContent.writeln('Category,Issue Type,Severity,Element,Page,Recommendation');
+      for (final issue in seoIssues) {
+        final type = issue['type'] ?? '';
+        final severity = issue['severity'] ?? '';
+        final element = issue['element'] ?? '';
+        final page = issue['page'] ?? '';
+        final recommendation = issue['recommendation'] ?? '';
+        csvContent.writeln('SEO Issues,${_escapeCsvField(type.toString())},${_escapeCsvField(severity.toString())},${_escapeCsvField(element.toString())},${_escapeCsvField(page.toString())},${_escapeCsvField(recommendation.toString())}');
+      }
+      csvContent.writeln(); // Empty line between sections
+    }
+    
+    // Performance
+    final performance = tabs['performance'] as List?;
+    if (performance != null && performance.isNotEmpty) {
+      csvContent.writeln('Category,Metric,Value,Score,Rating,Description');
+      for (final metric in performance) {
+        final metricName = metric['metric_name'] ?? '';
+        final value = metric['value'] ?? '';
+        final score = metric['score'] ?? '';
+        final rating = metric['rating'] ?? '';
+        final description = metric['description'] ?? '';
+        csvContent.writeln('Performance,${_escapeCsvField(metricName.toString())},${_escapeCsvField(value.toString())},${_escapeCsvField(score.toString())},${_escapeCsvField(rating.toString())},${_escapeCsvField(description.toString())}');
+      }
+      csvContent.writeln(); // Empty line between sections
+    }
+    
+    // AI Bots
+    final aiBots = tabs['ai_bots'] as List?;
+    if (aiBots != null && aiBots.isNotEmpty) {
+      csvContent.writeln('Category,Bot Name,Status,User Agent,Purpose');
+      for (final bot in aiBots) {
+        final botName = bot['bot_name'] ?? '';
+        final status = bot['status'] ?? '';
+        final userAgent = bot['user_agent'] ?? '';
+        final purpose = bot['purpose'] ?? '';
+        csvContent.writeln('AI Bots,${_escapeCsvField(botName.toString())},${_escapeCsvField(status.toString())},${_escapeCsvField(userAgent.toString())},${_escapeCsvField(purpose.toString())}');
+      }
+    }
+    
+    final bytes = utf8.encode(csvContent.toString());
+    final blob = html.Blob([bytes]);
+    final csvUrl = html.Url.createObjectUrlFromBlob(blob);
+    final anchor = html.document.createElement('a') as html.AnchorElement
+      ..href = csvUrl
+      ..style.display = 'none'
+      ..download = 'technical_audit_${url.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}_${DateTime.now().millisecondsSinceEpoch}.csv';
+    html.document.body?.children.add(anchor);
+    anchor.click();
+    html.document.body?.children.remove(anchor);
+    html.Url.revokeObjectUrl(csvUrl);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Technical audit downloaded successfully')),
+      );
+    }
+  }
+
+  void _downloadComprehensiveAuditCSV(dynamic auditData, String url) {
+    // Convert to CSV
+    final csvContent = StringBuffer();
+    
+    // Header row
+    csvContent.writeln('Category,Item,Status,Value,Location,Details/Recommendation');
+    
+    // Data rows
+    for (final item in auditData) {
+      final category = item['category'] ?? '';
+      final itemName = item['item_name'] ?? '';
+      final status = item['status'] ?? '';
+      final value = item['value'] ?? '';
+      final location = item['location'] ?? '';
+      final recommendation = item['recommendation'] ?? '';
+      
+      // Escape commas and quotes in CSV
+      final escapedCategory = _escapeCsvField(category.toString());
+      final escapedItemName = _escapeCsvField(itemName.toString());
+      final escapedStatus = _escapeCsvField(status.toString());
+      final escapedValue = _escapeCsvField(value.toString());
+      final escapedLocation = _escapeCsvField(location.toString());
+      final escapedRecommendation = _escapeCsvField(recommendation.toString());
+      
+      csvContent.writeln('$escapedCategory,$escapedItemName,$escapedStatus,$escapedValue,$escapedLocation,$escapedRecommendation');
+    }
+    
+    // Create and download the file
+    final bytes = utf8.encode(csvContent.toString());
+    final blob = html.Blob([bytes]);
+    final csvUrl = html.Url.createObjectUrlFromBlob(blob);
+    final anchor = html.document.createElement('a') as html.AnchorElement
+      ..href = csvUrl
+      ..style.display = 'none'
+      ..download = 'comprehensive_audit_${url.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}_${DateTime.now().millisecondsSinceEpoch}.csv';
+    html.document.body?.children.add(anchor);
+    
+    anchor.click();
+    
+    html.document.body?.children.remove(anchor);
+    html.Url.revokeObjectUrl(csvUrl);
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Comprehensive audit downloaded successfully')),
+      );
     }
   }
 
@@ -296,6 +487,98 @@ class _MessageBubbleState extends State<MessageBubble> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Technical SEO audit downloaded successfully')),
+      );
+    }
+  }
+
+  void _downloadAIBotAccessCSV(dynamic aiBotAccess, String url) {
+    // Convert to CSV
+    final csvContent = StringBuffer();
+    
+    // Header row
+    csvContent.writeln('AI Bot / Crawler,Access Status,User Agent,Purpose');
+    
+    // Data rows
+    for (final item in aiBotAccess) {
+      final botName = item['bot_name'] ?? '';
+      final status = item['status'] ?? '';
+      final userAgent = item['user_agent'] ?? '';
+      final purpose = item['purpose'] ?? '';
+      
+      // Escape commas and quotes in CSV
+      final escapedBotName = _escapeCsvField(botName.toString());
+      final escapedStatus = _escapeCsvField(status.toString());
+      final escapedUserAgent = _escapeCsvField(userAgent.toString());
+      final escapedPurpose = _escapeCsvField(purpose.toString());
+      
+      csvContent.writeln('$escapedBotName,$escapedStatus,$escapedUserAgent,$escapedPurpose');
+    }
+    
+    // Create and download the file
+    final bytes = utf8.encode(csvContent.toString());
+    final blob = html.Blob([bytes]);
+    final csvUrl = html.Url.createObjectUrlFromBlob(blob);
+    final anchor = html.document.createElement('a') as html.AnchorElement
+      ..href = csvUrl
+      ..style.display = 'none'
+      ..download = 'ai_bot_access_${url.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}_${DateTime.now().millisecondsSinceEpoch}.csv';
+    html.document.body?.children.add(anchor);
+    
+    anchor.click();
+    
+    html.document.body?.children.remove(anchor);
+    html.Url.revokeObjectUrl(csvUrl);
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('AI bot access report downloaded successfully')),
+      );
+    }
+  }
+
+  void _downloadPerformanceCSV(dynamic performanceData, String url) {
+    // Convert to CSV
+    final csvContent = StringBuffer();
+    
+    // Header row
+    csvContent.writeln('Metric,Value,Score,Rating,Description');
+    
+    // Data rows
+    for (final item in performanceData) {
+      final metricName = item['metric_name'] ?? '';
+      final value = item['value'] ?? '';
+      final score = item['score'] ?? '';
+      final rating = item['rating'] ?? '';
+      final description = item['description'] ?? '';
+      
+      // Escape commas and quotes in CSV
+      final escapedMetricName = _escapeCsvField(metricName.toString());
+      final escapedValue = _escapeCsvField(value.toString());
+      final escapedScore = _escapeCsvField(score.toString());
+      final escapedRating = _escapeCsvField(rating.toString());
+      final escapedDescription = _escapeCsvField(description.toString());
+      
+      csvContent.writeln('$escapedMetricName,$escapedValue,$escapedScore,$escapedRating,$escapedDescription');
+    }
+    
+    // Create and download the file
+    final bytes = utf8.encode(csvContent.toString());
+    final blob = html.Blob([bytes]);
+    final csvUrl = html.Url.createObjectUrlFromBlob(blob);
+    final anchor = html.document.createElement('a') as html.AnchorElement
+      ..href = csvUrl
+      ..style.display = 'none'
+      ..download = 'performance_report_${url.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}_${DateTime.now().millisecondsSinceEpoch}.csv';
+    html.document.body?.children.add(anchor);
+    
+    anchor.click();
+    
+    html.document.body?.children.remove(anchor);
+    html.Url.revokeObjectUrl(csvUrl);
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Performance report downloaded successfully')),
       );
     }
   }
@@ -495,7 +778,11 @@ class _MessageBubbleState extends State<MessageBubble> {
                 if (!isUser && !_isAnimating && (
                     widget.message.messageMetadata?['keyword_data'] != null ||
                     widget.message.messageMetadata?['ranking_data'] != null ||
-                    widget.message.messageMetadata?['technical_seo_issues'] != null
+                    widget.message.messageMetadata?['technical_audit_tabs'] != null ||
+                    widget.message.messageMetadata?['comprehensive_audit'] != null ||
+                    widget.message.messageMetadata?['technical_seo_issues'] != null ||
+                    widget.message.messageMetadata?['ai_bot_access'] != null ||
+                    widget.message.messageMetadata?['performance_data'] != null
                 )) ...[
                   const SizedBox(height: 8),
                   Wrap(
