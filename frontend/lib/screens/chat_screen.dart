@@ -6286,6 +6286,7 @@ class __ExpandableAuditHistoryItemState extends State<_ExpandableAuditHistoryIte
     final severity = issue['severity'] ?? 'low';
     final type = issue['type'] ?? 'Unknown';
     final description = issue['description'] ?? 'No description';
+    final pageUrl = issue['page_url'] as String?;
     
     Color severityColor;
     if (severity == 'high') {
@@ -6338,6 +6339,31 @@ class __ExpandableAuditHistoryItemState extends State<_ExpandableAuditHistoryIte
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
+                if (pageUrl != null && pageUrl.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.link,
+                        size: 10,
+                        color: Colors.grey[600],
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          pageUrl,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey[600],
+                            fontStyle: FontStyle.italic,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
