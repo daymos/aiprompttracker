@@ -173,11 +173,13 @@ async def get_project_analytics(
                 detail="Project not linked to a GSC property"
             )
         
-        # Fetch analytics data
+        # Fetch analytics data with daily breakdown for charts
         data = await gsc_service.get_search_analytics(
             access_token=user.gsc_access_token,
             site_url=project.gsc_property_url,
-            refresh_token=user.gsc_refresh_token
+            refresh_token=user.gsc_refresh_token,
+            dimensions=['date'],  # Request daily data for performance chart
+            row_limit=1000  # Get up to 1000 days of data
         )
         
         return data

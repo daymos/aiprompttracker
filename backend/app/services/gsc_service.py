@@ -137,6 +137,21 @@ class GSCService:
                 else 0
             )
             
+            # Also fetch daily data for chart visualization if date dimension requested
+            daily_data = []
+            if 'date' in dimensions:
+                daily_data = []
+                for row in rows:
+                    date_key = row.get('keys', [''])[0] if row.get('keys') else None
+                    if date_key:
+                        daily_data.append({
+                            'date': date_key,
+                            'clicks': row.get('clicks', 0),
+                            'impressions': row.get('impressions', 0),
+                            'ctr': round(row.get('ctr', 0) * 100, 2),
+                            'position': round(row.get('position', 0), 1)
+                        })
+            
             result = {
                 'site_url': site_url,
                 'start_date': start_date,
@@ -145,12 +160,13 @@ class GSCService:
                 'total_impressions': total_impressions,
                 'average_ctr': round(avg_ctr, 2),
                 'average_position': round(avg_position, 1),
-                'rows': rows[:row_limit]  # Return detailed rows
+                'rows': rows[:row_limit],  # Return detailed rows
+                'daily_data': daily_data  # Daily breakdown for charts
             }
             
             logger.info(
                 f"GSC Analytics: {total_impressions} impressions, "
-                f"{total_clicks} clicks, {avg_ctr:.2f}% CTR"
+                f"{total_clicks} clicks, {avg_ctr:.2f}% CTR, {len(daily_data)} daily points"
             )
             
             return result

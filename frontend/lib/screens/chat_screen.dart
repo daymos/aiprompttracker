@@ -27,7 +27,7 @@ class ChatScreen extends StatefulWidget {
 
 enum ViewState { chat, conversations, projects }
 enum ProjectViewState { list, detail }
-enum ProjectTab { overview, pinboard, keywords, backlinks, siteAudit }
+enum ProjectTab { overview, keywords, backlinks, siteAudit, pinboard }
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
@@ -1347,6 +1347,28 @@ class _ChatScreenState extends State<ChatScreen> {
     }
     return number.toString();
   }
+  
+  String _formatAnalyzedDate(String dateStr) {
+    try {
+      final date = DateTime.parse(dateStr);
+      final now = DateTime.now();
+      final difference = now.difference(date);
+      
+      if (difference.inDays > 30) {
+        return '${(difference.inDays / 30).floor()} months ago';
+      } else if (difference.inDays > 0) {
+        return '${difference.inDays} days ago';
+      } else if (difference.inHours > 0) {
+        return '${difference.inHours} hours ago';
+      } else if (difference.inMinutes > 0) {
+        return '${difference.inMinutes} minutes ago';
+      } else {
+        return 'Just now';
+      }
+    } catch (e) {
+      return dateStr;
+    }
+  }
 
   Widget _buildCompetitionChip(String competition) {
     Color color;
@@ -2549,10 +2571,10 @@ class _ChatScreenState extends State<ChatScreen> {
                     },
                     tabs: [
                       const Tab(text: 'Overview'),
-                      const Tab(text: 'Pinboard'),
                       Tab(text: 'Keywords (${keywords.length})'),
                       Tab(text: 'Backlinks (${projectProvider.backlinksData?['total_backlinks'] ?? 0})'),
                       const Tab(text: 'Site Audit'),
+                      const Tab(text: 'Pinboard'),
                     ],
                   ),
                 ],
@@ -2565,10 +2587,10 @@ class _ChatScreenState extends State<ChatScreen> {
                 physics: const NeverScrollableScrollPhysics(), // Disable swipe
                 children: [
                   _buildOverviewTab(project, projectProvider),
-                  _buildPinboardTab(project),
                   _buildKeywordsTab(projectProvider, keywords),
                   _buildBacklinksTab(project),
                   _buildSiteAuditTab(project),
+                  _buildPinboardTab(project),
                 ],
               ),
             ),
@@ -2581,73 +2603,73 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildOverviewTab(Project project, ProjectProvider projectProvider) {
     final backlinksData = projectProvider.backlinksData;
+    final keywords = projectProvider.trackedKeywords;
+    final authProvider = context.watch<AuthProvider>();
     
-    // Extract metrics
-    final domainAuthority = backlinksData?['domain_authority'] ?? 0;
-    final totalBacklinks = backlinksData?['total_backlinks'] ?? 0;
-    final referringDomains = backlinksData?['referring_domains'] ?? 0;
-    final overtime = backlinksData?['overtime'] as List? ?? [];
-    final newAndLost = backlinksData?['new_and_lost'] as List? ?? [];
-    final isCached = backlinksData?['is_cached'] == true;
-    final cacheNote = backlinksData?['cache_note'] as String?;
-    final hasError = backlinksData?['error'] != null;
-    final errorMessage = backlinksData?['error'] as String?;
-    
-    // Extract sparkline data from overtime
-    List<double>? daSparkline;
-    List<double>? backlinksSparkline;
-    List<double>? domainsSparkline;
-    
-    if (overtime.isNotEmpty) {
-      daSparkline = overtime.map<double>((point) => (point['da'] ?? 0).toDouble()).toList();
-      backlinksSparkline = overtime.map<double>((point) => (point['backlinks'] ?? 0).toDouble()).toList();
-      domainsSparkline = overtime.map<double>((point) => (point['referring_domains'] ?? 0).toDouble()).toList();
-    }
-    
-    return projectProvider.isLoading
-        ? const Center(child: CircularProgressIndicator())
-        : SingleChildScrollView(
+    return FutureBuilder<Map<String, dynamic>>(
+      future: authProvider.apiService.get('/chat/project/${project.id}/technical-audits'),
+      builder: (context, snapshot) {
+        final audits = (snapshot.data?['audits'] as List?) ?? [];
+        
+        // Extract backlink metrics
+        final domainAuthority = backlinksData?['domain_authority'] ?? 0;
+        final totalBacklinks = backlinksData?['total_backlinks'] ?? 0;
+        final overtime = backlinksData?['overtime'] as List? ?? [];
+        
+        // Extract sparkline data from overtime
+        List<double>? daSparkline;
+        List<double>? backlinksSparkline;
+        
+        if (overtime.isNotEmpty) {
+          daSparkline = overtime.map<double>((point) => (point['da'] ?? 0).toDouble()).toList();
+          backlinksSparkline = overtime.map<double>((point) => (point['backlinks'] ?? 0).toDouble()).toList();
+        }
+        
+        // Calculate average ranking from keywords
+        final rankedKeywords = keywords.where((k) => k.currentPosition != null).toList();
+        double avgPosition = 0;
+        if (rankedKeywords.isNotEmpty) {
+          avgPosition = rankedKeywords.map((k) => k.currentPosition!).reduce((a, b) => a + b) / rankedKeywords.length;
+        }
+        
+        // Get latest audit performance
+        int performanceScore = 0;
+        List<double>? perfSparkline;
+        if (audits.isNotEmpty) {
+          performanceScore = audits.first['performance_score'] ?? 0;
+          
+          // Build sparkline from audit history
+          if (audits.length >= 2) {
+            perfSparkline = audits.reversed.take(10).map<double>((audit) => 
+              (audit['performance_score'] ?? 0).toDouble()
+            ).toList();
+          }
+        }
+        
+        // Calculate avg position sparkline
+        List<double>? avgPositionSparkline;
+        if (rankedKeywords.isNotEmpty && rankedKeywords.any((k) => k.rankingHistory.length >= 2)) {
+          final maxHistoryLength = rankedKeywords.map((k) => k.rankingHistory.length).reduce((a, b) => a > b ? a : b);
+          
+          avgPositionSparkline = List.generate(maxHistoryLength, (index) {
+            final positions = rankedKeywords
+                .where((k) => k.rankingHistory.length > index && k.rankingHistory[index].position != null)
+                .map((k) => k.rankingHistory[index].position!.toDouble())
+                .toList();
+            
+            if (positions.isEmpty) return avgPosition;
+            return positions.reduce((a, b) => a + b) / positions.length;
+          });
+        }
+        
+        return projectProvider.isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Show cache/error notice
-                if (isCached || hasError) ...[
-                  Card(
-                    color: isCached ? Colors.blue[50] : Colors.orange[50],
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Row(
-                        children: [
-                          Icon(
-                            isCached ? Icons.cached : Icons.warning_amber,
-                            size: 20,
-                            color: isCached ? Colors.blue[700] : Colors.orange[700],
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              cacheNote ?? errorMessage ?? 'Using cached data',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: isCached ? Colors.blue[900] : Colors.orange[900],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-                // Backlink Profile Metrics
-                Text(
-                  'Backlink Profile',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
+                // Row 1: Domain Authority & Total Backlinks
                 Row(
                   children: [
                     Expanded(
@@ -2658,6 +2680,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         _getDomainAuthorityColor(domainAuthority),
                         sparklineData: daSparkline,
                         showSparklinePlaceholder: true,
+                        tooltip: 'A score (0-100) that predicts how well your site will rank. Higher is better. 70+ is excellent, 50-70 is good, 30-50 is average.',
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -2669,30 +2692,38 @@ class _ChatScreenState extends State<ChatScreen> {
                         Colors.blue[400]!,
                         sparklineData: backlinksSparkline,
                         showSparklinePlaceholder: true,
+                        tooltip: 'Total number of external links pointing to your website from other domains. More quality backlinks improve SEO.',
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
+                
+                // Row 2: Audit Performance & Average Ranking
                 Row(
                   children: [
                     Expanded(
                       child: _buildMetricCard(
-                        'Referring Domains',
-                        _formatNumber(referringDomains),
-                        Icons.language,
-                        Colors.purple[400]!,
-                        sparklineData: domainsSparkline,
+                        'Audit Performance',
+                        audits.isEmpty ? 'N/A' : '$performanceScore/100',
+                        Icons.speed,
+                        audits.isEmpty ? Colors.grey[400]! : _getScoreColor(performanceScore.toDouble()),
+                        sparklineData: perfSparkline,
                         showSparklinePlaceholder: true,
+                        tooltip: 'Technical site performance score from latest audit. Measures speed, SEO, and best practices. 90+ is excellent, 50-90 is good.',
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: _buildMetricCard(
-                        'Spam Score',
-                        _getSpamScore(backlinksData),
-                        Icons.security,
-                        _getSpamScoreColor(backlinksData),
+                        'Avg Ranking',
+                        rankedKeywords.isEmpty ? 'N/A' : avgPosition.toStringAsFixed(1),
+                        Icons.trending_up,
+                        rankedKeywords.isEmpty ? Colors.grey[400]! : _getAvgRankingColor(avgPosition),
+                        sparklineData: avgPositionSparkline,
+                        showSparklinePlaceholder: true,
+                        invertSparkline: true, // Lower is better for rankings
+                        tooltip: 'Average Google search position for your tracked keywords. Lower is better. Top 3 is ideal, top 10 is good.',
                       ),
                     ),
                   ],
@@ -2700,48 +2731,73 @@ class _ChatScreenState extends State<ChatScreen> {
                 
                 const SizedBox(height: 24),
                 
-                // Keyword Visibility Section
-                _buildKeywordVisibilitySection(projectProvider),
-                
-                // If no data
-                if (overtime.isEmpty && totalBacklinks == 0) ...[
-                  const SizedBox(height: 24),
-                  Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.analytics_outlined,
-                          size: 64,
-                          color: Colors.grey[600],
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No Backlink Data Yet',
-                          style: TextStyle(
-                            fontSize: 20,
-                            color: Colors.grey[600],
+                // Quick action tips
+                if (totalBacklinks == 0 || audits.isEmpty || keywords.isEmpty) ...[
+                  Card(
+                    color: Colors.blue[900]?.withOpacity(0.3),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.lightbulb_outline, size: 20, color: Colors.blue[300]),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Quick Start Tips',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue[300],
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Analyze backlinks to see metrics',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
+                          const SizedBox(height: 12),
+                          if (totalBacklinks == 0)
+                            _buildQuickTip('Analyze your backlink profile', 'analyze backlinks for ${project.targetUrl}'),
+                          if (audits.isEmpty)
+                            _buildQuickTip('Run your first site audit', 'run a site audit for ${project.targetUrl}'),
+                          if (keywords.isEmpty)
+                            _buildQuickTip('Start tracking keywords', 'track keyword "your keyword" for ${project.targetUrl}'),
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ],
             ),
           );
+      },
+    );
   }
   
-  Widget _buildMetricCard(String title, String value, IconData icon, Color color, {List<double>? sparklineData, bool showSparklinePlaceholder = false}) {
-    final hasSparkline = sparklineData != null && sparklineData.length >= 2;
-    final showPlaceholder = !hasSparkline && showSparklinePlaceholder;
+  Widget _buildQuickTip(String title, String command) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        children: [
+          Icon(Icons.arrow_right, size: 16, color: Colors.grey[400]),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(fontSize: 13, color: Colors.grey[300]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildPerformanceChart(Project project, List overtime, List<TrackedKeyword> keywords) {
+    final authProvider = context.watch<AuthProvider>();
+    
+    // If no data available, don't show the chart
+    if (overtime.isEmpty) {
+      return const SizedBox.shrink();
+    }
     
     return Card(
       child: Padding(
@@ -2751,41 +2807,269 @@ class _ChatScreenState extends State<ChatScreen> {
           children: [
             Row(
               children: [
-                Icon(icon, size: 20, color: color),
-                const SizedBox(width: 8),
+                Text(
+                  'Performance',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                // Metric toggles
+                Wrap(
+                  spacing: 16,
+                  children: [
+                    _buildMetricToggle('Domain Authority', Colors.purple[400]!, _showDomainAuthority, (value) {
+                      setState(() => _showDomainAuthority = value!);
+                    }),
+                    _buildMetricToggle('Referring Domains', Colors.blue[400]!, _showReferringDomains, (value) {
+                      setState(() => _showReferringDomains = value!);
+                    }),
+                    // Only show Organic Traffic if project is linked to GSC
+                    if (project.isGSCLinked)
+                      _buildMetricToggle('Organic Traffic', Colors.orange[400]!, _showOrganicTraffic, (value) {
+                        setState(() => _showOrganicTraffic = value!);
+                      }),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            // Fetch GSC data and build chart
+            FutureBuilder<Map<String, dynamic>?>(
+              future: project.isGSCLinked 
+                ? authProvider.apiService.get('/chat/project/${project.id}/gsc/analytics')
+                : Future.value(null),
+              builder: (context, gscSnapshot) {
+                final gscData = gscSnapshot.data;
+                
+                return SizedBox(
+                  height: 250,
+                  child: _buildMultiLineChart(overtime, gscData, keywords),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildMetricToggle(String label, Color color, bool value, Function(bool?) onChanged) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 18,
+          height: 18,
+          child: Checkbox(
+            value: value,
+            onChanged: onChanged,
+            activeColor: color,
+            side: BorderSide(color: color, width: 2),
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: value ? color : Colors.grey[600],
+          ),
+        ),
+      ],
+    );
+  }
+  
+  Widget _buildMultiLineChart(List overtime, Map<String, dynamic>? gscData, List<TrackedKeyword> keywords) {
+    // Prepare data points
+    List<Map<String, dynamic>> dataPoints = [];
+    
+    // Add backlinks overtime data
+    for (var point in overtime) {
+      try {
+        dataPoints.add({
+          'date': DateTime.parse(point['date']),
+          'da': point['da'] ?? 0,
+          'referring_domains': point['referring_domains'] ?? 0,
+          'backlinks': point['backlinks'] ?? 0,
+        });
+      } catch (e) {
+        // Skip invalid data points
+        continue;
+      }
+    }
+    
+    // Merge with GSC data if available
+    if (gscData != null && gscData['daily_data'] != null) {
+      final dailyData = gscData['daily_data'] as List;
+      for (var entry in dailyData) {
+        try {
+          final date = DateTime.parse(entry['date']);
+          final existingPoint = dataPoints.firstWhere(
+            (p) => (p['date'] as DateTime).year == date.year && 
+                   (p['date'] as DateTime).month == date.month && 
+                   (p['date'] as DateTime).day == date.day,
+            orElse: () => {'date': date, 'da': 0, 'referring_domains': 0, 'backlinks': 0},
+          );
+          
+          existingPoint['clicks'] = entry['clicks'] ?? 0;
+          existingPoint['impressions'] = entry['impressions'] ?? 0;
+          existingPoint['avg_position'] = entry['position'];
+          
+          if (!dataPoints.any((p) => p['date'] == date)) {
+            dataPoints.add(existingPoint);
+          }
+        } catch (e) {
+          // Skip invalid GSC data points
+          continue;
+        }
+      }
+    }
+    
+    // Sort by date
+    dataPoints.sort((a, b) => (a['date'] as DateTime).compareTo(b['date'] as DateTime));
+    
+    // Take last 90 days for cleaner visualization
+    if (dataPoints.length > 90) {
+      dataPoints = dataPoints.sublist(dataPoints.length - 90);
+    }
+    
+    if (dataPoints.isEmpty || dataPoints.length < 2) {
+      return Container(
+        height: 250,
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey[800]!, width: 1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.show_chart, size: 48, color: Colors.grey[600]),
+              const SizedBox(height: 16),
+              Text(
+                'No historical data available yet',
+                style: TextStyle(
+                  color: Colors.grey[400],
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Data will appear here as we track your site over time',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 13,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
+    return CustomPaint(
+      painter: PerformanceChartPainter(
+        dataPoints: dataPoints,
+        showDomainAuthority: _showDomainAuthority,
+        showReferringDomains: _showReferringDomains,
+        showOrganicTraffic: _showOrganicTraffic,
+      ),
+      child: Container(),
+    );
+  }
+  
+  Color _getAvgRankingColor(double avgPosition) {
+    if (avgPosition <= 3) return Colors.green[600]!;
+    if (avgPosition <= 10) return Colors.blue[600]!;
+    if (avgPosition <= 20) return Colors.orange[600]!;
+    return Colors.red[600]!;
+  }
+  
+  Widget _buildCompactMetric(String title, String value, IconData icon, Color color) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(icon, size: 16, color: color),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 10,
+                color: Colors.grey[600],
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildMetricCard(String title, String value, IconData icon, Color color, {List<double>? sparklineData, bool showSparklinePlaceholder = false, bool invertSparkline = false, String? tooltip, bool compact = false}) {
+    final hasSparkline = sparklineData != null && sparklineData.length >= 2;
+    final showPlaceholder = !hasSparkline && showSparklinePlaceholder;
+    
+    final cardContent = Card(
+      child: Padding(
+        padding: compact ? const EdgeInsets.all(12.0) : const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: compact ? 16 : 20, color: color),
+                SizedBox(width: compact ? 6 : 8),
                 Expanded(
                   child: Text(
                     title,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: compact ? 11 : 12,
                       color: Colors.grey[600],
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: compact ? 6 : 8),
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
                   value,
-                  style: const TextStyle(
-                    fontSize: 24,
+                  style: TextStyle(
+                    fontSize: compact ? 18 : 24,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 if (hasSparkline || showPlaceholder) ...[
-                  const SizedBox(width: 12),
+                  SizedBox(width: compact ? 8 : 12),
                   Expanded(
                     child: SizedBox(
-                      height: 30,
+                      height: compact ? 24 : 30,
                       child: hasSparkline
                           ? CustomPaint(
                               painter: SparklinePainter(
                                 sparklineData!,
                                 color.withOpacity(0.6),
-                                invertY: false, // For metrics, higher is better
+                                invertY: invertSparkline, // Support inverted sparklines (for rankings where lower is better)
                               ),
                             )
                           : CustomPaint(
@@ -2802,6 +3086,27 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
       ),
     );
+    
+    // Wrap with tooltip if provided
+    if (tooltip != null) {
+      return Tooltip(
+        message: tooltip,
+        preferBelow: false,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.grey[850],
+          borderRadius: BorderRadius.circular(8),
+        ),
+        textStyle: const TextStyle(
+          color: Colors.white,
+          fontSize: 13,
+        ),
+        waitDuration: const Duration(milliseconds: 500),
+        child: cardContent,
+      );
+    }
+    
+    return cardContent;
   }
   
   Color _getDomainAuthorityColor(int da) {
@@ -3516,6 +3821,13 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _backlinkSortAscending = false; // Default: highest rank first
   String _backlinkFilter = 'all'; // all, follow, nofollow
   String _backlinkSearchQuery = ''; // Search query for backlinks
+  
+  // Performance chart toggles
+  bool _showDomainAuthority = true;
+  bool _showReferringDomains = true;
+  bool _showOrganicTraffic = true;
+  bool _showImpressions = false;
+  bool _showAvgPosition = false;
 
   List<TrackedKeyword> _filterAndSortKeywords(List<TrackedKeyword> keywords) {
     // Apply search filter
@@ -3689,6 +4001,98 @@ class _ChatScreenState extends State<ChatScreen> {
               )
             : Column(
                 children: [
+                  // Summary Metrics Header
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2A2A2A),
+                      border: Border(
+                        bottom: BorderSide(
+                          color: Theme.of(context).dividerColor.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                    child: // Calculate stats
+                        Builder(
+                          builder: (context) {
+                            int totalKeywords = keywords.length;
+                            int top3Keywords = keywords.where((k) => k.currentPosition != null && k.currentPosition! <= 3).length;
+                            int top10Keywords = keywords.where((k) => k.currentPosition != null && k.currentPosition! <= 10).length;
+                            
+                            final rankedKeywords = keywords.where((k) => k.currentPosition != null).toList();
+                            double avgPosition = 0;
+                            if (rankedKeywords.isNotEmpty) {
+                              avgPosition = rankedKeywords.map((k) => k.currentPosition!).reduce((a, b) => a + b) / rankedKeywords.length;
+                            }
+                            
+                            // Get most recent keyword update
+                            DateTime? lastUpdated;
+                            if (keywords.isNotEmpty) {
+                              lastUpdated = keywords.map((k) => k.createdAt).reduce((a, b) => a.isAfter(b) ? a : b);
+                            }
+                            
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (lastUpdated != null) ...[
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: Text(
+                                      'Last updated: ${_formatAnalyzedDate(lastUpdated.toIso8601String())}',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                ],
+                                Row(
+                              children: [
+                                Expanded(
+                                  child: _buildCompactMetric(
+                                    'Total Keywords',
+                                    totalKeywords.toString(),
+                                    Icons.key,
+                                    Colors.indigo[400]!,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: _buildCompactMetric(
+                                    'Top 3',
+                                    top3Keywords.toString(),
+                                    Icons.emoji_events,
+                                    Colors.amber[600]!,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: _buildCompactMetric(
+                                    'Top 10',
+                                    top10Keywords.toString(),
+                                    Icons.star,
+                                    Colors.green[400]!,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: _buildCompactMetric(
+                                    'Avg Position',
+                                    rankedKeywords.isEmpty ? 'N/A' : avgPosition.toStringAsFixed(1),
+                                    Icons.trending_up,
+                                    rankedKeywords.isEmpty ? Colors.grey[400]! : _getAvgRankingColor(avgPosition),
+                                  ),
+                                ),
+                              ],
+                            ),
+                              ],
+                            );
+                          },
+                        ),
+                  ),
+                  
                   // Search, filter and sort controls (inline, compact)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -4476,8 +4880,87 @@ class _ChatScreenState extends State<ChatScreen> {
       );
     }
 
+    // Extract additional metrics for summary
+    final overtime = data?['overtime'] as List? ?? [];
+    List<double>? domainsSparkline;
+    
+    if (overtime.isNotEmpty) {
+      domainsSparkline = overtime.map<double>((point) => (point['referring_domains'] ?? 0).toDouble()).toList();
+    }
+    
     return Column(
       children: [
+        // Summary Metrics Header
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+          decoration: BoxDecoration(
+            color: const Color(0xFF2A2A2A),
+            border: Border(
+              bottom: BorderSide(
+                color: Theme.of(context).dividerColor.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (analyzedAt != null) ...[
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    'Last analyzed: ${_formatAnalyzedDate(analyzedAt)}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildMetricCard(
+                      'Total Backlinks',
+                      _formatNumber(totalBacklinks),
+                      Icons.link,
+                      Colors.blue[400]!,
+                      sparklineData: overtime.isNotEmpty 
+                        ? overtime.map<double>((point) => (point['backlinks'] ?? 0).toDouble()).toList()
+                        : null,
+                      showSparklinePlaceholder: true,
+                      compact: true,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildMetricCard(
+                      'Referring Domains',
+                      _formatNumber(referringDomains),
+                      Icons.language,
+                      Colors.purple[400]!,
+                      sparklineData: domainsSparkline,
+                      showSparklinePlaceholder: true,
+                      compact: true,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildMetricCard(
+                      'Spam Score',
+                      _getSpamScore(data),
+                      Icons.security,
+                      _getSpamScoreColor(data),
+                      compact: true,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        
         // Search, Filter, and Sort Controls
         Padding(
           padding: const EdgeInsets.all(16.0),
@@ -4914,7 +5397,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                _buildPerformanceChart(audits),
+                _buildAuditPerformanceChart(audits),
                 const SizedBox(height: 32),
               ],
               
@@ -5011,7 +5494,7 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildPerformanceChart(List audits) {
+  Widget _buildAuditPerformanceChart(List audits) {
     // Reverse to show oldest first (left to right)
     final reversed = audits.reversed.toList();
     final scores = reversed.map((a) => (a['performance_score'] ?? 0).toDouble()).toList();
@@ -5654,25 +6137,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-
-  String _formatAnalyzedDate(String isoDate) {
-    try {
-      final analyzed = DateTime.parse(isoDate);
-      final now = DateTime.now();
-      final difference = now.difference(analyzed);
-
-      if (difference.inDays > 0) {
-        return '${difference.inDays}d ago';
-      } else if (difference.inHours > 0) {
-        return '${difference.inHours}h ago';
-      } else {
-        return 'Just now';
-      }
-    } catch (e) {
-      return 'Unknown';
-    }
-  }
-
   String _formatLastUpdated(List<TrackedKeyword> keywords) {
     if (keywords.isEmpty) {
       return 'Never';
@@ -5730,6 +6194,147 @@ class NoDataSparklinePainter extends CustomPainter {
   @override
   bool shouldRepaint(NoDataSparklinePainter oldDelegate) {
     return oldDelegate.lineColor != lineColor;
+  }
+}
+
+class PerformanceChartPainter extends CustomPainter {
+  final List<Map<String, dynamic>> dataPoints;
+  final bool showDomainAuthority;
+  final bool showReferringDomains;
+  final bool showOrganicTraffic;
+  
+  PerformanceChartPainter({
+    required this.dataPoints,
+    required this.showDomainAuthority,
+    required this.showReferringDomains,
+    required this.showOrganicTraffic,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (dataPoints.isEmpty) return;
+    
+    final padding = 40.0;
+    final chartWidth = size.width - padding * 2;
+    final chartHeight = size.height - padding * 2;
+    
+    // Draw grid lines
+    _drawGrid(canvas, size, padding);
+    
+    // Draw each metric line
+    if (showDomainAuthority) {
+      _drawMetricLine(canvas, size, padding, chartWidth, chartHeight, 'da', Colors.purple[400]!, 0, 100);
+    }
+    
+    if (showReferringDomains) {
+      final maxRD = dataPoints.map((p) => (p['referring_domains'] ?? 0) as num).reduce((a, b) => a > b ? a : b).toDouble();
+      _drawMetricLine(canvas, size, padding, chartWidth, chartHeight, 'referring_domains', Colors.blue[400]!, 0, maxRD * 1.1);
+    }
+    
+    if (showOrganicTraffic && dataPoints.any((p) => p['clicks'] != null)) {
+      final maxClicks = dataPoints.where((p) => p['clicks'] != null).map((p) => (p['clicks'] ?? 0) as num).reduce((a, b) => a > b ? a : b).toDouble();
+      if (maxClicks > 0) {
+        _drawMetricLine(canvas, size, padding, chartWidth, chartHeight, 'clicks', Colors.orange[400]!, 0, maxClicks * 1.1);
+      }
+    }
+    
+    // Draw date labels
+    _drawDateLabels(canvas, size, padding, chartWidth, chartHeight);
+  }
+  
+  void _drawGrid(Canvas canvas, Size size, double padding) {
+    final paint = Paint()
+      ..color = Colors.grey.withOpacity(0.2)
+      ..strokeWidth = 1;
+    
+    // Horizontal grid lines
+    for (int i = 0; i <= 4; i++) {
+      final y = padding + (size.height - padding * 2) * i / 4;
+      canvas.drawLine(
+        Offset(padding, y),
+        Offset(size.width - padding, y),
+        paint,
+      );
+    }
+  }
+  
+  void _drawMetricLine(Canvas canvas, Size size, double padding, double chartWidth, double chartHeight, String key, Color color, double minValue, double maxValue) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+    
+    final path = Path();
+    bool firstPoint = true;
+    
+    for (int i = 0; i < dataPoints.length; i++) {
+      final point = dataPoints[i];
+      final value = point[key];
+      
+      if (value == null) continue;
+      
+      final x = padding + (chartWidth * i / (dataPoints.length - 1));
+      final normalizedValue = (value - minValue) / (maxValue - minValue);
+      final y = padding + chartHeight - (normalizedValue * chartHeight);
+      
+      if (firstPoint) {
+        path.moveTo(x, y);
+        firstPoint = false;
+      } else {
+        path.lineTo(x, y);
+      }
+      
+      // Draw dot
+      canvas.drawCircle(
+        Offset(x, y),
+        3,
+        Paint()..color = color..style = PaintingStyle.fill,
+      );
+    }
+    
+    canvas.drawPath(path, paint);
+  }
+  
+  void _drawDateLabels(Canvas canvas, Size size, double padding, double chartWidth, double chartHeight) {
+    final textStyle = TextStyle(
+      color: Colors.grey[600],
+      fontSize: 10,
+    );
+    
+    // Show first, middle, and last dates
+    final indices = [0, dataPoints.length ~/ 2, dataPoints.length - 1];
+    
+    for (final i in indices) {
+      if (i >= dataPoints.length) continue;
+      
+      final date = dataPoints[i]['date'] as DateTime;
+      final label = '${date.day} ${_getMonthName(date.month)}';
+      
+      final textSpan = TextSpan(text: label, style: textStyle);
+      final textPainter = TextPainter(
+        text: textSpan,
+        textDirection: TextDirection.ltr,
+      );
+      textPainter.layout();
+      
+      final x = padding + (chartWidth * i / (dataPoints.length - 1)) - textPainter.width / 2;
+      final y = size.height - padding + 10;
+      
+      textPainter.paint(canvas, Offset(x, y));
+    }
+  }
+  
+  String _getMonthName(int month) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return months[month - 1];
+  }
+
+  @override
+  bool shouldRepaint(PerformanceChartPainter oldDelegate) {
+    return oldDelegate.dataPoints != dataPoints ||
+           oldDelegate.showDomainAuthority != showDomainAuthority ||
+           oldDelegate.showReferringDomains != showReferringDomains ||
+           oldDelegate.showOrganicTraffic != showOrganicTraffic;
   }
 }
 
