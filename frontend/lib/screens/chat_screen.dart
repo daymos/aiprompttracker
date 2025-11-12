@@ -13,6 +13,7 @@ import '../widgets/cli_spinner.dart';
 import '../widgets/favicon_widget.dart';
 import '../widgets/grid_pattern_background.dart';
 import '../widgets/data_panel.dart';
+import '../widgets/sortable_data_table.dart';
 import 'dart:html' as html;
 import 'dart:async';
 import 'package:url_launcher/url_launcher.dart';
@@ -4273,7 +4274,7 @@ class _ChatScreenState extends State<ChatScreen> {
               )
             : Column(
                 children: [
-                  // Search, filter and sort controls (inline, compact)
+                  // Search and filter controls
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     decoration: BoxDecoration(
@@ -4287,16 +4288,16 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                     child: Row(
                       children: [
-                        // Search bar (compact)
+                        // Search bar
                         SizedBox(
-                          width: 250,
+                          width: 300,
                           height: 36,
                           child: TextField(
                             style: const TextStyle(fontSize: 13),
                             decoration: InputDecoration(
                               hintText: 'Search keywords...',
                               hintStyle: const TextStyle(fontSize: 13),
-                              prefixIcon: const Icon(Icons.search, size: 16),
+                              prefixIcon: const Icon(Icons.search, size: 18),
                               suffixIcon: _keywordSearchQuery.isNotEmpty
                                   ? IconButton(
                                       icon: const Icon(Icons.clear, size: 16),
@@ -4308,9 +4309,9 @@ class _ChatScreenState extends State<ChatScreen> {
                                     )
                                   : null,
                               isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(6),
+                                borderRadius: BorderRadius.circular(8),
                                 borderSide: BorderSide(color: Theme.of(context).dividerColor),
                               ),
                             ),
@@ -4319,49 +4320,40 @@ class _ChatScreenState extends State<ChatScreen> {
                             },
                           ),
                         ),
-                        const SizedBox(width: 20),
-                        // Filter chips (compact)
+                        const SizedBox(width: 24),
+                        // Filter chips
                         Text(
                           'Show:',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: Colors.grey[700],
+                            color: Colors.grey[600],
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 12),
                         ChoiceChip(
-                          label: const Text('All', style: TextStyle(fontSize: 12)),
+                          label: const Text('All', style: TextStyle(fontSize: 13)),
                           selected: _keywordFilter == 'all',
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                          labelPadding: EdgeInsets.zero,
-                          visualDensity: VisualDensity.compact,
                           onSelected: (selected) {
                             if (selected) {
                               setState(() => _keywordFilter = 'all');
                             }
                           },
                         ),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 8),
                         ChoiceChip(
-                          label: const Text('Tracking', style: TextStyle(fontSize: 12)),
+                          label: const Text('Tracking', style: TextStyle(fontSize: 13)),
                           selected: _keywordFilter == 'tracking',
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                          labelPadding: EdgeInsets.zero,
-                          visualDensity: VisualDensity.compact,
                           onSelected: (selected) {
                             if (selected) {
                               setState(() => _keywordFilter = 'tracking');
                             }
                           },
                         ),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 8),
                         ChoiceChip(
-                          label: const Text('Suggestions', style: TextStyle(fontSize: 12)),
+                          label: const Text('Suggestions', style: TextStyle(fontSize: 13)),
                           selected: _keywordFilter == 'suggestions',
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                          labelPadding: EdgeInsets.zero,
-                          visualDensity: VisualDensity.compact,
                           onSelected: (selected) {
                             if (selected) {
                               setState(() => _keywordFilter = 'suggestions');
@@ -4369,45 +4361,14 @@ class _ChatScreenState extends State<ChatScreen> {
                           },
                         ),
                         const Spacer(),
-                        // Sort dropdown (compact)
+                        // Hint about sorting
                         Text(
-                          'Sort by:',
+                          'Click column headers to sort',
                           style: TextStyle(
                             fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey[700],
+                            color: Colors.grey[500],
+                            fontStyle: FontStyle.italic,
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        DropdownButton<String>(
-                          value: _keywordSortBy,
-                          underline: Container(),
-                          isDense: true,
-                          style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodyMedium?.color),
-                          items: const [
-                            DropdownMenuItem(value: 'position', child: Text('Position')),
-                            DropdownMenuItem(value: 'name', child: Text('Name')),
-                            DropdownMenuItem(value: 'volume', child: Text('Search Volume')),
-                            DropdownMenuItem(value: 'status', child: Text('Status')),
-                          ],
-                          onChanged: (value) {
-                            if (value != null) {
-                              setState(() => _keywordSortBy = value);
-                            }
-                          },
-                        ),
-                        const SizedBox(width: 4),
-                        IconButton(
-                          icon: Icon(
-                            _keywordSortAscending ? Icons.arrow_upward : Icons.arrow_downward,
-                            size: 16,
-                          ),
-                          padding: const EdgeInsets.all(4),
-                          constraints: const BoxConstraints(),
-                          onPressed: () {
-                            setState(() => _keywordSortAscending = !_keywordSortAscending);
-                          },
-                          tooltip: _keywordSortAscending ? 'Ascending' : 'Descending',
                         ),
                       ],
                     ),
@@ -4595,7 +4556,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                     ),
                   
-                  // Keywords list
+                  // Keywords table
                   Expanded(
                     child: filteredKeywords.isEmpty
                         ? Center(
@@ -4618,302 +4579,135 @@ class _ChatScreenState extends State<ChatScreen> {
                               ],
                             ),
                           )
-                        : ListView.builder(
-                          padding: const EdgeInsets.only(left: 24.0, right: 24.0, top: 16.0),
-                          itemCount: filteredKeywords.length + 1, // +1 for the Add Keyword button
-                          itemBuilder: (context, index) {
-                            // Add Keyword button at the end
-                            if (index == filteredKeywords.length) {
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                                child: Center(
-                                  child: ElevatedButton.icon(
-                                    onPressed: () => _showAddKeywordDialog(context, projectProvider, Provider.of<AuthProvider>(context, listen: false)),
-                                    icon: const Icon(Icons.add),
-                                    label: const Text('Add Keyword'),
-                                    style: ElevatedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }
-
-                            final keyword = filteredKeywords[index];
-                            final isSelected = _selectedKeywordIds.contains(keyword.id);
-                            final isHovered = _hoveredKeywordId == keyword.id;
-                            // Show checkbox if: this item is hovered OR any item is selected
-                            final showCheckbox = isHovered || _selectedKeywordIds.isNotEmpty;
-                            
-                            return MouseRegion(
-                              cursor: SystemMouseCursors.click,
-                              onEnter: (_) => setState(() => _hoveredKeywordId = keyword.id),
-                              onExit: (_) => setState(() => _hoveredKeywordId = null),
-                              child: Container(
-                                margin: const EdgeInsets.only(bottom: 8),
-                                decoration: BoxDecoration(
-                                  color: isSelected 
-                                      ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3)
-                                      : (isHovered ? Theme.of(context).hoverColor.withOpacity(0.05) : Colors.transparent),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: !isSelected
-                                      ? Border.all(
-                                          color: Theme.of(context).dividerColor.withOpacity(0.2),
-                                          width: 1,
-                                        )
-                                      : null,
-                                ),
-                                child: InkWell(
-                                  onTap: () {
+                        : Column(
+                            children: [
+                              Expanded(
+                                child: SortableDataTable(
+                                  showCheckboxes: true,
+                                  selectedIds: _selectedKeywordIds,
+                                  onSelectionChanged: (id, selected) {
                                     setState(() {
-                                      if (isSelected) {
-                                        _selectedKeywordIds.remove(keyword.id);
+                                      if (selected) {
+                                        _selectedKeywordIds.add(id);
                                       } else {
-                                        _selectedKeywordIds.add(keyword.id);
+                                        _selectedKeywordIds.remove(id);
                                       }
                                     });
                                   },
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-                                    child: Row(
-                                      children: [
-                                        // Checkbox for multi-select (always reserve space, fade in/out)
-                                        SizedBox(
-                                          width: 48,
-                                          child: AnimatedOpacity(
-                                            opacity: showCheckbox ? 1.0 : 0.0,
-                                            duration: const Duration(milliseconds: 150),
-                                            child: MouseRegion(
-                                              cursor: SystemMouseCursors.click,
-                                              child: Checkbox(
-                                                value: isSelected,
-                                                onChanged: showCheckbox
-                                                    ? (value) {
-                                                        setState(() {
-                                                          if (value == true) {
-                                                            _selectedKeywordIds.add(keyword.id);
-                                                          } else {
-                                                            _selectedKeywordIds.remove(keyword.id);
-                                                          }
-                                                        });
-                                                      }
-                                                    : null,
+                                  columns: [
+                                    TableColumn(
+                                      key: 'keyword',
+                                      label: 'Keyword',
+                                      sortable: true,
+                                      builder: (value, row) {
+                                        final keyword = filteredKeywords.firstWhere((k) => k.id == row['id']);
+                                        return Row(
+                                          children: [
+                                            // Status icon
+                                            Icon(
+                                              keyword.isSuggestion 
+                                                  ? Icons.lightbulb_outline 
+                                                  : Icons.check_circle_outline,
+                                              size: 14,
+                                              color: keyword.isSuggestion 
+                                                  ? Colors.orange[700] 
+                                                  : Colors.green[700],
+                                            ),
+                                            const SizedBox(width: 8),
+                                            // Keyword text
+                                            Flexible(
+                                              child: Text(
+                                                value?.toString() ?? '',
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 13,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
                                               ),
                                             ),
+                                          ],
+                                        );
+                                      },
+                                    ),
+                                    TableColumn(
+                                      key: 'currentPosition',
+                                      label: 'Position',
+                                      numeric: true,
+                                      sortable: true,
+                                      builder: (value, row) {
+                                        final pos = value as int?;
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: _getPositionColor(pos).withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(6),
                                           ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        // Keyword info
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Row(
-                                                children: [
-                                                  Expanded(
-                                                    child: Text(
-                                                      keyword.keyword,
-                                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                                        fontWeight: FontWeight.bold,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  if (keyword.isSuggestion)
-                                                    Container(
-                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                                      decoration: BoxDecoration(
-                                                        color: Colors.orange.withOpacity(0.1),
-                                                        borderRadius: BorderRadius.circular(12),
-                                                        border: Border.all(color: Colors.orange.withOpacity(0.3)),
-                                                      ),
-                                                      child: Row(
-                                                        mainAxisSize: MainAxisSize.min,
-                                                        children: [
-                                                          Icon(
-                                                            Icons.lightbulb_outline,
-                                                            size: 12,
-                                                            color: Colors.orange[700],
-                                                          ),
-                                                          const SizedBox(width: 4),
-                                                          Text(
-                                                            'Suggestion',
-                                                            style: TextStyle(
-                                                              fontSize: 10,
-                                                              fontWeight: FontWeight.w600,
-                                                              color: Colors.orange[700],
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  if (keyword.source == 'auto_detected' && keyword.isActive)
-                                                    Container(
-                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                                      decoration: BoxDecoration(
-                                                        color: Colors.blue.withOpacity(0.1),
-                                                        borderRadius: BorderRadius.circular(12),
-                                                        border: Border.all(color: Colors.blue.withOpacity(0.3)),
-                                                      ),
-                                                      child: Row(
-                                                        mainAxisSize: MainAxisSize.min,
-                                                        children: [
-                                                          Icon(
-                                                            Icons.auto_awesome,
-                                                            size: 12,
-                                                            color: Colors.blue,
-                                                          ),
-                                                          const SizedBox(width: 4),
-                                                          Text(
-                                                            'Auto-Detected',
-                                                            style: TextStyle(
-                                                              fontSize: 10,
-                                                              fontWeight: FontWeight.w600,
-                                                              color: Colors.blue,
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                ],
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Row(
-                                                children: [
-                                                  // Tracking status indicator
-                                                  Builder(
-                                                    builder: (context) {
-                                                      final isActivating = _activatingKeywordIds.contains(keyword.id);
-                                                      final statusColor = isActivating 
-                                                          ? Colors.orange
-                                                          : (keyword.isActive ? Colors.green : Colors.grey);
-                                                      final statusText = isActivating
-                                                          ? 'Activating...'
-                                                          : (keyword.isActive ? 'Tracking' : 'Not Tracking');
-                                                      final statusIcon = isActivating
-                                                          ? Icons.sync
-                                                          : (keyword.isActive ? Icons.show_chart : Icons.pause_circle_outline);
-                                                      
-                                                      return Container(
-                                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                        decoration: BoxDecoration(
-                                                          color: statusColor.withOpacity(0.1),
-                                                          borderRadius: BorderRadius.circular(8),
-                                                        ),
-                                                        child: Row(
-                                                          mainAxisSize: MainAxisSize.min,
-                                                          children: [
-                                                            if (isActivating)
-                                                              SizedBox(
-                                                                width: 12,
-                                                                height: 12,
-                                                                child: CircularProgressIndicator(
-                                                                  strokeWidth: 1.5,
-                                                                  valueColor: AlwaysStoppedAnimation<Color>(statusColor[700]!),
-                                                                ),
-                                                              )
-                                                            else
-                                                              Icon(
-                                                                statusIcon,
-                                                                size: 12,
-                                                                color: statusColor[700],
-                                                              ),
-                                                            const SizedBox(width: 4),
-                                                            Text(
-                                                              statusText,
-                                                              style: TextStyle(
-                                                                fontSize: 11,
-                                                                fontWeight: FontWeight.w600,
-                                                                color: statusColor[700],
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      );
-                                                    },
-                                                  ),
-                                                  const SizedBox(width: 12),
-                                                  Icon(
-                                                    Icons.search,
-                                                    size: 14,
-                                                    color: Colors.grey[500],
-                                                  ),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    '${keyword.searchVolume ?? '--'} searches/mo',
-                                                    style: TextStyle(
-                                                      fontSize: 13,
-                                                      color: Colors.grey[500],
-                                                    ),
-                                                  ),
-                                                  if (keyword.competition != null && 
-                                                      keyword.competition!.toUpperCase() != 'UNKNOWN' &&
-                                                      keyword.competition!.toUpperCase() != 'UNSPECIFIED') ...[
-                                                    const SizedBox(width: 16),
-                                                    Icon(
-                                                      Icons.trending_up,
-                                                      size: 14,
-                                                      color: Colors.grey[500],
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                    Text(
-                                                      'Ad: ${keyword.competition!.toUpperCase()}',
-                                                      style: TextStyle(
-                                                        fontSize: 13,
-                                                        color: Colors.grey[500],
-                                                      ),
-                                                    ),
-                                                  ],
-                                                  if (keyword.seoDifficulty != null) ...[
-                                                    const SizedBox(width: 16),
-                                                    Icon(
-                                                      Icons.bar_chart,
-                                                      size: 14,
-                                                      color: Colors.grey[500],
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                    Container(
-                                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                      decoration: BoxDecoration(
-                                                        color: _getSeoDifficultyColor(keyword.seoDifficulty!).withOpacity(0.1),
-                                                        borderRadius: BorderRadius.circular(4),
-                                                      ),
-                                                      child: Text(
-                                                        'KD ${keyword.seoDifficulty}',
-                                                        style: TextStyle(
-                                                          fontSize: 13,
-                                                          fontWeight: FontWeight.bold,
-                                                          color: _getSeoDifficultyColor(keyword.seoDifficulty!),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ],
-                                              ),
-                                            ],
+                                          child: Text(
+                                            pos?.toString() ?? '--',
+                                            style: TextStyle(
+                                              color: _getPositionColor(pos),
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13,
+                                            ),
                                           ),
-                                        ),
-                                    const SizedBox(width: 16),
-                                    // Sparkline chart from ranking history
-                                    Builder(
-                                      builder: (context) {
+                                        );
+                                      },
+                                    ),
+                                    TableColumn(
+                                      key: 'searchVolume',
+                                      label: 'Volume',
+                                      numeric: true,
+                                      sortable: true,
+                                      tooltip: 'Monthly search volume',
+                                    ),
+                                    TableColumn(
+                                      key: 'seoDifficulty',
+                                      label: 'KD',
+                                      numeric: true,
+                                      sortable: true,
+                                      tooltip: 'Keyword Difficulty (0-100)',
+                                      builder: (value, row) {
+                                        final kd = value as int?;
+                                        if (kd == null) return const Text('--');
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: _getSeoDifficultyColor(kd).withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            kd.toString(),
+                                            style: TextStyle(
+                                              color: _getSeoDifficultyColor(kd),
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    TableColumn(
+                                      key: 'trend',
+                                      label: 'Trend',
+                                      sortable: false,
+                                      builder: (value, row) {
+                                        final keyword = filteredKeywords.firstWhere((k) => k.id == row['id']);
                                         if (keyword.rankingHistory.length >= 2) {
-                                          // Extract positions for sparkline
                                           final positions = keyword.rankingHistory
                                               .map((point) => point.position)
                                               .where((p) => p != null)
                                               .map((p) => p!.toDouble())
                                               .toList();
-
+                                          
                                           if (positions.length >= 2) {
                                             final firstPos = positions.first;
                                             final lastPos = positions.last;
                                             final change = firstPos - lastPos;
                                             final isImproving = change > 0;
-
+                                            
                                             return SizedBox(
-                                              width: 80,
-                                              height: 40,
+                                              width: 50,
+                                              height: 24,
                                               child: CustomPaint(
                                                 painter: SparklinePainter(
                                                   positions,
@@ -4923,10 +4717,9 @@ class _ChatScreenState extends State<ChatScreen> {
                                             );
                                           }
                                         }
-                                        // Show placeholder when no data
                                         return SizedBox(
-                                          width: 80,
-                                          height: 40,
+                                          width: 50,
+                                          height: 24,
                                           child: CustomPaint(
                                             painter: NoDataSparklinePainter(
                                               Colors.grey.withOpacity(0.3),
@@ -4935,37 +4728,40 @@ class _ChatScreenState extends State<ChatScreen> {
                                         );
                                       },
                                     ),
-                                    const SizedBox(width: 12),
-                                    // Position badge
-                                    Container(
-                                      width: 48,
-                                      height: 48,
-                                      decoration: BoxDecoration(
-                                        color: _getPositionColor(keyword.currentPosition).withOpacity(0.2),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          keyword.currentPosition?.toString() ?? '--',
-                                          style: TextStyle(
-                                            color: _getPositionColor(keyword.currentPosition),
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 18,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                      ],
-                                    ),
+                                  ],
+                                  data: filteredKeywords.map((keyword) {
+                                    return {
+                                      'id': keyword.id,
+                                      'keyword': keyword.keyword,
+                                      'currentPosition': keyword.currentPosition,
+                                      'searchVolume': keyword.searchVolume,
+                                      'seoDifficulty': keyword.seoDifficulty,
+                                    };
+                                  }).toList(),
+                                  emptyMessage: 'No keywords found',
+                                ),
+                              ),
+                              // Add keyword button at bottom
+                              Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: ElevatedButton.icon(
+                                  onPressed: () => _showAddKeywordDialog(
+                                    context,
+                                    projectProvider,
+                                    Provider.of<AuthProvider>(context, listen: false),
+                                  ),
+                                  icon: const Icon(Icons.add),
+                                  label: const Text('Add Keyword'),
+                                  style: ElevatedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                                   ),
                                 ),
                               ),
-                            );
-                          },
-                        ),
-                      ),
-                  ],
-                );
+                            ],
+                          ),
+                  ),
+                ],
+              );
   }
 
   Widget _buildBacklinksTab(Project project) {
