@@ -27,6 +27,7 @@ class DataPanel extends StatefulWidget {
   final List<DataColumnConfig> columns;
   final String title;
   final VoidCallback onClose;
+  final VoidCallback? onMinimize;
   final List<Map<String, dynamic>> projects;
   final Function(String projectId, List<Map<String, dynamic>>)? onAddToProject;
   final String? csvFilename;
@@ -41,6 +42,7 @@ class DataPanel extends StatefulWidget {
     required this.columns,
     required this.title,
     required this.onClose,
+    this.onMinimize,
     this.projects = const [],
     this.onAddToProject,
     this.csvFilename,
@@ -61,6 +63,10 @@ class _DataPanelState extends State<DataPanel> with SingleTickerProviderStateMix
   double _panelWidth = 600; // Default width, can be resized
   TabController? _tabController;
   String? _currentTab;
+  int _currentTabIndex = 0;
+  final ScrollController _tabScrollController = ScrollController();
+  bool _showLeftArrow = false;
+  bool _showRightArrow = false;
 
   @override
   void initState() {
@@ -68,17 +74,17 @@ class _DataPanelState extends State<DataPanel> with SingleTickerProviderStateMix
     
     // Initialize tabs if present
     if (widget.tabs != null && widget.tabs!.isNotEmpty) {
-      // Default to Performance tab if it exists, otherwise use first tab
-      _currentTab = widget.tabs!.keys.contains('Performance') 
-          ? 'Performance' 
-          : widget.tabs!.keys.first;
-      final initialIndex = widget.tabs!.keys.toList().indexOf(_currentTab!);
-      _tabController = TabController(
-        length: widget.tabs!.length, 
-        vsync: this,
-        initialIndex: initialIndex,
-      );
+      // Start with the last (most recent) tab
+      final tabKeys = widget.tabs!.keys.toList();
+      _currentTabIndex = tabKeys.length - 1; // Start with newest result
+      _currentTab = tabKeys[_currentTabIndex];
+      
       _sortedData = List.from(widget.tabs![_currentTab!]!);
+      
+      // Add scroll listener to update arrow visibility
+      _tabScrollController.addListener(_updateArrowVisibility);
+      // Check arrow visibility after first frame
+      WidgetsBinding.instance.addPostFrameCallback((_) => _updateArrowVisibility());
     } else {
       _sortedData = List.from(widget.data);
     }
@@ -96,7 +102,34 @@ class _DataPanelState extends State<DataPanel> with SingleTickerProviderStateMix
   @override
   void dispose() {
     _tabController?.dispose();
+    _tabScrollController.dispose();
     super.dispose();
+  }
+  
+  void _updateArrowVisibility() {
+    if (!_tabScrollController.hasClients) return;
+    
+    setState(() {
+      final position = _tabScrollController.position;
+      _showLeftArrow = _tabScrollController.offset > 10; // Small threshold
+      _showRightArrow = position.maxScrollExtent > 0 && 
+          _tabScrollController.offset < (position.maxScrollExtent - 10);
+    });
+  }
+  
+  void _scrollTabs(bool left) {
+    if (!_tabScrollController.hasClients) return;
+    
+    final scrollAmount = 200.0;
+    final targetOffset = left 
+        ? (_tabScrollController.offset - scrollAmount).clamp(0.0, _tabScrollController.position.maxScrollExtent)
+        : (_tabScrollController.offset + scrollAmount).clamp(0.0, _tabScrollController.position.maxScrollExtent);
+    
+    _tabScrollController.animateTo(
+      targetOffset,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
   }
   
   List<DataColumnConfig> _getCurrentColumns() {
@@ -114,9 +147,23 @@ class _DataPanelState extends State<DataPanel> with SingleTickerProviderStateMix
   }
   
   void _onTabChanged(String tabName) {
+    final tabKeys = widget.tabs!.keys.toList();
+    final newIndex = tabKeys.indexOf(tabName);
+    if (newIndex >= 0) {
+      _navigateToTab(newIndex);
+    }
+  }
+  
+  void _navigateToTab(int index) {
+    if (widget.tabs == null || widget.tabs!.isEmpty) return;
+    
+    final tabKeys = widget.tabs!.keys.toList();
+    if (index < 0 || index >= tabKeys.length) return;
+    
     setState(() {
-      _currentTab = tabName;
-      _sortedData = List.from(widget.tabs![tabName]!);
+      _currentTabIndex = index;
+      _currentTab = tabKeys[index];
+      _sortedData = List.from(widget.tabs![_currentTab!]!);
       _selectedRows.clear();
       
       // Reset sort for new tab
@@ -128,6 +175,18 @@ class _DataPanelState extends State<DataPanel> with SingleTickerProviderStateMix
       _sortColumn = defaultSortColumn.id;
       _onSort(_sortColumn!);
     });
+  }
+  
+  void _navigatePrevious() {
+    if (_currentTabIndex > 0) {
+      _navigateToTab(_currentTabIndex - 1);
+    }
+  }
+  
+  void _navigateNext() {
+    if (widget.tabs != null && _currentTabIndex < widget.tabs!.length - 1) {
+      _navigateToTab(_currentTabIndex + 1);
+    }
   }
 
   void _onSort(String columnId) {
@@ -300,6 +359,14 @@ class _DataPanelState extends State<DataPanel> with SingleTickerProviderStateMix
                           ],
                         ),
                       ),
+                      // Minimize button
+                      if (widget.onMinimize != null)
+                        IconButton(
+                          icon: const Icon(Icons.remove, color: Colors.white),
+                          onPressed: widget.onMinimize,
+                          tooltip: 'Minimize panel',
+                        ),
+                      // Close button
                       IconButton(
                         icon: const Icon(Icons.close, color: Colors.white),
                         onPressed: widget.onClose,
@@ -309,40 +376,92 @@ class _DataPanelState extends State<DataPanel> with SingleTickerProviderStateMix
                   ),
                 ),
 
-                // Tabs bar (if tabbed view)
-                if (widget.tabs != null && widget.tabs!.isNotEmpty)
+                // Carousel navigation (if multiple results)
+                if (widget.tabs != null && widget.tabs!.length > 1)
                   Container(
+                    height: 56,
                     decoration: BoxDecoration(
+                      color: const Color(0xFF2A2A2A),
                       border: Border(
                         bottom: BorderSide(color: Colors.grey[800]!, width: 1),
                       ),
                     ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: Row(
-                      children: widget.tabs!.keys.map((tabName) {
-                        final isActive = tabName == _currentTab;
-                        return GestureDetector(
-                          onTap: () => _onTabChanged(tabName),
+                      children: [
+                        // Previous button
+                        IconButton(
+                          icon: Icon(
+                            Icons.chevron_left,
+                            color: _currentTabIndex > 0 ? Colors.white : Colors.grey[700],
+                          ),
+                          onPressed: _currentTabIndex > 0 ? _navigatePrevious : null,
+                          tooltip: 'Previous result',
+                        ),
+                        
+                        const SizedBox(width: 8),
+                        
+                        // Counter and title
+                        Expanded(
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                             decoration: BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(
-                                  color: isActive ? Theme.of(context).colorScheme.primary : Colors.transparent,
-                                  width: 2,
-                                ),
-                              ),
+                              color: const Color(0xFFFFC107),
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Text(
-                              tabName,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                                color: isActive ? Colors.white : Colors.grey[400],
-                              ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                // Counter
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    '${_currentTabIndex + 1}/${widget.tabs!.length}',
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                // Current result title
+                                Flexible(
+                                  child: Text(
+                                    _currentTab ?? '',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.black87,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        );
-                      }).toList(),
+                        ),
+                        
+                        const SizedBox(width: 8),
+                        
+                        // Next button
+                        IconButton(
+                          icon: Icon(
+                            Icons.chevron_right,
+                            color: _currentTabIndex < widget.tabs!.length - 1 
+                                ? Colors.white 
+                                : Colors.grey[700],
+                          ),
+                          onPressed: _currentTabIndex < widget.tabs!.length - 1 
+                              ? _navigateNext 
+                              : null,
+                          tooltip: 'Next result',
+                        ),
+                      ],
                     ),
                   ),
 

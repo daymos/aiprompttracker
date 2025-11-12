@@ -1146,29 +1146,28 @@ class _ChatScreenState extends State<ChatScreen> {
             ],
           );
     
-    // Wrap in Row to support side panel
-    return Row(
+    // Wrap in Stack and Row to support side panel and minimize button
+    return Stack(
       children: [
-        Expanded(
-          child: chatContent,
-        ),
-        if (chatProvider.dataPanelOpen)
-          DataPanel(
-            data: chatProvider.dataPanelData,
-            columns: _buildDataPanelColumns(chatProvider.dataPanelTitle),
-            title: chatProvider.dataPanelTitle,
-            onClose: () => chatProvider.closeDataPanel(),
-            csvFilename: '${chatProvider.dataPanelTitle.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.csv',
-            // Tabbed view support (for technical audits)
-            tabs: chatProvider.dataPanelTabs,
-            tabColumns: chatProvider.dataPanelTabs != null ? {
-              'SEO Issues': _buildTechnicalSEOColumns(),
-              'Performance': _buildPerformanceColumns(),
-              'AI Bots': _buildAIBotAccessColumns(),
-              if (chatProvider.dataPanelTabs!.containsKey('Page Summaries'))
-                'Page Summaries': _buildPageSummaryColumns(),
-            } : null,
-            dataPanelUrl: chatProvider.dataPanelUrl,
+        Row(
+          children: [
+            Expanded(
+              child: chatContent,
+            ),
+            if (chatProvider.dataPanelOpen && !chatProvider.dataPanelMinimized)
+              DataPanel(
+                data: chatProvider.dataPanelData,
+                columns: _buildDataPanelColumns(chatProvider.dataPanelTitle),
+                title: chatProvider.dataPanelTitle,
+                onClose: () => chatProvider.closeDataPanel(),
+                onMinimize: () => chatProvider.minimizeDataPanel(),
+                csvFilename: '${chatProvider.dataPanelTitle.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.csv',
+                // Tabbed view support (for conversation results)
+                tabs: chatProvider.dataPanelTabs,
+                tabColumns: chatProvider.dataPanelTabs != null 
+                    ? _buildTabColumns(chatProvider.dataPanelTabs!)
+                    : null,
+                dataPanelUrl: chatProvider.dataPanelUrl,
             projects: projectProvider.allProjects.map((p) => {
               'id': p.id,
               'name': p.name,
@@ -1210,6 +1209,25 @@ class _ChatScreenState extends State<ChatScreen> {
               }
             },
           ),
+        ],
+      ),
+      // Floating restore button when panel is minimized
+      if (chatProvider.dataPanelOpen && chatProvider.dataPanelMinimized)
+        Positioned(
+          right: 20,
+          bottom: 20,
+          child: FloatingActionButton.extended(
+            onPressed: () => chatProvider.maximizeDataPanel(),
+            backgroundColor: const Color(0xFFFFC107),
+            foregroundColor: Colors.black87,
+            icon: const Icon(Icons.table_chart),
+            label: Text(
+              '${chatProvider.conversationResults.length} Result${chatProvider.conversationResults.length == 1 ? '' : 's'}',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            tooltip: 'Show conversation results',
+          ),
+        ),
       ],
     );
   }
@@ -1229,6 +1247,59 @@ class _ChatScreenState extends State<ChatScreen> {
     }
     // Default to keyword columns
     return _buildKeywordColumns();
+  }
+  
+  Map<String, List<DataColumnConfig>> _buildTabColumns(Map<String, List<Map<String, dynamic>>> tabs) {
+    final tabColumns = <String, List<DataColumnConfig>>{};
+    
+    for (final tabName in tabs.keys) {
+      final tabNameLower = tabName.toLowerCase();
+      
+      // Determine columns based on tab name
+      if (tabNameLower.contains('keyword')) {
+        tabColumns[tabName] = _buildKeywordColumns();
+      } else if (tabNameLower.contains('ranking')) {
+        tabColumns[tabName] = _buildRankingColumns();
+      } else if (tabNameLower.contains('seo issue') || tabNameLower.contains('tech seo')) {
+        tabColumns[tabName] = _buildTechnicalSEOColumns();
+      } else if (tabNameLower.contains('performance')) {
+        tabColumns[tabName] = _buildPerformanceColumns();
+      } else if (tabNameLower.contains('ai bot') || tabNameLower.contains('bot')) {
+        tabColumns[tabName] = _buildAIBotAccessColumns();
+      } else if (tabNameLower.contains('page summar')) {
+        tabColumns[tabName] = _buildPageSummaryColumns();
+      } else if (tabNameLower.contains('audit')) {
+        tabColumns[tabName] = _buildComprehensiveAuditColumns();
+      } else {
+        // Try to infer from data structure if we have data
+        final tabData = tabs[tabName];
+        if (tabData != null && tabData.isNotEmpty) {
+          final firstRow = tabData.first;
+          
+          // Check for keyword data structure
+          if (firstRow.containsKey('keyword') && firstRow.containsKey('search_volume')) {
+            tabColumns[tabName] = _buildKeywordColumns();
+          } 
+          // Check for ranking data structure
+          else if (firstRow.containsKey('url') && firstRow.containsKey('position')) {
+            tabColumns[tabName] = _buildRankingColumns();
+          }
+          // Check for SEO issue structure
+          else if (firstRow.containsKey('issue') || firstRow.containsKey('severity')) {
+            tabColumns[tabName] = _buildTechnicalSEOColumns();
+          }
+          // Default fallback
+          else {
+            tabColumns[tabName] = _buildKeywordColumns();
+          }
+        } else {
+          // Empty tab, use keyword columns as default
+          tabColumns[tabName] = _buildKeywordColumns();
+        }
+      }
+    }
+    
+    return tabColumns;
   }
 
   List<DataColumnConfig> _buildKeywordColumns() {
