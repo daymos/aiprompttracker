@@ -28,6 +28,7 @@ class ChatScreen extends StatefulWidget {
 enum ViewState { chat, conversations, projects }
 enum ProjectViewState { list, detail }
 enum ProjectTab { overview, keywords, backlinks, siteAudit, pinboard }
+enum ProjectMode { seo, seoAgent }
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
@@ -40,6 +41,7 @@ class _ChatScreenState extends State<ChatScreen> {
   ViewState _currentView = ViewState.chat;
   ProjectViewState _projectViewState = ProjectViewState.list;
   ProjectTab _selectedProjectTab = ProjectTab.keywords;
+  ProjectMode _projectMode = ProjectMode.seo;
   Timer? _keywordPollingTimer;
 
   @override
@@ -434,6 +436,58 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                   tooltip: 'My SEO Projects',
                 ),
+                // Only show mode toggle when viewing a project
+                if (_currentView == ViewState.projects && _projectViewState == ProjectViewState.detail) ...[
+                  const SizedBox(height: 24),
+                  // Divider
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Divider(
+                      color: Theme.of(context).dividerColor.withOpacity(0.3),
+                      thickness: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Mode toggle - SEO
+                  IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _projectMode = ProjectMode.seo;
+                      });
+                    },
+                    icon: const Icon(Icons.analytics_outlined),
+                    style: IconButton.styleFrom(
+                      backgroundColor: _projectMode == ProjectMode.seo
+                          ? const Color(0xFFFFC107).withOpacity(0.2)
+                          : null,
+                      foregroundColor: _projectMode == ProjectMode.seo
+                          ? const Color(0xFFFFC107)
+                          : null,
+                    ),
+                    iconSize: 24,
+                    tooltip: 'SEO Analytics',
+                  ),
+                  const SizedBox(height: 8),
+                  // Mode toggle - SEO Agent
+                  IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _projectMode = ProjectMode.seoAgent;
+                      });
+                    },
+                    icon: const Icon(Icons.auto_awesome),
+                    style: IconButton.styleFrom(
+                      backgroundColor: _projectMode == ProjectMode.seoAgent
+                          ? const Color(0xFFFFC107).withOpacity(0.2)
+                          : null,
+                      foregroundColor: _projectMode == ProjectMode.seoAgent
+                          ? const Color(0xFFFFC107)
+                          : null,
+                    ),
+                    iconSize: 24,
+                    tooltip: 'SEO Agent',
+                  ),
+                ],
                 const Spacer(),
                 // Theme switcher
                 const Padding(
@@ -2455,7 +2509,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  // Project info
+                  // Project info with action buttons in same row
                   Row(
                     children: [
                       FaviconWidget(
@@ -2485,148 +2539,191 @@ class _ChatScreenState extends State<ChatScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(width: 16),
-                      // Chat button - prominent call to action
-                      FilledButton.icon(
-                        onPressed: () {
-                          // Start a new conversation with project context
-                          final chatProvider = context.read<ChatProvider>();
-                          final project = projectProvider.selectedProject!;
-                          chatProvider.startNewConversation();
-                          MessageBubble.clearAnimationCache();
-                          
-                          // Agent mode disabled - always use 'ask' mode
-                          _switchToChatView();
-                          
-                          // Switch to main chat and send initial message
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            Future.delayed(const Duration(milliseconds: 300)).then((_) {
-                              if (mounted) {
-                                _messageController.text = "Let's work on my ${project.name} project (${project.targetUrl}).";
-                                _sendMessage();
-                              }
+                      // Only show SEO action buttons in SEO mode
+                      if (_projectMode == ProjectMode.seo) ...[
+                        const SizedBox(width: 16),
+                        // Chat button - prominent call to action
+                        FilledButton.icon(
+                          onPressed: () {
+                            // Start a new conversation with project context
+                            final chatProvider = context.read<ChatProvider>();
+                            final project = projectProvider.selectedProject!;
+                            chatProvider.startNewConversation();
+                            MessageBubble.clearAnimationCache();
+                            
+                            // Agent mode disabled - always use 'ask' mode
+                            _switchToChatView();
+                            
+                            // Switch to main chat and send initial message
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              Future.delayed(const Duration(milliseconds: 300)).then((_) {
+                                if (mounted) {
+                                  _messageController.text = "Let's work on my ${project.name} project (${project.targetUrl}).";
+                                  _sendMessage();
+                                }
+                              });
                             });
-                          });
-                        },
-                        icon: const Icon(Icons.auto_awesome, size: 20),
-                        label: const Text('Work on SEO Strategy'),
-                        style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          },
+                          icon: const Icon(Icons.auto_awesome, size: 20),
+                          label: const Text('Work on SEO Strategy'),
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      // Refresh buttons
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            onPressed: projectProvider.isLoading
-                                ? null
-                                : () async {
-                                    try {
-                                      await projectProvider.refreshRankings(authProvider.apiService);
-                                      if (mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Keywords updated!')),
-                                        );
+                        const SizedBox(width: 8),
+                        // Refresh buttons
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              onPressed: projectProvider.isLoading
+                                  ? null
+                                  : () async {
+                                      try {
+                                        await projectProvider.refreshRankings(authProvider.apiService);
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('Keywords updated!')),
+                                          );
+                                        }
+                                      } catch (e) {
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text('Error: $e')),
+                                          );
+                                        }
                                       }
-                                    } catch (e) {
-                                      if (mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('Error: $e')),
-                                        );
+                                    },
+                              icon: const Icon(Icons.search),
+                              tooltip: 'Refresh Keywords',
+                              iconSize: 20,
+                            ),
+                            IconButton(
+                              onPressed: projectProvider.isLoading
+                                  ? null
+                                  : () async {
+                                      try {
+                                        await projectProvider.refreshBacklinks(authProvider.apiService, project.id);
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('Backlinks refreshed!')),
+                                          );
+                                        }
+                                      } catch (e) {
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text('Error: $e')),
+                                          );
+                                        }
                                       }
-                                    }
-                                  },
-                            icon: const Icon(Icons.search),
-                            tooltip: 'Refresh Keywords',
-                            iconSize: 20,
-                          ),
-                          IconButton(
-                            onPressed: projectProvider.isLoading
-                                ? null
-                                : () async {
-                                    try {
-                                      await projectProvider.refreshBacklinks(authProvider.apiService, project.id);
-                                      if (mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Backlinks refreshed!')),
-                                        );
-                                      }
-                                    } catch (e) {
-                                      if (mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('Error: $e')),
-                                        );
-                                      }
-                                    }
-                                  },
-                            icon: const Icon(Icons.link),
-                            tooltip: 'Refresh Backlinks',
-                            iconSize: 20,
-                          ),
-                        ],
-                      ),
-                      // Delete button
-                      IconButton(
-                        onPressed: projectProvider.isLoading
-                            ? null
-                            : () async {
-                                // Show confirmation dialog
-                                final confirmed = await showDialog<bool>(
-                                  context: context,
-                                  builder: (context) => AlertDialog(
-                                    title: const Text('Delete Project'),
-                                    content: Text(
-                                      'Are you sure you want to delete "${project.name}"?\n\nThis will permanently delete:\n• All tracked keywords\n• Ranking history\n\nThis action cannot be undone.',
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(context, false),
-                                        child: const Text('Cancel'),
+                                    },
+                              icon: const Icon(Icons.link),
+                              tooltip: 'Refresh Backlinks',
+                              iconSize: 20,
+                            ),
+                          ],
+                        ),
+                        // Delete button
+                        IconButton(
+                          onPressed: projectProvider.isLoading
+                              ? null
+                              : () async {
+                                  // Show confirmation dialog
+                                  final confirmed = await showDialog<bool>(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      title: const Text('Delete Project'),
+                                      content: Text(
+                                        'Are you sure you want to delete "${project.name}"?\n\nThis will permanently delete:\n• All tracked keywords\n• Ranking history\n\nThis action cannot be undone.',
                                       ),
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(context, true),
-                                        style: TextButton.styleFrom(
-                                          foregroundColor: Colors.red,
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(context, false),
+                                          child: const Text('Cancel'),
                                         ),
-                                        child: const Text('Delete'),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                                
-                                if (confirmed == true) {
-                                  try {
-                                    await authProvider.apiService.deleteProject(project.id);
-                                    if (mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Project deleted successfully')),
-                                      );
-                                      // Go back to project list
-                                      setState(() {
-                                        _projectViewState = ProjectViewState.list;
-                                      });
-                                      // Reload projects
-                                      projectProvider.loadAllProjects(authProvider.apiService);
-                                    }
-                                  } catch (e) {
-                                    if (mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text('Error deleting project: $e')),
-                                      );
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(context, true),
+                                          style: TextButton.styleFrom(
+                                            foregroundColor: Colors.red,
+                                          ),
+                                          child: const Text('Delete'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  
+                                  if (confirmed == true) {
+                                    try {
+                                      await authProvider.apiService.deleteProject(project.id);
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Project deleted successfully')),
+                                        );
+                                        // Go back to project list
+                                        setState(() {
+                                          _projectViewState = ProjectViewState.list;
+                                        });
+                                        // Reload projects
+                                        projectProvider.loadAllProjects(authProvider.apiService);
+                                      }
+                                    } catch (e) {
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Error deleting project: $e')),
+                                        );
+                                      }
                                     }
                                   }
-                                }
-                              },
-                        icon: const Icon(Icons.delete_outline),
-                        tooltip: 'Delete Project',
-                        color: Colors.red[400],
-                      ),
+                                },
+                          icon: const Icon(Icons.delete_outline),
+                          tooltip: 'Delete Project',
+                          color: Colors.red[400],
+                        ),
+                      ],
                     ],
                   ),
+                  const SizedBox(height: 24),
+                  
+                  // Mode indicator header
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFC107).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: const Color(0xFFFFC107).withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _projectMode == ProjectMode.seo 
+                              ? Icons.analytics_outlined 
+                              : Icons.auto_awesome,
+                          color: const Color(0xFFFFC107),
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _projectMode == ProjectMode.seo 
+                              ? 'SEO Analytics' 
+                              : 'SEO Agent',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 16),
-                  // Tabs with counts
+                  
+                  // Tabs with counts (only show in SEO mode)
+                  if (_projectMode == ProjectMode.seo)
                   TabBar(
                     onTap: (index) {
                       setState(() {
@@ -2654,21 +2751,159 @@ class _ChatScreenState extends State<ChatScreen> {
 
             // Tab content
             Expanded(
-              child: TabBarView(
-                physics: const NeverScrollableScrollPhysics(), // Disable swipe
-                children: [
-                  _buildOverviewTab(project, projectProvider),
-                  _buildKeywordsTab(projectProvider, keywords),
-                  _buildBacklinksTab(project),
-                  _buildSiteAuditTab(project),
-                  _buildPinboardTab(project),
-                ],
-              ),
+              child: _projectMode == ProjectMode.seo
+                  ? TabBarView(
+                      physics: const NeverScrollableScrollPhysics(), // Disable swipe
+                      children: [
+                        _buildOverviewTab(project, projectProvider),
+                        _buildKeywordsTab(projectProvider, keywords),
+                        _buildBacklinksTab(project),
+                        _buildSiteAuditTab(project),
+                        _buildPinboardTab(project),
+                      ],
+                    )
+                  : _buildSeoAgentView(project, projectProvider),
             ),
           ],
         ),
       ),
       ),
+    );
+  }
+
+  Widget _buildSeoAgentView(Project project, ProjectProvider projectProvider) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 600),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFC107).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: const Color(0xFFFFC107).withOpacity(0.3),
+                  width: 2,
+                ),
+              ),
+              child: Icon(
+                Icons.auto_awesome,
+                size: 64,
+                color: const Color(0xFFFFC107),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'SEO Agent',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'AI-powered content generation and SEO automation',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: isDark ? Colors.grey[400] : Colors.grey[600],
+                  ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.grey[850] : Colors.grey[100],
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildFeatureItem(
+                    context,
+                    icon: Icons.article_outlined,
+                    title: 'Content Generation',
+                    description: 'Generate blog posts from keyword research',
+                  ),
+                  const SizedBox(height: 16),
+                  _buildFeatureItem(
+                    context,
+                    icon: Icons.publish_outlined,
+                    title: 'Auto Publishing',
+                    description: 'Publish directly to WordPress and other platforms',
+                  ),
+                  const SizedBox(height: 16),
+                  _buildFeatureItem(
+                    context,
+                    icon: Icons.schedule_outlined,
+                    title: 'Scheduled Campaigns',
+                    description: 'Plan and schedule content campaigns',
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
+            Text(
+              'Coming soon...',
+              style: TextStyle(
+                color: const Color(0xFFFFC107),
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeatureItem(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String description,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFC107).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icon,
+            size: 24,
+            color: const Color(0xFFFFC107),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                description,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: isDark ? Colors.grey[500] : Colors.grey[600],
+                    ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
