@@ -4002,17 +4002,8 @@ class _ChatScreenState extends State<ChatScreen> {
             : Column(
                 children: [
                   // Summary Metrics Header
-                  Container(
+                  Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2A2A2A),
-                      border: Border(
-                        bottom: BorderSide(
-                          color: Theme.of(context).dividerColor.withOpacity(0.3),
-                          width: 1,
-                        ),
-                      ),
-                    ),
                     child: // Calculate stats
                         Builder(
                           builder: (context) {
@@ -4891,17 +4882,8 @@ class _ChatScreenState extends State<ChatScreen> {
     return Column(
       children: [
         // Summary Metrics Header
-        Container(
+        Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-          decoration: BoxDecoration(
-            color: const Color(0xFF2A2A2A),
-            border: Border(
-              bottom: BorderSide(
-                color: Theme.of(context).dividerColor.withOpacity(0.3),
-                width: 1,
-              ),
-            ),
-          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
