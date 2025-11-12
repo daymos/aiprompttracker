@@ -91,6 +91,21 @@ def generate_html_page(post: Dict) -> str:
     featured_image = get_featured_image(post)
     categories = get_categories(post)
     
+    # Build JSON-LD image field
+    json_ld_image = f',\n      "image": "{featured_image}"' if featured_image else ''
+    
+    # Build categories HTML
+    categories_html = ''
+    if categories:
+        badges = ''.join(f'<span class="category-badge">{cat}</span>' for cat in categories)
+        categories_html = f'<div class="article-categories">{badges}</div>'
+    
+    # Build featured image HTML
+    featured_image_html = f'<img src="{featured_image}" alt="{title}" class="featured-image">' if featured_image else ''
+    
+    # Build OG image meta tag
+    og_image_meta = f'<meta property="og:image" content="{featured_image}">' if featured_image else '<meta property="og:image" content="https://keywords.chat/og-image.png">'
+    
     # Generate HTML
     html = f'''<!DOCTYPE html>
 <html lang="en">
@@ -142,8 +157,7 @@ def generate_html_page(post: Dict) -> str:
           "@type": "ImageObject",
           "url": "https://keywords.chat/logo.svg"
         }}
-      }}{f',
-      "image": "{featured_image}"' if featured_image else ''}
+      }}{json_ld_image}
     }}
     </script>
     

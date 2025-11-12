@@ -3295,40 +3295,6 @@ class _ChatScreenState extends State<ChatScreen> {
     return Colors.red[600]!;
   }
   
-  Widget _buildCompactMetric(String title, String value, IconData icon, Color color) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Icon(icon, size: 16, color: color),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 10,
-                color: Colors.grey[600],
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-  
   Widget _buildMetricCard(String title, String value, IconData icon, Color color, {List<double>? sparklineData, bool showSparklinePlaceholder = false, bool invertSparkline = false, String? tooltip, bool compact = false}) {
     final hasSparkline = sparklineData != null && sparklineData.length >= 2;
     final showPlaceholder = !hasSparkline && showSparklinePlaceholder;
@@ -4307,89 +4273,6 @@ class _ChatScreenState extends State<ChatScreen> {
               )
             : Column(
                 children: [
-                  // Summary Metrics Header
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                    child: // Calculate stats
-                        Builder(
-                          builder: (context) {
-                            int totalKeywords = keywords.length;
-                            int top3Keywords = keywords.where((k) => k.currentPosition != null && k.currentPosition! <= 3).length;
-                            int top10Keywords = keywords.where((k) => k.currentPosition != null && k.currentPosition! <= 10).length;
-                            
-                            final rankedKeywords = keywords.where((k) => k.currentPosition != null).toList();
-                            double avgPosition = 0;
-                            if (rankedKeywords.isNotEmpty) {
-                              avgPosition = rankedKeywords.map((k) => k.currentPosition!).reduce((a, b) => a + b) / rankedKeywords.length;
-                            }
-                            
-                            // Get most recent keyword update
-                            DateTime? lastUpdated;
-                            if (keywords.isNotEmpty) {
-                              lastUpdated = keywords.map((k) => k.createdAt).reduce((a, b) => a.isAfter(b) ? a : b);
-                            }
-                            
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (lastUpdated != null) ...[
-                                  Align(
-                                    alignment: Alignment.centerRight,
-                                    child: Text(
-                                      'Last updated: ${_formatAnalyzedDate(lastUpdated.toIso8601String())}',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                ],
-                                Row(
-                              children: [
-                                Expanded(
-                                  child: _buildCompactMetric(
-                                    'Total Keywords',
-                                    totalKeywords.toString(),
-                                    Icons.key,
-                                    Colors.indigo[400]!,
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: _buildCompactMetric(
-                                    'Top 3',
-                                    top3Keywords.toString(),
-                                    Icons.emoji_events,
-                                    Colors.amber[600]!,
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: _buildCompactMetric(
-                                    'Top 10',
-                                    top10Keywords.toString(),
-                                    Icons.star,
-                                    Colors.green[400]!,
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: _buildCompactMetric(
-                                    'Avg Position',
-                                    rankedKeywords.isEmpty ? 'N/A' : avgPosition.toStringAsFixed(1),
-                                    Icons.trending_up,
-                                    rankedKeywords.isEmpty ? Colors.grey[400]! : _getAvgRankingColor(avgPosition),
-                                  ),
-                                ),
-                              ],
-                            ),
-                              ],
-                            );
-                          },
-                        ),
-                  ),
-                  
                   // Search, filter and sort controls (inline, compact)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -5120,10 +5003,6 @@ class _ChatScreenState extends State<ChatScreen> {
     final data = projectProvider.backlinksData;
     final allBacklinks = (data?['backlinks'] as List?)?.cast<Map<String, dynamic>>() ?? [];
     final filteredBacklinks = _filterAndSortBacklinks(allBacklinks);
-    final totalBacklinks = data?['total_backlinks'] ?? 0;
-    final referringDomains = data?['referring_domains'] ?? 0;
-    final domainAuthority = data?['domain_authority'] ?? 0;
-    final analyzedAt = data?['analyzed_at'] as String?;
 
     if (allBacklinks.isEmpty) {
       return Center(
@@ -5176,79 +5055,9 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
       );
     }
-
-    // Extract additional metrics for summary
-    final overtime = data?['overtime'] as List? ?? [];
-    List<double>? domainsSparkline;
-    
-    if (overtime.isNotEmpty) {
-      domainsSparkline = overtime.map<double>((point) => (point['referring_domains'] ?? 0).toDouble()).toList();
-    }
     
     return Column(
       children: [
-        // Summary Metrics Header
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (analyzedAt != null) ...[
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    'Last analyzed: ${_formatAnalyzedDate(analyzedAt)}',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-              ],
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildMetricCard(
-                      'Total Backlinks',
-                      _formatNumber(totalBacklinks),
-                      Icons.link,
-                      Colors.blue[400]!,
-                      sparklineData: overtime.isNotEmpty 
-                        ? overtime.map<double>((point) => (point['backlinks'] ?? 0).toDouble()).toList()
-                        : null,
-                      showSparklinePlaceholder: true,
-                      compact: true,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _buildMetricCard(
-                      'Referring Domains',
-                      _formatNumber(referringDomains),
-                      Icons.language,
-                      Colors.purple[400]!,
-                      sparklineData: domainsSparkline,
-                      showSparklinePlaceholder: true,
-                      compact: true,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _buildMetricCard(
-                      'Spam Score',
-                      _getSpamScore(data),
-                      Icons.security,
-                      _getSpamScoreColor(data),
-                      compact: true,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        
         // Search, Filter, and Sort Controls
         Padding(
           padding: const EdgeInsets.all(16.0),
