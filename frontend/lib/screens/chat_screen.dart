@@ -32,9 +32,10 @@ enum ProjectTab { overview, pinboard, keywords, backlinks, siteAudit }
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _messageFocusNode = FocusNode();
   bool _hasShownWelcomeModal = false;
   bool _hasLoadedProjects = false;
-  String _selectedMode = 'ask'; // 'ask' or 'agent'
+  String _selectedMode = 'ask'; // Agent mode disabled
   bool _shouldCancelRequest = false;
   ViewState _currentView = ViewState.chat;
   ProjectViewState _projectViewState = ProjectViewState.list;
@@ -63,6 +64,13 @@ class _ChatScreenState extends State<ChatScreen> {
       // Listen for chat updates and auto-scroll
       final chatProvider = context.read<ChatProvider>();
       chatProvider.addListener(_scrollToBottom);
+      
+      // Auto-focus message input with delay to ensure widget is built
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted && _currentView == ViewState.chat) {
+          _messageFocusNode.requestFocus();
+        }
+      });
     });
   }
 
@@ -72,8 +80,22 @@ class _ChatScreenState extends State<ChatScreen> {
     chatProvider.removeListener(_scrollToBottom);
     _messageController.dispose();
     _scrollController.dispose();
+    _messageFocusNode.dispose();
     _keywordPollingTimer?.cancel();
     super.dispose();
+  }
+
+  /// Helper method to switch to chat view and auto-focus input
+  void _switchToChatView() {
+    setState(() {
+      _currentView = ViewState.chat;
+    });
+    // Request focus after frame is built
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted && _currentView == ViewState.chat) {
+        _messageFocusNode.requestFocus();
+      }
+    });
   }
 
   void _startKeywordPolling() {
@@ -210,6 +232,12 @@ class _ChatScreenState extends State<ChatScreen> {
       _shouldCancelRequest = true;
     });
     chatProvider.setLoading(false);
+    // Refocus input after stopping generation
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted && _currentView == ViewState.chat) {
+        _messageFocusNode.requestFocus();
+      }
+    });
   }
 
   Future<void> _sendMessage() async {
@@ -296,6 +324,12 @@ class _ChatScreenState extends State<ChatScreen> {
       if (!_shouldCancelRequest) {
         chatProvider.setLoading(false);
       }
+      // Refocus input after message is sent/completed
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted && _currentView == ViewState.chat) {
+          _messageFocusNode.requestFocus();
+        }
+      });
     }
   }
 
@@ -330,9 +364,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     onTap: () {
                       chatProvider.startNewConversation();
                       MessageBubble.clearAnimationCache();
-                      setState(() {
-                        _currentView = ViewState.chat;
-                      });
+                      _switchToChatView();
                     },
                     borderRadius: BorderRadius.circular(8),
                     child: Padding(
@@ -363,9 +395,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   onPressed: () {
                     chatProvider.startNewConversation();
                     MessageBubble.clearAnimationCache();
-                    setState(() {
-                      _currentView = ViewState.chat;
-                    });
+                    _switchToChatView();
                   },
                   icon: const Icon(Icons.add),
                   iconSize: 28,
@@ -525,16 +555,19 @@ class _ChatScreenState extends State<ChatScreen> {
                   children: [
                     TextField(
                       controller: _messageController,
-                      decoration: InputDecoration(
-                        hintText: _selectedMode == 'agent'
-                            ? 'Share your website and I\'ll guide you through SEO strategy...'
-                            : 'Ask me to analyze a website, research keywords, check rankings...',
+                      focusNode: _messageFocusNode,
+                      decoration: const InputDecoration(
+                        hintText: 'Ask me to analyze a website, research keywords, check rankings...',
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                       ),
                       maxLines: null,
                       textInputAction: TextInputAction.send,
                       onSubmitted: (_) => _sendMessage(),
+                      cursorWidth: 10,
+                      cursorHeight: 18,
+                      cursorRadius: Radius.zero,
+                      cursorColor: Theme.of(context).colorScheme.primary.withOpacity(0.6),
                     ),
                     
                     // Bottom toolbar with mode selector and buttons
@@ -549,71 +582,6 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                       child: Row(
                         children: [
-                          // Mode selector dropdown
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: DropdownButton<String>(
-                              value: _selectedMode,
-                              underline: const SizedBox(),
-                              isDense: true,
-                              icon: Icon(
-                                Icons.keyboard_arrow_down,
-                                size: 14,
-                                color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.5),
-                              ),
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
-                                fontSize: 12,
-                              ),
-                              items: [
-                                DropdownMenuItem(
-                                  value: 'ask',
-                                  child: Tooltip(
-                                    message: 'Ask Mode: You control the workflow - give direct commands',
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          Icons.chat_bubble_outline,
-                                          size: 12,
-                                          color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        const Text('Ask'),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'agent',
-                                  child: Tooltip(
-                                    message: 'Agent Mode: Strategic SEO guidance with proactive recommendations',
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          Icons.auto_awesome,
-                                          size: 12,
-                                          color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        const Text('Agent'),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                              onChanged: (value) {
-                                if (value != null) {
-                                  setState(() {
-                                    _selectedMode = value;
-                                  });
-                                }
-                              },
-                            ),
-                          ),
                           const Spacer(),
                           // Pin conversation button
                           chatProvider.messages.isEmpty
@@ -888,16 +856,19 @@ class _ChatScreenState extends State<ChatScreen> {
                 // Text input area
                 TextField(
                   controller: _messageController,
-                  decoration: InputDecoration(
-                    hintText: _selectedMode == 'agent'
-                        ? 'Share your website and I\'ll guide you through SEO strategy...'
-                        : 'Ask me to analyze a website, research keywords, check rankings...',
+                  focusNode: _messageFocusNode,
+                    decoration: const InputDecoration(
+                        hintText: 'Ask me to analyze a website, research keywords, check rankings...',
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                   ),
                   maxLines: null,
                   textInputAction: TextInputAction.send,
                   onSubmitted: (_) => _sendMessage(),
+                  cursorWidth: 10,
+                  cursorHeight: 18,
+                  cursorRadius: Radius.zero,
+                  cursorColor: Theme.of(context).colorScheme.primary.withOpacity(0.6),
                 ),
                 
                 // Bottom toolbar with mode selector and buttons
@@ -912,71 +883,6 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                   child: Row(
                     children: [
-                      // Mode selector dropdown
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: DropdownButton<String>(
-                          value: _selectedMode,
-                          underline: const SizedBox(),
-                          isDense: true,
-                          icon: Icon(
-                            Icons.keyboard_arrow_down,
-                            size: 14,
-                            color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.5),
-                          ),
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
-                            fontSize: 12,
-                          ),
-                          items: [
-                            DropdownMenuItem(
-                              value: 'ask',
-                              child: Tooltip(
-                                message: 'Ask Mode: You control the workflow - give direct commands',
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.chat_bubble_outline,
-                                      size: 12,
-                                      color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    const Text('Ask'),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            DropdownMenuItem(
-                              value: 'agent',
-                              child: Tooltip(
-                                message: 'Agent Mode: Strategic SEO guidance with proactive recommendations',
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.auto_awesome,
-                                      size: 12,
-                                      color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    const Text('Agent'),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                          onChanged: (value) {
-                            if (value != null) {
-                              setState(() {
-                                _selectedMode = value;
-                              });
-                            }
-                          },
-                        ),
-                      ),
                       const Spacer(),
                       // Pin conversation button
                       chatProvider.messages.isEmpty
@@ -2197,9 +2103,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     chatProvider.setMessages(messages);
                     
                     // Switch back to chat view
-                    setState(() {
-                      _currentView = ViewState.chat;
-                    });
+                    _switchToChatView();
                   } catch (e) {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -2498,10 +2402,8 @@ class _ChatScreenState extends State<ChatScreen> {
                           chatProvider.startNewConversation();
                           MessageBubble.clearAnimationCache();
                           
-                          setState(() {
-                            _currentView = ViewState.chat;
-                            _selectedMode = 'agent';
-                          });
+                          // Agent mode disabled - always use 'ask' mode
+                          _switchToChatView();
                           
                           // Switch to main chat and send initial message
                           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -3294,9 +3196,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         chatProvider.setCurrentConversation(conversation.id);
                         chatProvider.setMessages(messages);
                         
-                        setState(() {
-                          _currentView = ViewState.chat;
-                        });
+                        _switchToChatView();
                       } catch (e) {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -4900,9 +4800,9 @@ class _ChatScreenState extends State<ChatScreen> {
                 ElevatedButton.icon(
                   onPressed: () {
                     setState(() {
-                      _currentView = ViewState.chat;
                       _selectedProjectTab = ProjectTab.overview;
                     });
+                    _switchToChatView();
                     _messageController.text = 'run a site audit for ${project.targetUrl}';
                   },
                   icon: const Icon(Icons.play_arrow),
@@ -4960,9 +4860,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   const Spacer(),
                   ElevatedButton.icon(
                     onPressed: () {
-                      setState(() {
-                        _currentView = ViewState.chat;
-                      });
+                      _switchToChatView();
                       _messageController.text = 'run a site audit for ${project.targetUrl}';
                     },
                     icon: const Icon(Icons.refresh, size: 18),

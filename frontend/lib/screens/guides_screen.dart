@@ -70,8 +70,8 @@ class GuidesScreen extends StatelessWidget {
               _buildFeatureSection(
                 context,
                 Icons.auto_awesome,
-                'Two Modes',
-                'Choose between "Ask" mode (direct commands) or "Agent" mode (guided workflow) depending on whether you want quick answers or step-by-step assistance.',
+                'Simple Commands',
+                'Give direct commands to research keywords, analyze websites, check rankings, and track your SEO progress.',
               ),
               
               const SizedBox(height: 32),

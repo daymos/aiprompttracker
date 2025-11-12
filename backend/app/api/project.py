@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 import uuid
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy.sql import func
 import httpx
 from bs4 import BeautifulSoup
@@ -29,6 +29,10 @@ rank_checker = RankCheckerService()
 web_scraper = WebScraperService()
 llm_service = LLMService()
 dataforseo_service = DataForSEOService()
+
+# In-memory cache for favicons (URL -> {content, content_type, timestamp})
+_favicon_cache = {}
+_FAVICON_CACHE_TTL = timedelta(days=7)  # Cache for 7 days
 
 class CreateProjectRequest(BaseModel):
     target_url: str
@@ -803,12 +807,35 @@ async def unpin_item(
 async def get_favicon(url: str):
     """
     Fetch and proxy the favicon from a website to avoid CORS issues
-    Returns the actual favicon image
+    Returns the actual favicon image (cached for 7 days)
     """
     try:
         # Ensure URL has protocol
         if not url.startswith(('http://', 'https://')):
             url = 'https://' + url
+        
+        # Check cache first
+        if url in _favicon_cache:
+            cached = _favicon_cache[url]
+            cache_age = datetime.now() - cached['timestamp']
+            
+            if cache_age < _FAVICON_CACHE_TTL:
+                logger.debug(f"✅ Returning cached favicon for {url} (age: {cache_age.days} days)")
+                return Response(
+                    content=cached['content'],
+                    media_type=cached['content_type'],
+                    headers={
+                        'Cache-Control': 'public, max-age=604800',  # 7 days
+                        'Access-Control-Allow-Origin': '*',
+                        'X-Cache': 'HIT'
+                    }
+                )
+            else:
+                # Cache expired, remove it
+                logger.debug(f"🗑️  Cache expired for {url}, refetching...")
+                del _favicon_cache[url]
+        
+        logger.info(f"🌐 Fetching favicon for {url}...")
         
         # Parse and validate URL
         parsed_url = urlparse(url)
@@ -879,25 +906,35 @@ async def get_favicon(url: str):
                 # Determine content type
                 content_type = favicon_response.headers.get('content-type', 'image/x-icon')
                 
+                # Cache the favicon
+                _favicon_cache[url] = {
+                    'content': favicon_response.content,
+                    'content_type': content_type,
+                    'timestamp': datetime.now()
+                }
+                logger.info(f"💾 Cached favicon for {url}")
+                
                 # Return the image directly
                 return Response(
                     content=favicon_response.content,
                     media_type=content_type,
                     headers={
-                        'Cache-Control': 'public, max-age=86400',  # Cache for 1 day
+                        'Cache-Control': 'public, max-age=604800',  # Cache for 7 days
                         'Access-Control-Allow-Origin': '*',  # Allow CORS
+                        'X-Cache': 'MISS'
                     }
                 )
             except Exception as e:
                 logger.error(f"Failed to fetch favicon image from {favicon_url}: {e}")
-                # Return a 1x1 transparent pixel as fallback
+                # Return a 1x1 transparent pixel as fallback (don't cache failures)
                 transparent_pixel = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
                 return Response(
                     content=transparent_pixel,
                     media_type='image/png',
                     headers={
-                        'Cache-Control': 'public, max-age=86400',
+                        'Cache-Control': 'public, max-age=3600',  # Short cache for errors
                         'Access-Control-Allow-Origin': '*',
+                        'X-Cache': 'ERROR'
                     }
                 )
             
@@ -905,14 +942,15 @@ async def get_favicon(url: str):
         raise
     except Exception as e:
         logger.error(f"Error fetching favicon for {url}: {e}")
-        # Return a 1x1 transparent pixel
+        # Return a 1x1 transparent pixel (don't cache failures)
         transparent_pixel = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
         return Response(
             content=transparent_pixel,
             media_type='image/png',
             headers={
-                'Cache-Control': 'public, max-age=3600',
+                'Cache-Control': 'public, max-age=3600',  # Short cache for errors
                 'Access-Control-Allow-Origin': '*',
+                'X-Cache': 'ERROR'
             }
         )
 

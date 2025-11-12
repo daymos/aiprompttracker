@@ -396,7 +396,8 @@ class RapidAPISEOService:
             domain = parsed.netloc if parsed.netloc else parsed.path
             domain = domain.replace('http://', '').replace('https://', '')
             
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            # Increased timeout for performance analysis (sites with many images take longer)
+            async with httpx.AsyncClient(timeout=60.0) as client:
                 # Make request via rate-limited queue
                 response = await self._make_api_request(
                     client,
@@ -408,6 +409,12 @@ class RapidAPISEOService:
                 logger.info(f"✅ Performance analysis completed")
                 return self._parse_performance_results(data, url)
                 
+        except httpx.ReadTimeout:
+            logger.warning(f"⏱️  Performance analysis timed out for {url} (this is common for sites with many images/assets)")
+            return {
+                "error": "Performance analysis timed out - site may have too many assets to analyze quickly",
+                "timeout": True
+            }
         except Exception as e:
             logger.error(f"Error analyzing performance: {e}", exc_info=True)
             return {"error": str(e)}
@@ -539,8 +546,30 @@ class RapidAPISEOService:
                     "recommendation": issue.get("recommendation", "")
                 })
         
-        # Add Performance metrics
-        if not performance_results.get("error") and performance_results.get("metrics"):
+        # Add Performance metrics (handle errors gracefully)
+        if performance_results.get("error"):
+            # Add a notice about the error but CONTINUE with SEO results
+            if performance_results.get("timeout"):
+                logger.warning(f"⏱️ Performance timed out - continuing with SEO results")
+                all_items.append({
+                    "category": "Performance",
+                    "item_name": "Performance Analysis",
+                    "status": "Timeout",
+                    "value": "Timed out (60s)",
+                    "location": "Overall",
+                    "recommendation": "Site has many assets. Performance check timed out after 60s. SEO audit completed successfully."
+                })
+            else:
+                logger.warning(f"⚠️ Performance failed: {performance_results.get('error')} - continuing with SEO")
+                all_items.append({
+                    "category": "Performance",
+                    "item_name": "Performance Analysis",
+                    "status": "Error",
+                    "value": "Analysis failed",
+                    "location": "Overall",
+                    "recommendation": f"Performance analysis error: {performance_results.get('error')}"
+                })
+        elif performance_results.get("metrics"):
             for metric in performance_results["metrics"]:
                 all_items.append({
                     "category": "Performance",
@@ -573,7 +602,16 @@ class RapidAPISEOService:
             "url": url
         }
         
-        logger.info(f"✅ Comprehensive audit completed: {len(all_items)} items analyzed")
+        # Log comprehensive status
+        seo_count = len([i for i in all_items if i["category"] == "Technical SEO"])
+        perf_count = len([i for i in all_items if i["category"] == "Performance"])
+        bot_count = len([i for i in all_items if i["category"] == "AI Bot Access"])
+        
+        logger.info(f"✅ Audit completed: {seo_count} SEO issues, {perf_count} performance items, {bot_count} bot checks")
+        
+        # Ensure we have results even if performance failed
+        if len(all_items) == 0:
+            logger.error("⚠️ All audit components failed - no data collected")
         
         return {
             "audit_items": all_items,

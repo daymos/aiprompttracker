@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/chat_provider.dart';
+import 'cli_spinner.dart';
 
 class ConversationList extends StatefulWidget {
   final Function(String) onConversationSelected;
@@ -19,6 +20,8 @@ class _ConversationListState extends State<ConversationList> {
   bool _selectionMode = false;
   Set<String> _selectedConversations = {};
   String? _hoveredConversationId;
+  String _searchQuery = '';
+  bool _isLoading = true;
   
   @override
   void initState() {
@@ -55,12 +58,23 @@ class _ConversationListState extends State<ConversationList> {
   
   void _selectAll() {
     final chatProvider = context.read<ChatProvider>();
+    // Filter conversations based on current search query
+    final filteredConversations = _searchQuery.isEmpty
+        ? chatProvider.conversations
+        : chatProvider.conversations.where((conversation) {
+            final query = _searchQuery.toLowerCase();
+            return conversation.title.toLowerCase().contains(query) ||
+                   conversation.projectNames.any((name) => name.toLowerCase().contains(query));
+          }).toList();
+    
     setState(() {
-      _selectedConversations = chatProvider.conversations.map((c) => c.id).toSet();
+      _selectedConversations = filteredConversations.map((c) => c.id).toSet();
     });
   }
 
   Future<void> _loadConversations() async {
+    setState(() => _isLoading = true);
+    
     final authProvider = context.read<AuthProvider>();
     final chatProvider = context.read<ChatProvider>();
 
@@ -83,6 +97,10 @@ class _ConversationListState extends State<ConversationList> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading conversations: $e')),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
   }
@@ -349,10 +367,19 @@ class _ConversationListState extends State<ConversationList> {
   @override
   Widget build(BuildContext context) {
     final chatProvider = context.watch<ChatProvider>();
+    
+    // Filter conversations based on search query
+    final filteredConversations = _searchQuery.isEmpty
+        ? chatProvider.conversations
+        : chatProvider.conversations.where((conversation) {
+            final query = _searchQuery.toLowerCase();
+            return conversation.title.toLowerCase().contains(query) ||
+                   conversation.projectNames.any((name) => name.toLowerCase().contains(query));
+          }).toList();
 
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
+        color: Colors.transparent,  // Transparent to show grid pattern
         border: Border(
           right: BorderSide(
             color: Theme.of(context).dividerColor.withOpacity(0.15),
@@ -362,6 +389,40 @@ class _ConversationListState extends State<ConversationList> {
       ),
       child: Column(
         children: [
+          // Search bar
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: SizedBox(
+              height: 36,
+              child: TextField(
+                style: const TextStyle(fontSize: 13),
+                decoration: InputDecoration(
+                  hintText: 'Search conversations...',
+                  hintStyle: const TextStyle(fontSize: 13),
+                  prefixIcon: const Icon(Icons.search, size: 16),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 16),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () {
+                            setState(() => _searchQuery = '');
+                          },
+                        )
+                      : null,
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(6),
+                    borderSide: BorderSide(color: Theme.of(context).dividerColor),
+                  ),
+                ),
+                onChanged: (value) {
+                  setState(() => _searchQuery = value);
+                },
+              ),
+            ),
+          ),
           // Header - only show in selection mode
           if (_selectionMode)
             Container(
@@ -383,7 +444,7 @@ class _ConversationListState extends State<ConversationList> {
                     ),
                   ),
                   const Spacer(),
-                  if (_selectedConversations.length < chatProvider.conversations.length)
+                  if (_selectedConversations.length < filteredConversations.length)
                     TextButton(
                       onPressed: _selectAll,
                       child: const Text('Seleziona', style: TextStyle(fontSize: 13)),
@@ -407,14 +468,38 @@ class _ConversationListState extends State<ConversationList> {
               ),
             ),
           Expanded(
-            child: chatProvider.conversations.isEmpty
-                ? const Center(
-                    child: Text('No conversations yet'),
+            child: _isLoading
+                ? Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CliSpinner(
+                          size: 24,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Loading conversations...',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                          ),
+                        ),
+                      ],
+                    ),
                   )
-                : ListView.builder(
-                    itemCount: chatProvider.conversations.length,
+                : filteredConversations.isEmpty
+                    ? Center(
+                        child: Text(
+                          _searchQuery.isEmpty 
+                              ? 'No conversations yet' 
+                              : 'No conversations match "$_searchQuery"',
+                        ),
+                      )
+                    : ListView.builder(
+                    itemCount: filteredConversations.length,
                     itemBuilder: (context, index) {
-                      final conversation = chatProvider.conversations[index];
+                      final conversation = filteredConversations[index];
                       final isSelected = conversation.id == chatProvider.currentConversationId;
                       final isChecked = _selectedConversations.contains(conversation.id);
                       final isHovered = _hoveredConversationId == conversation.id;
@@ -435,8 +520,8 @@ class _ConversationListState extends State<ConversationList> {
                           margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
                             color: !_selectionMode && isSelected 
-                                ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3)
-                                : (isHovered ? Theme.of(context).hoverColor.withOpacity(0.05) : Colors.transparent),
+                                ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.15)  // More transparent for grid
+                                : (isHovered ? Theme.of(context).hoverColor.withOpacity(0.03) : null),  // null = fully transparent
                             borderRadius: BorderRadius.circular(8),
                             border: !_selectionMode && !isSelected
                                 ? Border.all(

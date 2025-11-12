@@ -11,8 +11,9 @@ class WebScraperService:
     """Service for fetching and analyzing websites for SEO keyword research"""
     
     def __init__(self):
-        self.timeout = 10.0
-        self.max_content_length = 500000  # 500KB max
+        self.timeout = 15.0  # Increased from 10s for larger pages
+        self.max_content_length = 5000000  # 5MB max (raw HTML/assets)
+        self.max_text_length = 50000  # 50KB max for extracted text
         self.max_pages_to_crawl = 5  # Limit crawling to avoid abuse
     
     async def fetch_website(self, url: str) -> Optional[Dict[str, Any]]:
@@ -43,13 +44,16 @@ class WebScraperService:
                 )
                 response.raise_for_status()
                 
-                # Check content length
-                if len(response.content) > self.max_content_length:
-                    logger.warning(f"Content too large for {url}")
+                # Check raw content length (prevent extremely large downloads)
+                content_size = len(response.content)
+                if content_size > self.max_content_length:
+                    logger.warning(f"Content too large for {url}: {content_size} bytes (max: {self.max_content_length})")
                     return {
                         'url': url,
-                        'error': 'Content too large to analyze'
+                        'error': f'Page too large to analyze ({content_size / 1024 / 1024:.1f}MB)'
                     }
+                
+                logger.debug(f"Fetched {url}: {content_size / 1024:.1f}KB")
                 
                 # Parse HTML
                 soup = BeautifulSoup(response.content, 'html.parser')
@@ -104,17 +108,17 @@ class WebScraperService:
     def _get_main_content(self, soup: BeautifulSoup) -> str:
         """
         Extract main text content, removing scripts, styles, etc.
-        Returns first ~2000 characters
+        Returns first ~3000 characters (increased from 2000)
         """
         # Remove unwanted elements
-        for element in soup(['script', 'style', 'nav', 'footer', 'header', 'aside']):
+        for element in soup(['script', 'style', 'nav', 'footer', 'header', 'aside', 'form', 'iframe']):
             element.decompose()
         
         # Get text from main content areas (try common patterns)
         main_content = (
             soup.find('main') or 
             soup.find('article') or 
-            soup.find('div', class_=['content', 'main-content', 'post-content']) or
+            soup.find('div', class_=['content', 'main-content', 'post-content', 'container']) or
             soup.find('body')
         )
         
@@ -122,8 +126,14 @@ class WebScraperService:
             text = main_content.get_text(separator=' ', strip=True)
             # Clean up whitespace
             text = ' '.join(text.split())
-            # Return first 2000 chars
-            return text[:2000] + ('...' if len(text) > 2000 else '')
+            
+            # Check if extracted text is too long (safety check)
+            max_chars = 3000
+            if len(text) > self.max_text_length:
+                logger.warning(f"Extracted text is very long ({len(text)} chars), truncating to {max_chars}")
+            
+            # Return first 3000 chars
+            return text[:max_chars] + ('...' if len(text) > max_chars else '')
         
         return ''
     
@@ -198,7 +208,8 @@ class WebScraperService:
         main_page = await self.fetch_website(url)
         
         if main_page and 'error' in main_page:
-            # If main page fails, return error
+            # If main page fails, return error with more helpful message
+            logger.error(f"Failed to analyze {url}: {main_page.get('error')}")
             return main_page
         
         # Try to get sitemap
