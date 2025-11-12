@@ -146,6 +146,33 @@ class _DataPanelState extends State<DataPanel> with SingleTickerProviderStateMix
     return widget.data;
   }
   
+  bool _isKeywordData() {
+    // Check if current view is keyword data (not rankings, audits, etc.)
+    if (_currentTab != null) {
+      final tabLower = _currentTab!.toLowerCase();
+      // It's keyword data if tab name contains "keyword" 
+      // and doesn't contain other types like "ranking", "audit", "seo", "performance", "bot"
+      return tabLower.contains('keyword') && 
+             !tabLower.contains('ranking') && 
+             !tabLower.contains('audit') &&
+             !tabLower.contains('seo issue') &&
+             !tabLower.contains('tech seo') &&
+             !tabLower.contains('performance') &&
+             !tabLower.contains('bot');
+    }
+    
+    // If no tabs, check the data structure
+    if (_sortedData.isNotEmpty) {
+      final firstRow = _sortedData.first;
+      // Check if it has keyword data structure
+      return firstRow.containsKey('keyword') && 
+             firstRow.containsKey('search_volume') &&
+             !firstRow.containsKey('position'); // Not ranking data
+    }
+    
+    return false;
+  }
+  
   void _onTabChanged(String tabName) {
     final tabKeys = widget.tabs!.keys.toList();
     final newIndex = tabKeys.indexOf(tabName);
@@ -494,8 +521,8 @@ class _DataPanelState extends State<DataPanel> with SingleTickerProviderStateMix
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
                         ),
-                        // Only show "Add to Project" for keywords, not for audits
-                        if (widget.tabs == null && widget.onAddToProject != null && widget.projects.isNotEmpty) ...[
+                        // Only show "Add to Project" for keyword data
+                        if (_isKeywordData() && widget.onAddToProject != null && widget.projects.isNotEmpty) ...[
                         const SizedBox(width: 8),
                         PopupMenuButton<String>(
                           onSelected: (projectId) => _addSelectedToProject(projectId),
