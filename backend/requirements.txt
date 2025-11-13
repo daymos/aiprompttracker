@@ -36,4 +36,5 @@ html5lib>=1.1
 # Utilities
 python-multipart>=0.0.6
 email-validator>=2.0.0
+cryptography>=41.0.0  # For password encryption
 
