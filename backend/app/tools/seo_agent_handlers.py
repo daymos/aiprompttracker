@@ -4,8 +4,7 @@ Handlers for SEO Agent function calling tools
 import logging
 import uuid
 from typing import Dict, Any, Optional
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import func
 from cryptography.fernet import Fernet
 import base64
 
@@ -49,7 +48,7 @@ def _decrypt_password(encrypted: str) -> str:
 
 
 async def handle_connect_cms(
-    db: AsyncSession,
+    db,  # Regular SQLAlchemy Session, not AsyncSession
     project_id: str,
     cms_type: str,
     cms_url: str,
@@ -58,9 +57,8 @@ async def handle_connect_cms(
 ) -> Dict[str, Any]:
     """Handle connect_cms tool call"""
     try:
-        # Verify project exists
-        result = await db.execute(select(Project).where(Project.id == project_id))
-        project = result.scalar_one_or_none()
+        # Verify project exists (synchronous query)
+        project = db.query(Project).filter(Project.id == project_id).first()
         
         if not project:
             return {
@@ -87,14 +85,11 @@ async def handle_connect_cms(
         # Encrypt password
         encrypted_password = _encrypt_password(password)
         
-        # Check if integration already exists
-        result = await db.execute(
-            select(ProjectIntegration).where(
-                ProjectIntegration.project_id == project_id,
-                ProjectIntegration.cms_type == cms_type
-            )
-        )
-        existing_integration = result.scalar_one_or_none()
+        # Check if integration already exists (synchronous query)
+        existing_integration = db.query(ProjectIntegration).filter(
+            ProjectIntegration.project_id == project_id,
+            ProjectIntegration.cms_type == cms_type
+        ).first()
         
         if existing_integration:
             # Update existing
@@ -105,7 +100,7 @@ async def handle_connect_cms(
             existing_integration.last_tested_at = func.now()
             existing_integration.last_test_status = "success"
             existing_integration.last_test_error = None
-            await db.commit()
+            db.commit()
             
             return {
                 "success": True,
@@ -127,7 +122,7 @@ async def handle_connect_cms(
             )
             
             db.add(integration)
-            await db.commit()
+            db.commit()
             
             return {
                 "success": True,
@@ -138,7 +133,7 @@ async def handle_connect_cms(
             
     except Exception as e:
         logger.error(f"Error connecting CMS: {e}")
-        await db.rollback()
+        db.rollback()
         return {
             "success": False,
             "error": str(e)
@@ -146,19 +141,16 @@ async def handle_connect_cms(
 
 
 async def handle_test_cms_connection(
-    db: AsyncSession,
+    db,  # Regular SQLAlchemy Session
     project_id: str
 ) -> Dict[str, Any]:
     """Handle test_cms_connection tool call"""
     try:
         # Get integration
-        result = await db.execute(
-            select(ProjectIntegration).where(
-                ProjectIntegration.project_id == project_id,
-                ProjectIntegration.is_active == True
-            )
-        )
-        integration = result.scalar_one_or_none()
+        integration = db.query(ProjectIntegration).filter(
+            ProjectIntegration.project_id == project_id,
+            ProjectIntegration.is_active == True
+        ).first()
         
         if not integration:
             return {
@@ -182,7 +174,7 @@ async def handle_test_cms_connection(
         integration.last_tested_at = func.now()
         integration.last_test_status = "success" if test_result.get("success") else "failed"
         integration.last_test_error = test_result.get("error")
-        await db.commit()
+        db.commit()
         
         return test_result
         
@@ -195,20 +187,17 @@ async def handle_test_cms_connection(
 
 
 async def handle_analyze_content_tone(
-    db: AsyncSession,
+    db,  # Regular SQLAlchemy Session
     project_id: str,
     num_posts: int = 5
 ) -> Dict[str, Any]:
     """Handle analyze_content_tone tool call"""
     try:
         # Get CMS integration
-        result = await db.execute(
-            select(ProjectIntegration).where(
-                ProjectIntegration.project_id == project_id,
-                ProjectIntegration.is_active == True
-            )
-        )
-        integration = result.scalar_one_or_none()
+        integration = db.query(ProjectIntegration).filter(
+            ProjectIntegration.project_id == project_id,
+            ProjectIntegration.is_active == True
+        ).first()
         
         if not integration:
             return {
@@ -240,10 +229,7 @@ async def handle_analyze_content_tone(
             return tone_analysis
         
         # Save or update tone profile
-        result = await db.execute(
-            select(ContentToneProfile).where(ContentToneProfile.project_id == project_id)
-        )
-        existing_profile = result.scalar_one_or_none()
+        existing_profile = db.query(ContentToneProfile).filter(ContentToneProfile.project_id == project_id).first()
         
         if existing_profile:
             existing_profile.tone_description = tone_analysis["tone_description"]
@@ -259,7 +245,7 @@ async def handle_analyze_content_tone(
             )
             db.add(profile)
         
-        await db.commit()
+        db.commit()
         
         return {
             "success": True,
@@ -269,7 +255,7 @@ async def handle_analyze_content_tone(
         
     except Exception as e:
         logger.error(f"Error analyzing content tone: {e}")
-        await db.rollback()
+        db.rollback()
         return {
             "success": False,
             "error": str(e)
@@ -277,7 +263,7 @@ async def handle_analyze_content_tone(
 
 
 async def handle_generate_content_outline(
-    db: AsyncSession,
+    db,  # Regular SQLAlchemy Session
     project_id: str,
     topic: str,
     target_keywords: list,
@@ -286,10 +272,7 @@ async def handle_generate_content_outline(
     """Handle generate_content_outline tool call"""
     try:
         # Get tone profile if exists
-        result = await db.execute(
-            select(ContentToneProfile).where(ContentToneProfile.project_id == project_id)
-        )
-        tone_profile = result.scalar_one_or_none()
+        tone_profile = db.query(ContentToneProfile).filter(ContentToneProfile.project_id == project_id).first()
         tone_description = tone_profile.tone_description if tone_profile else None
         
         # Generate outline
@@ -320,7 +303,7 @@ async def handle_generate_content_outline(
         )
         
         db.add(content)
-        await db.commit()
+        db.commit()
         
         return {
             "success": True,
@@ -332,7 +315,7 @@ async def handle_generate_content_outline(
         
     except Exception as e:
         logger.error(f"Error generating outline: {e}")
-        await db.rollback()
+        db.rollback()
         return {
             "success": False,
             "error": str(e)
@@ -340,7 +323,7 @@ async def handle_generate_content_outline(
 
 
 async def handle_generate_full_article(
-    db: AsyncSession,
+    db,  # Regular SQLAlchemy Session
     project_id: str,
     outline_id: str,
     modifications: Optional[str] = None
@@ -348,13 +331,10 @@ async def handle_generate_full_article(
     """Handle generate_full_article tool call"""
     try:
         # Get the outline content
-        result = await db.execute(
-            select(GeneratedContent).where(
-                GeneratedContent.id == outline_id,
-                GeneratedContent.project_id == project_id
-            )
-        )
-        outline_content = result.scalar_one_or_none()
+        outline_content = db.query(GeneratedContent).filter(
+            GeneratedContent.id == outline_id,
+            GeneratedContent.project_id == project_id
+        ).first()
         
         if not outline_content:
             return {
@@ -366,10 +346,7 @@ async def handle_generate_full_article(
         outline_data = outline_content.generation_metadata or {}
         
         # Get tone profile
-        result = await db.execute(
-            select(ContentToneProfile).where(ContentToneProfile.project_id == project_id)
-        )
-        tone_profile = result.scalar_one_or_none()
+        tone_profile = db.query(ContentToneProfile).filter(ContentToneProfile.project_id == project_id).first()
         
         # Generate full article
         content_generator = ContentGeneratorService()
@@ -402,7 +379,7 @@ async def handle_generate_full_article(
             "keywords_used": article_result.get("keywords_used", {})
         }
         
-        await db.commit()
+        db.commit()
         
         return {
             "success": True,
@@ -415,7 +392,7 @@ async def handle_generate_full_article(
         
     except Exception as e:
         logger.error(f"Error generating full article: {e}")
-        await db.rollback()
+        db.rollback()
         return {
             "success": False,
             "error": str(e)
@@ -423,7 +400,7 @@ async def handle_generate_full_article(
 
 
 async def handle_publish_content(
-    db: AsyncSession,
+    db,  # Regular SQLAlchemy Session
     project_id: str,
     content_id: str,
     status: str = "draft",
@@ -432,13 +409,10 @@ async def handle_publish_content(
     """Handle publish_content tool call"""
     try:
         # Get content
-        result = await db.execute(
-            select(GeneratedContent).where(
-                GeneratedContent.id == content_id,
-                GeneratedContent.project_id == project_id
-            )
-        )
-        content = result.scalar_one_or_none()
+        content = db.query(GeneratedContent).filter(
+            GeneratedContent.id == content_id,
+            GeneratedContent.project_id == project_id
+        ).first()
         
         if not content:
             return {
@@ -447,13 +421,10 @@ async def handle_publish_content(
             }
         
         # Get CMS integration
-        result = await db.execute(
-            select(ProjectIntegration).where(
-                ProjectIntegration.project_id == project_id,
-                ProjectIntegration.is_active == True
-            )
-        )
-        integration = result.scalar_one_or_none()
+        integration = db.query(ProjectIntegration).filter(
+            ProjectIntegration.project_id == project_id,
+            ProjectIntegration.is_active == True
+        ).first()
         
         if not integration:
             return {
@@ -489,7 +460,7 @@ async def handle_publish_content(
         content.cms_post_id = str(publish_result.get("post_id"))
         content.integration_id = integration.id
         
-        await db.commit()
+        db.commit()
         
         return {
             "success": True,
@@ -500,7 +471,7 @@ async def handle_publish_content(
         
     except Exception as e:
         logger.error(f"Error publishing content: {e}")
-        await db.rollback()
+        db.rollback()
         return {
             "success": False,
             "error": str(e)
@@ -508,24 +479,23 @@ async def handle_publish_content(
 
 
 async def handle_list_generated_content(
-    db: AsyncSession,
+    db,  # Regular SQLAlchemy Session
     project_id: str,
     status_filter: str = "all",
     limit: int = 10
 ) -> Dict[str, Any]:
     """Handle list_generated_content tool call"""
     try:
-        query = select(GeneratedContent).where(
+        query = db.query(GeneratedContent).filter(
             GeneratedContent.project_id == project_id
         )
         
         if status_filter != "all":
-            query = query.where(GeneratedContent.status == status_filter)
+            query = query.filter(GeneratedContent.status == status_filter)
         
         query = query.order_by(GeneratedContent.created_at.desc()).limit(limit)
         
-        result = await db.execute(query)
-        contents = result.scalars().all()
+        contents = query.all()
         
         content_list = []
         for content in contents:
@@ -555,19 +525,16 @@ async def handle_list_generated_content(
 
 
 async def handle_get_cms_categories(
-    db: AsyncSession,
+    db,  # Regular SQLAlchemy Session
     project_id: str
 ) -> Dict[str, Any]:
     """Handle get_cms_categories tool call"""
     try:
         # Get CMS integration
-        result = await db.execute(
-            select(ProjectIntegration).where(
-                ProjectIntegration.project_id == project_id,
-                ProjectIntegration.is_active == True
-            )
-        )
-        integration = result.scalar_one_or_none()
+        integration = db.query(ProjectIntegration).filter(
+            ProjectIntegration.project_id == project_id,
+            ProjectIntegration.is_active == True
+        ).first()
         
         if not integration:
             return {

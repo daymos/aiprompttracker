@@ -15,6 +15,7 @@ from ..database import get_db
 from ..models.user import User
 from ..models.project import Project, TrackedKeyword, KeywordRanking
 from ..models.pin import PinnedItem
+from ..models.seo_agent import ProjectIntegration
 from ..services.rank_checker import RankCheckerService
 from ..services.web_scraper import WebScraperService
 from ..services.llm_service import LLMService
@@ -953,4 +954,50 @@ async def get_favicon(url: str):
                 'X-Cache': 'ERROR'
             }
         )
+
+
+@router.get("/{project_id}/cms-status")
+def get_cms_status(
+    project_id: str,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """Check if project has a CMS integration (WordPress, etc.)"""
+    try:
+        # Get current user
+        token = authorization.replace("Bearer ", "")
+        user = get_current_user(token, db)
+        
+        # Check if project exists and belongs to user
+        project = db.query(Project).filter(
+            Project.id == project_id,
+            Project.user_id == user.id
+        ).first()
+        
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+        
+        # Check if there's an active CMS integration
+        integration = db.query(ProjectIntegration).filter(
+            ProjectIntegration.project_id == project_id,
+            ProjectIntegration.is_active == True
+        ).first()
+        
+        if integration:
+            return {
+                "connected": True,
+                "cms_type": integration.cms_type,
+                "cms_url": integration.cms_url,
+                "last_tested_at": integration.last_tested_at.isoformat() if integration.last_tested_at else None
+            }
+        else:
+            return {
+                "connected": False
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error checking CMS status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 

@@ -63,6 +63,9 @@ class _ChatScreenState extends State<ChatScreen> {
   ProjectTab _selectedProjectTab = ProjectTab.keywords;
   ProjectMode _projectMode = ProjectMode.seo;
   SeoAgentTab _selectedSeoAgentTab = SeoAgentTab.dashboard;
+  bool _cmsConnected = false;
+  bool _checkingCmsStatus = false;
+  String? _lastCheckedProjectId; // Track which project we last checked
   Timer? _keywordPollingTimer;
 
   @override
@@ -106,6 +109,47 @@ class _ChatScreenState extends State<ChatScreen> {
     _messageFocusNode.dispose();
     _keywordPollingTimer?.cancel();
     super.dispose();
+  }
+
+  Future<void> _checkCmsStatus() async {
+    final projectProvider = context.read<ProjectProvider>();
+    final selectedProject = projectProvider.selectedProject;
+    
+    if (selectedProject == null) return;
+    
+    // If we're checking a different project, reset the connection status
+    if (_lastCheckedProjectId != selectedProject.id) {
+      setState(() {
+        _cmsConnected = false;
+        _checkingCmsStatus = false;
+        _lastCheckedProjectId = null;
+      });
+    }
+    
+    // Don't check again if already checking or already checked this project
+    if (_checkingCmsStatus || _lastCheckedProjectId == selectedProject.id) return;
+    
+    setState(() {
+      _checkingCmsStatus = true;
+    });
+    
+    try {
+      final authProvider = context.read<AuthProvider>();
+      final status = await authProvider.apiService.getCmsStatus(selectedProject.id);
+      
+      setState(() {
+        _cmsConnected = status['connected'] == true;
+        _checkingCmsStatus = false;
+        _lastCheckedProjectId = selectedProject.id;
+      });
+    } catch (e) {
+      print('Error checking CMS status: $e');
+      setState(() {
+        _cmsConnected = false;
+        _checkingCmsStatus = false;
+        _lastCheckedProjectId = selectedProject.id;
+      });
+    }
   }
 
   /// Helper method to switch to chat view and auto-focus input
@@ -507,6 +551,8 @@ class _ChatScreenState extends State<ChatScreen> {
                       setState(() {
                         _projectMode = ProjectMode.seoAgent;
                       });
+                      // Check CMS status when switching to SEO Agent mode
+                      _checkCmsStatus();
                     },
                     icon: const Icon(Icons.auto_awesome),
                     style: IconButton.styleFrom(
@@ -1576,13 +1622,14 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildSeoAgentView(Project project, ProjectProvider projectProvider) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    // Check if WordPress is connected (mock for now)
-    final bool isWordPressConnected = false;
-    final bool hasSeenIntro = false; // TODO: Track if user has seen intro
+    // Always check CMS status (the method handles deduplication internally)
+    Future.microtask(() => _checkCmsStatus());
     
-    // Show intro if not connected and haven't seen it
-    if (!isWordPressConnected && !hasSeenIntro) {
-      return _buildSeoAgentIntro();
+    // Show intro if not connected
+    if (!_cmsConnected) {
+      return _checkingCmsStatus 
+        ? const Center(child: CircularProgressIndicator())
+        : _buildSeoAgentIntro();
     }
     
     // Show monitoring tabs when connected
