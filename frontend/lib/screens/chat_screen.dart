@@ -1450,58 +1450,112 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                       ),
                         const SizedBox(width: 12),
-                        // Mode toggle button
-                        Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () {
-                              setState(() {
-                                _projectMode = _projectMode == ProjectMode.seo
-                                    ? ProjectMode.seoAgent
-                                    : ProjectMode.seo;
-                              });
-                            },
-                            borderRadius: BorderRadius.circular(8),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFFC107).withOpacity(0.15),
-                                border: Border.all(
-                                  color: const Color(0xFFFFC107).withOpacity(0.4),
-                                  width: 1.5,
-                                ),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    _projectMode == ProjectMode.seo 
-                                        ? Icons.analytics_outlined 
-                                        : Icons.auto_awesome,
-                                    size: 18,
-                                    color: const Color(0xFFFFC107),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    _projectMode == ProjectMode.seo 
-                                        ? 'SEO Analytics' 
-                                        : 'SEO Agent',
-                                    style: const TextStyle(
-                                      color: Color(0xFFFFC107),
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 14,
+                        // Mode toggle pill
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surface.withOpacity(0.5),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: Theme.of(context).dividerColor.withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // SEO Analytics option
+                              Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      _projectMode = ProjectMode.seo;
+                                    });
+                                  },
+                                  borderRadius: BorderRadius.circular(24),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                    decoration: BoxDecoration(
+                                      color: _projectMode == ProjectMode.seo
+                                          ? const Color(0xFFFFC107).withOpacity(0.2)
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(24),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.analytics_outlined,
+                                          size: 18,
+                                          color: _projectMode == ProjectMode.seo
+                                              ? const Color(0xFFFFC107)
+                                              : Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          'SEO Analytics',
+                                          style: TextStyle(
+                                            color: _projectMode == ProjectMode.seo
+                                                ? const Color(0xFFFFC107)
+                                                : Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                                            fontWeight: _projectMode == ProjectMode.seo
+                                                ? FontWeight.w600
+                                                : FontWeight.w500,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  const SizedBox(width: 4),
-                                  const Icon(
-                                    Icons.swap_horiz,
-                                    size: 16,
-                                    color: Color(0xFFFFC107),
-                                  ),
-                                ],
+                                ),
                               ),
-                            ),
+                              // SEO Agent option
+                              Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      _projectMode = ProjectMode.seoAgent;
+                                    });
+                                  },
+                                  borderRadius: BorderRadius.circular(24),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                    decoration: BoxDecoration(
+                                      color: _projectMode == ProjectMode.seoAgent
+                                          ? const Color(0xFFFFC107).withOpacity(0.2)
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(24),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.auto_awesome,
+                                          size: 18,
+                                          color: _projectMode == ProjectMode.seoAgent
+                                              ? const Color(0xFFFFC107)
+                                              : Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          'SEO Agent',
+                                          style: TextStyle(
+                                            color: _projectMode == ProjectMode.seoAgent
+                                                ? const Color(0xFFFFC107)
+                                                : Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                                            fontWeight: _projectMode == ProjectMode.seoAgent
+                                                ? FontWeight.w600
+                                                : FontWeight.w500,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         const SizedBox(width: 12),
