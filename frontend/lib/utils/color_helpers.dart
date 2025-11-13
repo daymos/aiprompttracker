@@ -48,9 +48,20 @@ class ColorHelpers {
     return Colors.red;
   }
 
-  /// Get color for status string (sitemap/indexing statuses)
+  /// Get color for status string (sitemap/indexing statuses and content statuses)
   static Color getStatusColor(String? status) {
-    switch (status) {
+    if (status == null) return Colors.grey;
+    
+    switch (status.toLowerCase()) {
+      // Content statuses (SEO Agent)
+      case 'published':
+        return const Color(0xFF4CAF50);
+      case 'scheduled':
+        return const Color(0xFF2196F3);
+      case 'draft':
+        return const Color(0xFF9E9E9E);
+      
+      // GSC/Sitemap statuses
       case 'submitted':
         return Colors.green;
       case 'pending':
@@ -61,6 +72,7 @@ class ColorHelpers {
         return Colors.teal;
       case 'rejected':
         return Colors.red;
+      
       default:
         return Colors.grey;
     }

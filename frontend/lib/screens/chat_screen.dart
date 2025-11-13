@@ -22,6 +22,7 @@ import '../widgets/chart_painters.dart';
 import '../widgets/expandable_audit_item.dart';
 import '../widgets/metric_card.dart';
 import '../dialogs/project_dialogs.dart';
+import '../dialogs/article_editor_dialog.dart';
 import '../utils/formatting_utils.dart';
 import 'conversations_view.dart';
 import 'projects_list_view.dart';
@@ -48,7 +49,7 @@ class ChatScreen extends StatefulWidget {
 enum ViewState { chat, conversations, projects }
 enum ProjectViewState { list, detail }
 enum ProjectTab { overview, keywords, backlinks, siteAudit, pinboard }
-enum SeoAgentTab { dashboard, performance, calendar }
+enum SeoAgentTab { dashboard, calendar, performance }
 enum ProjectMode { seo, seoAgent }
 
 class _ChatScreenState extends State<ChatScreen> {
@@ -278,6 +279,24 @@ class _ChatScreenState extends State<ChatScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Conversation exported to CSV')),
     );
+  }
+
+  /// Open article editor dialog
+  Future<void> _openArticleEditor(String projectId, {String? articleId}) async {
+    final result = await showDialog(
+      context: context,
+      builder: (context) => ArticleEditorDialog(
+        projectId: projectId,
+        articleId: articleId,
+        cmsType: 'wordpress',
+      ),
+    );
+
+    // If dialog returns true, refresh the view
+    if (result == true) {
+      // TODO: Refresh article list
+      setState(() {});
+    }
   }
 
   void _scrollToBottom() {
@@ -1450,11 +1469,11 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                       ),
                         const SizedBox(width: 12),
-                        // Mode toggle pill
+                        // Mode toggle pill (compact)
                         Container(
                           decoration: BoxDecoration(
                             color: Theme.of(context).colorScheme.surface.withOpacity(0.5),
-                            borderRadius: BorderRadius.circular(24),
+                            borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: Theme.of(context).dividerColor.withOpacity(0.3),
                               width: 1,
@@ -1472,26 +1491,26 @@ class _ChatScreenState extends State<ChatScreen> {
                                       _projectMode = ProjectMode.seo;
                                     });
                                   },
-                                  borderRadius: BorderRadius.circular(24),
+                                  borderRadius: BorderRadius.circular(20),
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                                     decoration: BoxDecoration(
                                       color: _projectMode == ProjectMode.seo
                                           ? const Color(0xFFFFC107).withOpacity(0.2)
                                           : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(24),
+                                      borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Icon(
                                           Icons.analytics_outlined,
-                                          size: 18,
+                                          size: 16,
                                           color: _projectMode == ProjectMode.seo
                                               ? const Color(0xFFFFC107)
                                               : Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
                                         ),
-                                        const SizedBox(width: 6),
+                                        const SizedBox(width: 5),
                                         Text(
                                           'SEO Analytics',
                                           style: TextStyle(
@@ -1501,7 +1520,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                             fontWeight: _projectMode == ProjectMode.seo
                                                 ? FontWeight.w600
                                                 : FontWeight.w500,
-                                            fontSize: 13,
+                                            fontSize: 12,
                                           ),
                                         ),
                                       ],
@@ -1518,26 +1537,26 @@ class _ChatScreenState extends State<ChatScreen> {
                                       _projectMode = ProjectMode.seoAgent;
                                     });
                                   },
-                                  borderRadius: BorderRadius.circular(24),
+                                  borderRadius: BorderRadius.circular(20),
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                                     decoration: BoxDecoration(
                                       color: _projectMode == ProjectMode.seoAgent
                                           ? const Color(0xFFFFC107).withOpacity(0.2)
                                           : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(24),
+                                      borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Icon(
                                           Icons.auto_awesome,
-                                          size: 18,
+                                          size: 16,
                                           color: _projectMode == ProjectMode.seoAgent
                                               ? const Color(0xFFFFC107)
                                               : Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
                                         ),
-                                        const SizedBox(width: 6),
+                                        const SizedBox(width: 5),
                                         Text(
                                           'SEO Agent',
                                           style: TextStyle(
@@ -1547,7 +1566,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                             fontWeight: _projectMode == ProjectMode.seoAgent
                                                 ? FontWeight.w600
                                                 : FontWeight.w500,
-                                            fontSize: 13,
+                                            fontSize: 12,
                                           ),
                                         ),
                                       ],
@@ -1709,8 +1728,8 @@ class _ChatScreenState extends State<ChatScreen> {
             },
             tabs: const [
               Tab(text: 'Dashboard'),
-              Tab(text: 'Performance'),
               Tab(text: 'Calendar'),
+              Tab(text: 'Performance'),
             ],
           ),
         ),
@@ -1721,8 +1740,8 @@ class _ChatScreenState extends State<ChatScreen> {
             physics: const NeverScrollableScrollPhysics(),
             children: [
               _buildSeoAgentDashboard(project),
-              _buildContentLibrary(project),
               _buildActivityTab(project),
+              _buildContentLibrary(project),
             ],
           ),
         ),
@@ -3721,64 +3740,85 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildContentLibrary(Project project) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final authProvider = context.watch<AuthProvider>();
     
-    // Mock content data with keywords and rankings
-    final mockContent = [
-      {
-        'title': 'Best SEO Tools for 2025',
-        'status': 'Published',
-        'color': const Color(0xFF4CAF50),
-        'date': '2 hours ago',
-        'score': 85,
-        'keywords': ['seo tools', 'seo software', 'best seo tools'],
-        'googleRank': 3,
-        'googleTrend': [8, 7, 5, 4, 3], // Improving
-        'bingRank': 5,
-        'bingTrend': [12, 10, 8, 6, 5], // Improving
-      },
-      {
-        'title': 'Keyword Research Guide',
-        'status': 'Scheduled',
-        'color': const Color(0xFF2196F3),
-        'date': 'Tomorrow 10:00 AM',
-        'score': 92,
-        'keywords': ['keyword research', 'seo keywords', 'find keywords'],
-        'googleRank': 1,
-        'googleTrend': [4, 3, 2, 1, 1], // Improved to #1
-        'bingRank': 2,
-        'bingTrend': [6, 5, 4, 3, 2], // Improving
-      },
-      {
-        'title': 'Technical SEO Checklist',
-        'status': 'Draft',
-        'color': const Color(0xFF9E9E9E),
-        'date': '1 day ago',
-        'score': 78,
-        'keywords': ['technical seo', 'seo checklist', 'seo audit'],
-      },
-      {
-        'title': 'Link Building Strategies',
-        'status': 'Published',
-        'color': const Color(0xFF4CAF50),
-        'date': '3 days ago',
-        'score': 88,
-        'keywords': ['link building', 'backlinks', 'seo links'],
-        'googleRank': 7,
-        'googleTrend': [5, 6, 6, 7, 7], // Declining slightly
-        'bingRank': 4,
-        'bingTrend': [3, 3, 4, 4, 4], // Declining slightly
-      },
-      {
-        'title': 'On-Page SEO Guide',
-        'status': 'Draft',
-        'color': const Color(0xFF9E9E9E),
-        'date': '5 days ago',
-        'score': 82,
-        'keywords': ['on-page seo', 'seo optimization', 'page seo'],
-      },
-    ];
-    
-    return SingleChildScrollView(
+    return FutureBuilder<Map<String, dynamic>>(
+      future: authProvider.apiService.listGeneratedContent(project.id),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        
+        if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                const SizedBox(height: 16),
+                Text('Error loading content: ${snapshot.error}'),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: () => setState(() {}),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final data = snapshot.data;
+        if (data == null || !data['success']) {
+          return const Center(child: Text('Failed to load content'));
+        }
+
+        final contentList = (data['content'] as List).map((item) {
+          // Convert API response to display format
+          return {
+            'id': item['id'],
+            'title': item['title'],
+            'status': _formatStatus(item['status']),
+            'color': _getStatusColor(item['status']),
+            'date': _formatDate(item['created_at']),
+            'score': item['seo_score'] ?? 0,
+            'keywords': item['target_keywords'] ?? [],
+            // TODO: Add Google/Bing rankings when available
+          };
+        }).toList();
+        
+        if (contentList.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.article_outlined,
+                  size: 64,
+                  color: Colors.grey[400],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No content yet',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Generate your first article through chat!',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[500],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -3819,10 +3859,41 @@ class _ChatScreenState extends State<ChatScreen> {
           const SizedBox(height: 16),
           
           // Content table
-          _buildContentTable(mockContent, isDark),
+          _buildContentTable(contentList, isDark),
         ],
       ),
     );
+      },
+    );
+  }
+  
+  String _formatStatus(String status) {
+    return status[0].toUpperCase() + status.substring(1);
+  }
+  
+  String _formatDate(String? isoDate) {
+    if (isoDate == null) return 'Unknown';
+    
+    try {
+      final date = DateTime.parse(isoDate);
+      final now = DateTime.now();
+      final difference = now.difference(date);
+      
+      if (difference.inDays == 0) {
+        if (difference.inHours == 0) {
+          return '${difference.inMinutes} minutes ago';
+        }
+        return '${difference.inHours} hours ago';
+      } else if (difference.inDays == 1) {
+        return 'Yesterday';
+      } else if (difference.inDays < 7) {
+        return '${difference.inDays} days ago';
+      } else {
+        return '${date.month}/${date.day}/${date.year}';
+      }
+    } catch (e) {
+      return isoDate;
+    }
   }
   
   Widget _buildContentTable(List<Map<String, dynamic>> content, bool isDark) {
@@ -3844,6 +3915,7 @@ class _ChatScreenState extends State<ChatScreen> {
           4: FixedColumnWidth(80), // Bing
           5: FixedColumnWidth(100), // Trend
           6: FixedColumnWidth(70), // SEO Score
+          7: FixedColumnWidth(60), // Actions
         },
         children: [
           // Header row
@@ -3863,6 +3935,7 @@ class _ChatScreenState extends State<ChatScreen> {
               _buildTableHeader('Bing', isDark),
               _buildTableHeader('Trend', isDark),
               _buildTableHeader('SEO', isDark),
+              _buildTableHeader('', isDark), // Actions column
             ],
           ),
           // Data rows
@@ -4074,6 +4147,23 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
         ),
+        // Actions - Edit button
+        Padding(
+          padding: const EdgeInsets.all(8),
+          child: IconButton(
+            icon: const Icon(Icons.edit, size: 18),
+            onPressed: () {
+              final projectProvider = context.read<ProjectProvider>();
+              final project = projectProvider.selectedProject;
+              if (project != null) {
+                _openArticleEditor(project.id, articleId: item['id'] as String?);
+              }
+            },
+            tooltip: 'Edit article',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ),
       ],
     );
   }
@@ -4082,37 +4172,90 @@ class _ChatScreenState extends State<ChatScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final now = DateTime.now();
     final currentMonth = DateTime(now.year, now.month, 1);
+    final authProvider = context.watch<AuthProvider>();
     
-    // Mock calendar events (one per day)
-    final events = {
-      DateTime(now.year, now.month, now.day - 2): {
-        'title': 'Best SEO Tools for 2025',
-        'status': 'published',
-        'color': const Color(0xFF4CAF50),
-      },
-      DateTime(now.year, now.month, now.day + 1): {
-        'title': 'Keyword Research Guide',
-        'status': 'scheduled',
-        'color': const Color(0xFF2196F3),
-      },
-      DateTime(now.year, now.month, now.day + 5): {
-        'title': 'Technical SEO Checklist',
-        'status': 'scheduled',
-        'color': const Color(0xFF2196F3),
-      },
-      DateTime(now.year, now.month, now.day - 5): {
-        'title': 'On-Page SEO Guide',
-        'status': 'published',
-        'color': const Color(0xFF4CAF50),
-      },
-      DateTime(now.year, now.month, now.day - 10): {
-        'title': 'Meta Tags Guide',
-        'status': 'published',
-        'color': const Color(0xFF4CAF50),
-      },
-    };
-    
-    return SingleChildScrollView(
+    return FutureBuilder<Map<String, dynamic>>(
+      future: authProvider.apiService.listGeneratedContent(project.id),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        
+        if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                const SizedBox(height: 16),
+                Text('Error loading content: ${snapshot.error}'),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: () => setState(() {}),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final data = snapshot.data;
+        if (data == null || !data['success']) {
+          return const Center(child: Text('Failed to load content'));
+        }
+
+        // Convert content to calendar events
+        final events = <DateTime, Map<String, dynamic>>{};
+        for (var item in data['content']) {
+          if (item['created_at'] != null) {
+            try {
+              final date = DateTime.parse(item['created_at']);
+              final dateKey = DateTime(date.year, date.month, date.day);
+              events[dateKey] = {
+                'id': item['id'],
+                'title': item['title'],
+                'status': item['status'],
+                'color': _getStatusColor(item['status']),
+              };
+            } catch (e) {
+              // Skip invalid dates
+            }
+          }
+        }
+        
+        if (events.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.calendar_month_outlined,
+                  size: 64,
+                  color: Colors.grey[400],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No scheduled content',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Generate and publish articles to see them here',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[500],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -4140,9 +4283,11 @@ class _ChatScreenState extends State<ChatScreen> {
           const SizedBox(height: 16),
           
           // Calendar
-          _buildCalendar(currentMonth, events, isDark),
+          _buildCalendar(currentMonth, events, isDark, project),
         ],
       ),
+    );
+      },
     );
   }
   
@@ -4170,7 +4315,7 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
   
-  Widget _buildCalendar(DateTime month, Map<DateTime, Map<String, dynamic>> events, bool isDark) {
+  Widget _buildCalendar(DateTime month, Map<DateTime, Map<String, dynamic>> events, bool isDark, Project project) {
     final firstDay = DateTime(month.year, month.month, 1);
     final lastDay = DateTime(month.year, month.month + 1, 0);
     final daysInMonth = lastDay.day;
@@ -4236,7 +4381,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       date.day == DateTime.now().day;
                   
                   return Expanded(
-                    child: _buildCalendarDay(dayNumber, dayEvent, isToday, isDark),
+                    child: _buildCalendarDay(dayNumber, dayEvent, isToday, isDark, project),
                   );
                 }).toList(),
               ),
@@ -4247,20 +4392,23 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
   
-  Widget _buildCalendarDay(int day, Map<String, dynamic>? event, bool isToday, bool isDark) {
-    return Container(
-      height: 80,
-      margin: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        color: isToday 
-            ? (isDark ? Colors.blue[900]!.withOpacity(0.3) : Colors.blue[50])
-            : (isDark ? Colors.grey[800] : Colors.grey[50]),
-        borderRadius: BorderRadius.circular(6),
-        border: isToday
-            ? Border.all(color: Colors.blue, width: 2)
-            : null,
-      ),
-      child: Column(
+  Widget _buildCalendarDay(int day, Map<String, dynamic>? event, bool isToday, bool isDark, Project project) {
+    return InkWell(
+      onTap: event != null ? () => _openArticleEditor(project.id, articleId: event['id']) : null,
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        height: 80,
+        margin: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          color: isToday 
+              ? (isDark ? Colors.blue[900]!.withOpacity(0.3) : Colors.blue[50])
+              : (isDark ? Colors.grey[800] : Colors.grey[50]),
+          borderRadius: BorderRadius.circular(6),
+          border: isToday
+              ? Border.all(color: Colors.blue, width: 2)
+              : null,
+        ),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Day number
@@ -4328,6 +4476,7 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
         ],
+      ),
       ),
     );
   }

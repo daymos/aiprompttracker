@@ -541,6 +541,90 @@ class ApiService {
       throw Exception('Failed to GET $path: ${response.body}');
     }
   }
+
+  // SEO Agent - Generated Content Management
+  
+  Future<Map<String, dynamic>> getGeneratedContent(String projectId, String contentId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/seo-agent/content/$contentId?project_id=$projectId'),
+      headers: _headers(),
+    );
+    
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to get content: ${response.body}');
+    }
+  }
+
+  Future<Map<String, dynamic>> saveGeneratedContent({
+    required String projectId,
+    String? articleId,
+    required String title,
+    required String content,
+    String? excerpt,
+    List<String>? keywords,
+    String? status,
+    Map<String, dynamic>? metadata,
+  }) async {
+    final body = {
+      'project_id': projectId,
+      'title': title,
+      'content': content,
+      if (excerpt != null) 'excerpt': excerpt,
+      if (keywords != null) 'target_keywords': keywords,
+      if (status != null) 'status': status,
+      if (metadata != null) 'metadata': metadata,
+    };
+
+    final response = articleId == null
+        ? await http.post(
+            Uri.parse('$baseUrl/seo-agent/content'),
+            headers: _headers(),
+            body: jsonEncode(body),
+          )
+        : await http.put(
+            Uri.parse('$baseUrl/seo-agent/content/$articleId'),
+            headers: _headers(),
+            body: jsonEncode(body),
+          );
+    
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to save content: ${response.body}');
+    }
+  }
+
+  Future<Map<String, dynamic>> getCMSCategories(String projectId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/seo-agent/cms/categories?project_id=$projectId'),
+      headers: _headers(),
+    );
+    
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to get categories: ${response.body}');
+    }
+  }
+
+  Future<Map<String, dynamic>> listGeneratedContent(String projectId, {String? status}) async {
+    final uri = status != null
+        ? Uri.parse('$baseUrl/seo-agent/project/$projectId/content?status=$status')
+        : Uri.parse('$baseUrl/seo-agent/project/$projectId/content');
+    
+    final response = await http.get(
+      uri,
+      headers: _headers(),
+    );
+    
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to list content: ${response.body}');
+    }
+  }
 }
 
 

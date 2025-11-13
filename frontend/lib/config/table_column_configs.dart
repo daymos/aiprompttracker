@@ -168,6 +168,7 @@ class TableColumnConfigs {
           row['intent']?.toString() ?? 'unknown',
           style: const TextStyle(fontSize: 11),
         ),
+        csvFormatter: (value) => value?.toString() ?? 'unknown',
       ),
       DataColumnConfig(
         id: 'trend',
