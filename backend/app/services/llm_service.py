@@ -409,7 +409,11 @@ CRITICAL: Extract domain without http://, https://, or www. prefixes. Just the d
             (response_text, reasoning, tool_calls)
         """
         
-        system_prompt = self._get_system_prompt(agent_mode=agent_mode)
+        system_prompt = self._get_system_prompt(
+            agent_mode=agent_mode,
+            project_id=project_id,
+            user_projects=user_projects
+        )
         messages = [{"role": "system", "content": system_prompt}]
         # Add conversation history
         if conversation_history:
@@ -603,7 +607,12 @@ CRITICAL: Extract domain without http://, https://, or www. prefixes. Just the d
             logger.warning("No reasoning section found in LLM response")
             return (None, full_response)
     
-    def _get_system_prompt(self, agent_mode: Optional[str] = None) -> str:
+    def _get_system_prompt(
+        self,
+        agent_mode: Optional[str] = None,
+        project_id: Optional[str] = None,
+        user_projects: List[Dict[str, Any]] = None
+    ) -> str:
         """System prompt for SEO assistant with optional agent mode context"""
         base_prompt = """You are an expert SEO assistant with powerful research tools at your disposal.
 
@@ -880,18 +889,36 @@ WITHOUT DATA:
 - Use bullet points when listing multiple items or capabilities
 - Never write long run-on sentences with semicolons - break them into separate sentences or bullet points
 - Make responses scannable and easy to read"""
-        
+    
         # Add SEO Agent specific context based on mode
         if agent_mode == "seo_agent_setup":
-            base_prompt += self._get_seo_agent_setup_prompt()
+            # Find current project if project_id is provided
+            current_project = None
+            if project_id and user_projects:
+                current_project = next(
+                    (p for p in user_projects if p['id'] == project_id),
+                    None
+                )
+            base_prompt += self._get_seo_agent_setup_prompt(current_project)
         elif agent_mode == "seo_agent":
             base_prompt += self._get_seo_agent_active_prompt()
         
         return base_prompt
     
-    def _get_seo_agent_setup_prompt(self) -> str:
+    def _get_seo_agent_setup_prompt(self, current_project: Optional[Dict[str, Any]] = None) -> str:
         """Additional prompt for SEO Agent setup mode"""
-        return """
+        project_context = ""
+        if current_project:
+            project_context = f"""
+
+**📌 CURRENT PROJECT CONTEXT:**
+The user has selected their project: **{current_project['name']}** ({current_project['target_url']})
+Project ID: {current_project['id']}
+
+The user wants to set up SEO Agent for THIS specific project. DO NOT ask them which project to work on - they've already chosen {current_project['name']}.
+"""
+        
+        return f"""{project_context}
 
 **🤖 SEO AGENT MODE - SETUP ASSISTANT**
 

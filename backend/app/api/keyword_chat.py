@@ -1972,7 +1972,7 @@ OVERVIEW:
                                 "role": "tool",
                                 "name": tool_name,
                                 "content": json.dumps(result)
-                            })
+                                })
 
                     except Exception as e:
                         logger.error(f"❌ Tool execution failed for {tool_name}: {str(e)}", exc_info=True)
