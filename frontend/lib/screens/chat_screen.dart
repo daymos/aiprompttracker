@@ -48,7 +48,7 @@ class ChatScreen extends StatefulWidget {
 enum ViewState { chat, conversations, projects }
 enum ProjectViewState { list, detail }
 enum ProjectTab { overview, keywords, backlinks, siteAudit, pinboard }
-enum SeoAgentTab { dashboard, contentLibrary, activity }
+enum SeoAgentTab { dashboard, performance, calendar }
 enum ProjectMode { seo, seoAgent }
 
 class _ChatScreenState extends State<ChatScreen> {
@@ -690,7 +690,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       controller: _messageController,
                       focusNode: _messageFocusNode,
                       decoration: const InputDecoration(
-                        hintText: 'Ask me to analyze a website, research keywords, check rankings...',
+                        hintText: 'Ask me to research keywords, audit a website or jump into agentic SEO mode',
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                       ),
@@ -907,7 +907,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   controller: _messageController,
                   focusNode: _messageFocusNode,
                     decoration: const InputDecoration(
-                        hintText: 'Ask me to analyze a website, research keywords, check rankings...',
+                        hintText: 'Ask me to research keywords, audit a website or jump into agentic SEO mode',
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                   ),
@@ -1655,8 +1655,8 @@ class _ChatScreenState extends State<ChatScreen> {
             },
             tabs: const [
               Tab(text: 'Dashboard'),
-              Tab(text: 'Content Library'),
-              Tab(text: 'Activity'),
+              Tab(text: 'Performance'),
+              Tab(text: 'Calendar'),
             ],
           ),
         ),
@@ -3389,14 +3389,19 @@ class _ChatScreenState extends State<ChatScreen> {
     required Color statusColor,
     required String timeAgo,
     required int seoScore,
+    List<String>? keywords,
+    int? googleRank,
+    List<int>? googleTrend,
+    int? bingRank,
+    List<int>? bingTrend,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: isDark ? Colors.grey[850] : Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -3406,103 +3411,321 @@ class _ChatScreenState extends State<ChatScreen> {
         ],
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          // Left side: Title, status, keywords
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                ),
-                const SizedBox(height: 8),
+                // Title and status inline
                 Row(
                   children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
+                        horizontal: 6,
+                        vertical: 2,
                       ),
                       decoration: BoxDecoration(
                         color: statusColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: BorderRadius.circular(3),
                       ),
                       child: Text(
                         status,
                         style: TextStyle(
                           color: statusColor,
-                          fontSize: 12,
+                          fontSize: 11,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8),
                     Text(
                       timeAgo,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: isDark ? Colors.grey[400] : Colors.grey[600],
+                            color: isDark ? Colors.grey[500] : Colors.grey[500],
+                            fontSize: 11,
                           ),
                     ),
                   ],
                 ),
+                
+                // Keywords
+                if (keywords != null && keywords.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    children: keywords.map((keyword) => Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(3),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                          width: 0.5,
+                        ),
+                      ),
+                      child: Text(
+                        keyword,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 11,
+                            ),
+                      ),
+                    )).toList(),
+                  ),
+                ],
               ],
             ),
           ),
-          const SizedBox(width: 16),
-          Column(
-            children: [
-              Text(
-                'SEO',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: isDark ? Colors.grey[400] : Colors.grey[600],
-                    ),
+          
+          // Middle: Rankings graph
+          if ((googleRank != null && googleTrend != null) || 
+              (bingRank != null && bingTrend != null)) ...[
+            const SizedBox(width: 16),
+            SizedBox(
+              width: 180,
+              child: _buildUnifiedRankingInfo(
+                context,
+                googleRank,
+                googleTrend,
+                bingRank,
+                bingTrend,
+                isDark,
               ),
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
+            ),
+          ],
+          
+          // Right: SEO Score
+          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 10,
+              vertical: 8,
+            ),
+            decoration: BoxDecoration(
+              color: _getScoreColor(seoScore.toDouble()).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                color: _getScoreColor(seoScore.toDouble()),
+                width: 1.5,
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'SEO',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: _getScoreColor(seoScore.toDouble()),
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600,
+                      ),
                 ),
-                decoration: BoxDecoration(
-                  color: _getScoreColor(seoScore.toDouble()).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: _getScoreColor(seoScore.toDouble()),
-                    width: 2,
-                  ),
-                ),
-                child: Text(
+                Text(
                   seoScore.toString(),
                   style: TextStyle(
                     color: _getScoreColor(seoScore.toDouble()),
                     fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                    fontSize: 18,
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
+    );
+  }
+  
+  Widget _buildUnifiedRankingInfo(
+    BuildContext context,
+    int? googleRank,
+    List<int>? googleTrend,
+    int? bingRank,
+    List<int>? bingTrend,
+    bool isDark,
+  ) {
+    const googleColor = Color(0xFF4285F4); // Google blue
+    const bingColor = Color(0xFF00B8A9); // Bing teal
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Rankings header with legend (compact)
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Google legend
+            if (googleRank != null && googleTrend != null)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: googleColor,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Google #$googleRank',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 10,
+                        ),
+                  ),
+                  if (googleTrend.isNotEmpty) ...[
+                    const SizedBox(width: 2),
+                    Icon(
+                      googleTrend.first > googleTrend.last 
+                          ? Icons.arrow_upward 
+                          : Icons.arrow_downward,
+                      size: 10,
+                      color: googleTrend.first > googleTrend.last 
+                          ? const Color(0xFF4CAF50) 
+                          : const Color(0xFFF44336),
+                    ),
+                  ],
+                ],
+              ),
+            
+            // Bing legend
+            if (bingRank != null && bingTrend != null) ...[
+              const SizedBox(height: 2),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: bingColor,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Bing #$bingRank',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 10,
+                        ),
+                  ),
+                  if (bingTrend.isNotEmpty) ...[
+                    const SizedBox(width: 2),
+                    Icon(
+                      bingTrend.first > bingTrend.last 
+                          ? Icons.arrow_upward 
+                          : Icons.arrow_downward,
+                      size: 10,
+                      color: bingTrend.first > bingTrend.last 
+                          ? const Color(0xFF4CAF50) 
+                          : const Color(0xFFF44336),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 6),
+        // Unified graph
+        SizedBox(
+          height: 32,
+          child: CustomPaint(
+            painter: UnifiedRankingSparklinePainter(
+              googleData: googleTrend,
+              googleColor: googleColor,
+              bingData: bingTrend,
+              bingColor: bingColor,
+            ),
+            size: const Size(double.infinity, 32),
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildContentLibrary(Project project) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    // Mock content data
+    // Mock content data with keywords and rankings
     final mockContent = [
-      {'title': 'Best SEO Tools for 2025', 'status': 'Published', 'color': const Color(0xFF4CAF50), 'date': '2 hours ago', 'score': 85},
-      {'title': 'Keyword Research Guide', 'status': 'Scheduled', 'color': const Color(0xFF2196F3), 'date': 'Tomorrow 10:00 AM', 'score': 92},
-      {'title': 'Technical SEO Checklist', 'status': 'Draft', 'color': const Color(0xFF9E9E9E), 'date': '1 day ago', 'score': 78},
-      {'title': 'Link Building Strategies', 'status': 'Published', 'color': const Color(0xFF4CAF50), 'date': '3 days ago', 'score': 88},
-      {'title': 'On-Page SEO Guide', 'status': 'Draft', 'color': const Color(0xFF9E9E9E), 'date': '5 days ago', 'score': 82},
+      {
+        'title': 'Best SEO Tools for 2025',
+        'status': 'Published',
+        'color': const Color(0xFF4CAF50),
+        'date': '2 hours ago',
+        'score': 85,
+        'keywords': ['seo tools', 'seo software', 'best seo tools'],
+        'googleRank': 3,
+        'googleTrend': [8, 7, 5, 4, 3], // Improving
+        'bingRank': 5,
+        'bingTrend': [12, 10, 8, 6, 5], // Improving
+      },
+      {
+        'title': 'Keyword Research Guide',
+        'status': 'Scheduled',
+        'color': const Color(0xFF2196F3),
+        'date': 'Tomorrow 10:00 AM',
+        'score': 92,
+        'keywords': ['keyword research', 'seo keywords', 'find keywords'],
+        'googleRank': 1,
+        'googleTrend': [4, 3, 2, 1, 1], // Improved to #1
+        'bingRank': 2,
+        'bingTrend': [6, 5, 4, 3, 2], // Improving
+      },
+      {
+        'title': 'Technical SEO Checklist',
+        'status': 'Draft',
+        'color': const Color(0xFF9E9E9E),
+        'date': '1 day ago',
+        'score': 78,
+        'keywords': ['technical seo', 'seo checklist', 'seo audit'],
+      },
+      {
+        'title': 'Link Building Strategies',
+        'status': 'Published',
+        'color': const Color(0xFF4CAF50),
+        'date': '3 days ago',
+        'score': 88,
+        'keywords': ['link building', 'backlinks', 'seo links'],
+        'googleRank': 7,
+        'googleTrend': [5, 6, 6, 7, 7], // Declining slightly
+        'bingRank': 4,
+        'bingTrend': [3, 3, 4, 4, 4], // Declining slightly
+      },
+      {
+        'title': 'On-Page SEO Guide',
+        'status': 'Draft',
+        'color': const Color(0xFF9E9E9E),
+        'date': '5 days ago',
+        'score': 82,
+        'keywords': ['on-page seo', 'seo optimization', 'page seo'],
+      },
     ];
     
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -3511,7 +3734,7 @@ class _ChatScreenState extends State<ChatScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Content Library',
+                'Performance',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -3539,126 +3762,528 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           
-          // Content list
-          ...mockContent.map((content) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _buildContentItem(
-              context,
-              title: content['title'] as String,
-              status: content['status'] as String,
-              statusColor: content['color'] as Color,
-              timeAgo: content['date'] as String,
-              seoScore: content['score'] as int,
-            ),
-          )),
+          // Content table
+          _buildContentTable(mockContent, isDark),
         ],
       ),
+    );
+  }
+  
+  Widget _buildContentTable(List<Map<String, dynamic>> content, bool isDark) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey[850] : Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+          width: 1,
+        ),
+      ),
+      child: Table(
+        columnWidths: const {
+          0: FlexColumnWidth(3), // Title
+          1: FixedColumnWidth(100), // Status
+          2: FixedColumnWidth(250), // Keywords
+          3: FixedColumnWidth(80), // Google
+          4: FixedColumnWidth(80), // Bing
+          5: FixedColumnWidth(100), // Trend
+          6: FixedColumnWidth(70), // SEO Score
+        },
+        children: [
+          // Header row
+          TableRow(
+            decoration: BoxDecoration(
+              color: isDark ? Colors.grey[800] : Colors.grey[100],
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(8),
+                topRight: Radius.circular(8),
+              ),
+            ),
+            children: [
+              _buildTableHeader('Title', isDark),
+              _buildTableHeader('Status', isDark),
+              _buildTableHeader('Keywords', isDark),
+              _buildTableHeader('Google', isDark),
+              _buildTableHeader('Bing', isDark),
+              _buildTableHeader('Trend', isDark),
+              _buildTableHeader('SEO', isDark),
+            ],
+          ),
+          // Data rows
+          ...content.map((item) => _buildTableRow(item, isDark)),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildTableHeader(String text, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 12,
+          color: isDark ? Colors.grey[300] : Colors.grey[700],
+        ),
+      ),
+    );
+  }
+  
+  TableRow _buildTableRow(Map<String, dynamic> item, bool isDark) {
+    final keywords = item['keywords'] as List<String>?;
+    final googleRank = item['googleRank'] as int?;
+    final bingRank = item['bingRank'] as int?;
+    final googleTrend = (item['googleTrend'] as List<dynamic>?)?.cast<int>();
+    final bingTrend = (item['bingTrend'] as List<dynamic>?)?.cast<int>();
+    
+    return TableRow(
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: isDark ? Colors.grey[800]! : Colors.grey[200]!,
+            width: 1,
+          ),
+        ),
+      ),
+      children: [
+        // Title
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: Text(
+            item['title'] as String,
+            style: const TextStyle(
+              fontWeight: FontWeight.w500,
+              fontSize: 14,
+            ),
+          ),
+        ),
+        // Status
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: (item['color'] as Color).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              item['status'] as String,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: item['color'] as Color,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+        // Keywords
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: keywords != null && keywords.isNotEmpty
+              ? Wrap(
+                  spacing: 4,
+                  runSpacing: 4,
+                  children: [
+                    ...keywords.take(2).map((keyword) => Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                      child: Text(
+                        keyword,
+                        style: TextStyle(
+                          color: Colors.blue[700],
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    )),
+                    if (keywords.length > 2)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4),
+                        child: Text(
+                          '+${keywords.length - 2}',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: isDark ? Colors.grey[400] : Colors.grey[600],
+                          ),
+                        ),
+                      ),
+                  ],
+                )
+              : const Text('-', style: TextStyle(fontSize: 12)),
+        ),
+        // Google rank
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: googleRank != null
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '#$googleRank',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                    if (googleTrend != null && googleTrend.isNotEmpty) ...[
+                      const SizedBox(width: 4),
+                      Icon(
+                        googleTrend.first > googleTrend.last
+                            ? Icons.arrow_upward
+                            : Icons.arrow_downward,
+                        size: 12,
+                        color: googleTrend.first > googleTrend.last
+                            ? Colors.green
+                            : Colors.red,
+                      ),
+                    ],
+                  ],
+                )
+              : const Text('-', style: TextStyle(fontSize: 12)),
+        ),
+        // Bing rank
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: bingRank != null
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '#$bingRank',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                    if (bingTrend != null && bingTrend.isNotEmpty) ...[
+                      const SizedBox(width: 4),
+                      Icon(
+                        bingTrend.first > bingTrend.last
+                            ? Icons.arrow_upward
+                            : Icons.arrow_downward,
+                        size: 12,
+                        color: bingTrend.first > bingTrend.last
+                            ? Colors.green
+                            : Colors.red,
+                      ),
+                    ],
+                  ],
+                )
+              : const Text('-', style: TextStyle(fontSize: 12)),
+        ),
+        // Trend graph
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: (googleTrend != null || bingTrend != null)
+              ? SizedBox(
+                  height: 24,
+                  child: CustomPaint(
+                    painter: UnifiedRankingSparklinePainter(
+                      googleData: googleTrend,
+                      googleColor: const Color(0xFF4285F4),
+                      bingData: bingTrend,
+                      bingColor: const Color(0xFF00B8A9),
+                    ),
+                    size: const Size(double.infinity, 24),
+                  ),
+                )
+              : const Text('-', style: TextStyle(fontSize: 12)),
+        ),
+        // SEO Score
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: _getScoreColor((item['score'] as int).toDouble()).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(
+                color: _getScoreColor((item['score'] as int).toDouble()),
+                width: 1,
+              ),
+            ),
+            child: Text(
+              (item['score'] as int).toString(),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: _getScoreColor((item['score'] as int).toDouble()),
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildActivityTab(Project project) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final now = DateTime.now();
+    final currentMonth = DateTime(now.year, now.month, 1);
     
-    // Mock activity data
-    final mockActivity = [
-      {'action': 'Generated', 'title': 'Best SEO Tools for 2025', 'time': '2 hours ago', 'icon': Icons.auto_awesome, 'color': const Color(0xFFFFC107)},
-      {'action': 'Published', 'title': 'Keyword Research Guide', 'time': '1 day ago', 'icon': Icons.publish, 'color': const Color(0xFF4CAF50)},
-      {'action': 'Scheduled', 'title': 'Technical SEO Checklist', 'time': '2 days ago', 'icon': Icons.schedule, 'color': const Color(0xFF2196F3)},
-      {'action': 'Generated', 'title': 'Link Building Strategies', 'time': '3 days ago', 'icon': Icons.auto_awesome, 'color': const Color(0xFFFFC107)},
-      {'action': 'Published', 'title': 'On-Page SEO Guide', 'time': '5 days ago', 'icon': Icons.publish, 'color': const Color(0xFF4CAF50)},
-    ];
+    // Mock calendar events (one per day)
+    final events = {
+      DateTime(now.year, now.month, now.day - 2): {
+        'title': 'Best SEO Tools for 2025',
+        'status': 'published',
+        'color': const Color(0xFF4CAF50),
+      },
+      DateTime(now.year, now.month, now.day + 1): {
+        'title': 'Keyword Research Guide',
+        'status': 'scheduled',
+        'color': const Color(0xFF2196F3),
+      },
+      DateTime(now.year, now.month, now.day + 5): {
+        'title': 'Technical SEO Checklist',
+        'status': 'scheduled',
+        'color': const Color(0xFF2196F3),
+      },
+      DateTime(now.year, now.month, now.day - 5): {
+        'title': 'On-Page SEO Guide',
+        'status': 'published',
+        'color': const Color(0xFF4CAF50),
+      },
+      DateTime(now.year, now.month, now.day - 10): {
+        'title': 'Meta Tags Guide',
+        'status': 'published',
+        'color': const Color(0xFF4CAF50),
+      },
+    };
     
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Header
-          Text(
-            'Recent Activity',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Content Calendar',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              Row(
+                children: [
+                  // Legend
+                  _buildLegendItem('Published', const Color(0xFF4CAF50), isDark),
+                  const SizedBox(width: 16),
+                  _buildLegendItem('Scheduled', const Color(0xFF2196F3), isDark),
+                ],
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Track all SEO Agent actions and content generation history',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: isDark ? Colors.grey[400] : Colors.grey[600],
-                ),
-          ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           
-          // Activity timeline
-          ...mockActivity.map((activity) => Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.grey[850] : Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: (activity['color'] as Color).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    activity['icon'] as IconData,
-                    color: activity['color'] as Color,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            activity['action'] as String,
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: activity['color'] as Color,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            activity['time'] as String,
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: isDark ? Colors.grey[500] : Colors.grey[500],
-                                ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        activity['title'] as String,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          )),
+          // Calendar
+          _buildCalendar(currentMonth, events, isDark),
         ],
       ),
     );
+  }
+  
+  Widget _buildLegendItem(String label, Color color, bool isDark) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: isDark ? Colors.grey[400] : Colors.grey[600],
+          ),
+        ),
+      ],
+    );
+  }
+  
+  Widget _buildCalendar(DateTime month, Map<DateTime, Map<String, dynamic>> events, bool isDark) {
+    final firstDay = DateTime(month.year, month.month, 1);
+    final lastDay = DateTime(month.year, month.month + 1, 0);
+    final daysInMonth = lastDay.day;
+    final firstWeekday = firstDay.weekday;
+    
+    final weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey[850] : Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+        ),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          // Month/Year header
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Text(
+              '${_getMonthName(month.month)} ${month.year}',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          
+          // Weekday headers
+          Row(
+            children: weekDays.map((day) => Expanded(
+              child: Center(
+                child: Text(
+                  day,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                    color: isDark ? Colors.grey[400] : Colors.grey[600],
+                  ),
+                ),
+              ),
+            )).toList(),
+          ),
+          const SizedBox(height: 8),
+          
+          // Calendar grid
+          ...List.generate((daysInMonth + firstWeekday - 1) ~/ 7 + 1, (weekIndex) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: List.generate(7, (dayIndex) {
+                  final dayNumber = weekIndex * 7 + dayIndex - firstWeekday + 2;
+                  if (dayNumber < 1 || dayNumber > daysInMonth) {
+                    return const Expanded(child: SizedBox(height: 80));
+                  }
+                  
+                  final date = DateTime(month.year, month.month, dayNumber);
+                  final dayEvent = events[date];
+                  final isToday = date.year == DateTime.now().year &&
+                      date.month == DateTime.now().month &&
+                      date.day == DateTime.now().day;
+                  
+                  return Expanded(
+                    child: _buildCalendarDay(dayNumber, dayEvent, isToday, isDark),
+                  );
+                }).toList(),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildCalendarDay(int day, Map<String, dynamic>? event, bool isToday, bool isDark) {
+    return Container(
+      height: 80,
+      margin: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: isToday 
+            ? (isDark ? Colors.blue[900]!.withOpacity(0.3) : Colors.blue[50])
+            : (isDark ? Colors.grey[800] : Colors.grey[50]),
+        borderRadius: BorderRadius.circular(6),
+        border: isToday
+            ? Border.all(color: Colors.blue, width: 2)
+            : null,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Day number
+          Padding(
+            padding: const EdgeInsets.all(4),
+            child: Text(
+              day.toString(),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isToday ? FontWeight.bold : FontWeight.w500,
+                color: isToday ? Colors.blue : null,
+              ),
+            ),
+          ),
+          // Event card
+          if (event != null)
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.fromLTRB(4, 0, 4, 4),
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: (event['color'] as Color).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                    color: (event['color'] as Color).withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Status badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: event['color'] as Color,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                      child: Text(
+                        (event['status'] as String).toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 7,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    // Title
+                    Expanded(
+                      child: Text(
+                        event['title'] as String,
+                        style: const TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w500,
+                          height: 1.2,
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+  
+  String _getMonthName(int month) {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return months[month - 1];
   }
 
 
@@ -3726,6 +4351,170 @@ class _ChatScreenState extends State<ChatScreen> {
       return 'Just now';
     }
   }
+}
+
+// Sparkline Painter for metric cards (original implementation)
+class SparklinePainter extends CustomPainter {
+  final List<double> data;
+  final Color color;
+  final bool invertY;
+
+  SparklinePainter(this.data, this.color, {this.invertY = false});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (data.isEmpty || data.length < 2) return;
+
+    final paint = Paint()
+      ..color = color.withOpacity(0.3)
+      ..style = PaintingStyle.fill;
+
+    final linePaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+
+    final maxValue = data.reduce((a, b) => a > b ? a : b);
+    final minValue = data.reduce((a, b) => a < b ? a : b);
+    final range = maxValue - minValue;
+
+    final path = Path();
+    final fillPath = Path();
+    final stepX = size.width / (data.length - 1);
+
+    for (int i = 0; i < data.length; i++) {
+      final normalizedValue = range == 0 ? 0.5 : (data[i] - minValue) / range;
+      final x = i * stepX;
+      final y = invertY 
+          ? size.height * normalizedValue 
+          : size.height * (1 - normalizedValue);
+
+      if (i == 0) {
+        path.moveTo(x, y);
+        fillPath.moveTo(x, invertY ? 0 : size.height);
+        fillPath.lineTo(x, y);
+      } else {
+        path.lineTo(x, y);
+        fillPath.lineTo(x, y);
+      }
+    }
+
+    fillPath.lineTo(size.width, invertY ? 0 : size.height);
+    fillPath.close();
+
+    canvas.drawPath(fillPath, paint);
+    canvas.drawPath(path, linePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+// Unified Ranking Sparkline Painter for drawing both Google and Bing trends
+class UnifiedRankingSparklinePainter extends CustomPainter {
+  final List<int>? googleData;
+  final Color googleColor;
+  final List<int>? bingData;
+  final Color bingColor;
+
+  UnifiedRankingSparklinePainter({
+    this.googleData,
+    required this.googleColor,
+    this.bingData,
+    required this.bingColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Collect all data points to find global min/max
+    final allData = <int>[];
+    if (googleData != null) allData.addAll(googleData!);
+    if (bingData != null) allData.addAll(bingData!);
+    
+    if (allData.isEmpty || allData.length < 2) return;
+
+    // Find global min and max for consistent scaling
+    final maxValue = allData.reduce((a, b) => a > b ? a : b).toDouble();
+    final minValue = allData.reduce((a, b) => a < b ? a : b).toDouble();
+    final range = maxValue - minValue;
+
+    // Draw Google data
+    if (googleData != null && googleData!.isNotEmpty) {
+      _drawDataSeries(
+        canvas,
+        size,
+        googleData!,
+        googleColor,
+        maxValue,
+        minValue,
+        range,
+      );
+    }
+
+    // Draw Bing data
+    if (bingData != null && bingData!.isNotEmpty) {
+      _drawDataSeries(
+        canvas,
+        size,
+        bingData!,
+        bingColor,
+        maxValue,
+        minValue,
+        range,
+      );
+    }
+  }
+
+  void _drawDataSeries(
+    Canvas canvas,
+    Size size,
+    List<int> data,
+    Color color,
+    double maxValue,
+    double minValue,
+    double range,
+  ) {
+    final linePaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    final dotPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    final path = Path();
+    final stepX = size.width / (data.length - 1);
+
+    for (int i = 0; i < data.length; i++) {
+      // Invert the y-axis since lower rank is better
+      final normalizedValue = range == 0 ? 0.5 : (maxValue - data[i]) / range;
+      final x = i * stepX;
+      final y = size.height * (0.15 + normalizedValue * 0.7); // 15% padding top/bottom
+
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+
+    // Draw line
+    canvas.drawPath(path, linePaint);
+
+    // Draw dots at data points
+    for (int i = 0; i < data.length; i++) {
+      final normalizedValue = range == 0 ? 0.5 : (maxValue - data[i]) / range;
+      final x = i * stepX;
+      final y = size.height * (0.15 + normalizedValue * 0.7);
+      canvas.drawCircle(Offset(x, y), 3, dotPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
 // Expandable Audit History Item Widget
