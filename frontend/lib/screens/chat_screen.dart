@@ -431,7 +431,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       _currentView = ViewState.conversations;
                     });
                   },
-                  icon: const Icon(Icons.chat_bubble_outline),
+                  icon: const Icon(Icons.forum_outlined),
                   style: IconButton.styleFrom(
                     backgroundColor: _currentView == ViewState.conversations
                         ? Theme.of(context).colorScheme.primaryContainer
@@ -1383,7 +1383,7 @@ class _ChatScreenState extends State<ChatScreen> {
                               });
                             });
                           },
-                          icon: const Icon(Icons.chat_bubble_outline, size: 20),
+                          icon: const Icon(Icons.forum_outlined, size: 20),
                           label: const Text('Work on SEO Strategy'),
                           style: FilledButton.styleFrom(
                             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -1391,31 +1391,57 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                         const SizedBox(width: 12),
                         // Mode toggle button
-                        OutlinedButton.icon(
-                          onPressed: () {
-                            setState(() {
-                              _projectMode = _projectMode == ProjectMode.seo
-                                  ? ProjectMode.seoAgent
-                                  : ProjectMode.seo;
-                            });
-                          },
-                          icon: Icon(
-                            _projectMode == ProjectMode.seo 
-                                ? Icons.analytics_outlined 
-                                : Icons.auto_awesome,
-                            size: 18,
-                          ),
-                          label: Text(
-                            _projectMode == ProjectMode.seo 
-                                ? 'SEO Analytics' 
-                                : 'SEO Agent',
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            side: BorderSide(
-                              color: const Color(0xFFFFC107).withOpacity(0.5),
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              setState(() {
+                                _projectMode = _projectMode == ProjectMode.seo
+                                    ? ProjectMode.seoAgent
+                                    : ProjectMode.seo;
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFC107).withOpacity(0.15),
+                                border: Border.all(
+                                  color: const Color(0xFFFFC107).withOpacity(0.4),
+                                  width: 1.5,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    _projectMode == ProjectMode.seo 
+                                        ? Icons.analytics_outlined 
+                                        : Icons.auto_awesome,
+                                    size: 18,
+                                    color: const Color(0xFFFFC107),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    _projectMode == ProjectMode.seo 
+                                        ? 'SEO Analytics' 
+                                        : 'SEO Agent',
+                                    style: const TextStyle(
+                                      color: Color(0xFFFFC107),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  const Icon(
+                                    Icons.swap_horiz,
+                                    size: 16,
+                                    color: Color(0xFFFFC107),
+                                  ),
+                                ],
+                              ),
                             ),
-                            foregroundColor: const Color(0xFFFFC107),
                           ),
                         ),
                         const SizedBox(width: 12),
