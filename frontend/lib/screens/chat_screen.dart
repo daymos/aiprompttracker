@@ -20,6 +20,8 @@ import '../widgets/competition_chip.dart';
 import '../widgets/trend_indicator.dart';
 import '../widgets/chart_painters.dart';
 import '../widgets/expandable_audit_item.dart';
+import '../widgets/metric_card.dart';
+import '../dialogs/project_dialogs.dart';
 import '../utils/formatting_utils.dart';
 import '../utils/color_helpers.dart';
 import '../utils/keyword_filters.dart';
@@ -2325,89 +2327,17 @@ class _ChatScreenState extends State<ChatScreen> {
   Color _getAvgRankingColor(double avgPosition) => ColorHelpers.getAvgRankingColor(avgPosition);
   
   Widget _buildMetricCard(String title, String value, IconData icon, Color color, {List<double>? sparklineData, bool showSparklinePlaceholder = false, bool invertSparkline = false, String? tooltip, bool compact = false}) {
-    final hasSparkline = sparklineData != null && sparklineData.length >= 2;
-    final showPlaceholder = !hasSparkline && showSparklinePlaceholder;
-    
-    final cardContent = Card(
-      child: Padding(
-        padding: compact ? const EdgeInsets.all(12.0) : const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, size: compact ? 16 : 20, color: color),
-                SizedBox(width: compact ? 6 : 8),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: compact ? 11 : 12,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: compact ? 6 : 8),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: compact ? 18 : 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                if (hasSparkline || showPlaceholder) ...[
-                  SizedBox(width: compact ? 8 : 12),
-                  Expanded(
-                    child: SizedBox(
-                      height: compact ? 24 : 30,
-                      child: hasSparkline
-                          ? CustomPaint(
-                              painter: SparklinePainter(
-                                sparklineData!,
-                                color.withOpacity(0.6),
-                                invertY: invertSparkline, // Support inverted sparklines (for rankings where lower is better)
-                              ),
-                            )
-                          : CustomPaint(
-                              painter: NoDataSparklinePainter(
-                                color.withOpacity(0.3),
-                              ),
-                            ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ],
-        ),
-      ),
+    return MetricCard(
+      title: title,
+      value: value,
+      icon: icon,
+      color: color,
+      sparklineData: sparklineData,
+      showSparklinePlaceholder: showSparklinePlaceholder,
+      invertSparkline: invertSparkline,
+      tooltip: tooltip,
+      compact: compact,
     );
-    
-    // Wrap with tooltip if provided
-    if (tooltip != null) {
-      return Tooltip(
-        message: tooltip,
-        preferBelow: false,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.grey[850],
-          borderRadius: BorderRadius.circular(8),
-        ),
-        textStyle: const TextStyle(
-          color: Colors.white,
-          fontSize: 13,
-        ),
-        waitDuration: const Duration(milliseconds: 500),
-        child: cardContent,
-      );
-    }
-    
-    return cardContent;
   }
   
   // Enhanced metric card for Ahrefs-style overview
@@ -4966,154 +4896,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Color _getPositionColor(int? position) => ColorHelpers.getPositionColor(position);
   
-  void _showCreateProjectDialog() {
-    final urlController = TextEditingController();
-    final nameController = TextEditingController();
-    
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Create New Project'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: urlController,
-              decoration: const InputDecoration(
-                labelText: 'Target Website URL',
-                hintText: 'https://example.com',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(
-                labelText: 'Project Name (Optional)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (urlController.text.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please enter a URL')),
-                );
-                return;
-              }
-              
-              try {
-                final projectProvider = context.read<ProjectProvider>();
-                final authProvider = context.read<AuthProvider>();
-                
-                await projectProvider.createProject(
-                  authProvider.apiService,
-                  urlController.text,
-                  nameController.text.isEmpty ? null : nameController.text,
-                );
-                
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Project created successfully!')),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: $e')),
-                  );
-                }
-              }
-            },
-            child: const Text('Create'),
-          ),
-        ],
-      ),
-    );
-  }
+  void _showCreateProjectDialog() => ProjectDialogs.showCreateProjectDialog(context);
 
-  void _showAddKeywordDialog(BuildContext context, ProjectProvider projectProvider, AuthProvider authProvider) {
-    final keywordController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Add Keyword'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: keywordController,
-                decoration: const InputDecoration(
-                  labelText: 'Keyword',
-                  hintText: 'Enter keyword to track',
-                ),
-                textCapitalization: TextCapitalization.words,
-                autofocus: true,
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Search volume and competition will be automatically fetched and tracked.',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (keywordController.text.trim().isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please enter a keyword')),
-                  );
-                  return;
-                }
-
-                try {
-                  await projectProvider.addKeyword(
-                    authProvider.apiService,
-                    keywordController.text.trim(),
-                    null, // Let backend fetch search volume
-                    null, // Let backend determine competition
-                    null, // No SEO difficulty for manual adds
-                  );
-
-                  if (context.mounted) {
-                    Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Keyword added successfully!')),
-                    );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error adding keyword: $e')),
-                    );
-                  }
-                }
-              },
-              child: const Text('Add'),
-            ),
-          ],
-        );
-      },
-    );
-  }
+  void _showAddKeywordDialog(BuildContext context, ProjectProvider projectProvider, AuthProvider authProvider) =>
+      ProjectDialogs.showAddKeywordDialog(context, projectProvider, authProvider);
 
   String _formatLastUpdated(List<TrackedKeyword> keywords) {
     if (keywords.isEmpty) {
