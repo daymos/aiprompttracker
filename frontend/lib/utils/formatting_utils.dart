@@ -56,4 +56,20 @@ class FormattingUtils {
 
     return preview.isEmpty ? 'No content' : preview;
   }
+
+  /// Format a DateTime to a user-friendly relative string
+  static String formatDate(DateTime date) {
+    final now = DateTime.now();
+    final diff = now.difference(date);
+    
+    if (diff.inDays == 0) {
+      return 'Today ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+    } else if (diff.inDays == 1) {
+      return 'Yesterday';
+    } else if (diff.inDays < 7) {
+      return '${diff.inDays} days ago';
+    } else {
+      return '${date.month}/${date.day}/${date.year}';
+    }
+  }
 }
