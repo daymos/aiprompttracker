@@ -1361,7 +1361,6 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                       // Only show SEO action buttons in SEO mode
                       if (_projectMode == ProjectMode.seo) ...[
-                        const SizedBox(width: 16),
                         // Chat button - prominent call to action
                         FilledButton.icon(
                           onPressed: () {
@@ -1384,65 +1383,42 @@ class _ChatScreenState extends State<ChatScreen> {
                               });
                             });
                           },
-                          icon: const Icon(Icons.auto_awesome, size: 20),
+                          icon: const Icon(Icons.chat_bubble_outline, size: 20),
                           label: const Text('Work on SEO Strategy'),
                           style: FilledButton.styleFrom(
                             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        // Refresh buttons
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              onPressed: projectProvider.isLoading
-                                  ? null
-                                  : () async {
-                                      try {
-                                        await projectProvider.refreshRankings(authProvider.apiService);
-                                        if (mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text('Keywords updated!')),
-                                          );
-                                        }
-                                      } catch (e) {
-                                        if (mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(content: Text('Error: $e')),
-                                          );
-                                        }
-                                      }
-                                    },
-                              icon: const Icon(Icons.search),
-                              tooltip: 'Refresh Keywords',
-                              iconSize: 20,
+                        const SizedBox(width: 12),
+                        // Mode toggle button
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              _projectMode = _projectMode == ProjectMode.seo
+                                  ? ProjectMode.seoAgent
+                                  : ProjectMode.seo;
+                            });
+                          },
+                          icon: Icon(
+                            _projectMode == ProjectMode.seo 
+                                ? Icons.analytics_outlined 
+                                : Icons.auto_awesome,
+                            size: 18,
+                          ),
+                          label: Text(
+                            _projectMode == ProjectMode.seo 
+                                ? 'SEO Analytics' 
+                                : 'SEO Agent',
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            side: BorderSide(
+                              color: const Color(0xFFFFC107).withOpacity(0.5),
                             ),
-                            IconButton(
-                              onPressed: projectProvider.isLoading
-                                  ? null
-                                  : () async {
-                                      try {
-                                        await projectProvider.refreshBacklinks(authProvider.apiService, project.id);
-                                        if (mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text('Backlinks refreshed!')),
-                                          );
-                                        }
-                                      } catch (e) {
-                                        if (mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(content: Text('Error: $e')),
-                                          );
-                                        }
-                                      }
-                                    },
-                              icon: const Icon(Icons.link),
-                              tooltip: 'Refresh Backlinks',
-                              iconSize: 20,
-                            ),
-                          ],
+                            foregroundColor: const Color(0xFFFFC107),
+                          ),
                         ),
+                        const SizedBox(width: 12),
                         // Delete button
                         IconButton(
                           onPressed: projectProvider.isLoading
@@ -1502,45 +1478,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       ],
                     ],
                   ),
-                  const SizedBox(height: 24),
-                  
-                  // Mode indicator header
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFC107).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: const Color(0xFFFFC107).withOpacity(0.3),
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          _projectMode == ProjectMode.seo 
-                              ? Icons.analytics_outlined 
-                              : Icons.auto_awesome,
-                          color: const Color(0xFFFFC107),
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          _projectMode == ProjectMode.seo 
-                              ? 'SEO Analytics' 
-                              : 'SEO Agent',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Theme.of(context).brightness == Brightness.dark
-                                ? Colors.white
-                                : Colors.black87,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
                   
                   // Tabs with counts (only show in SEO mode)
                   if (_projectMode == ProjectMode.seo)
