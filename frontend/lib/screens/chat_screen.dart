@@ -296,10 +296,23 @@ class _ChatScreenState extends State<ChatScreen> {
     chatProvider.setLoading(true, status: 'Thinking...');
 
     try {
+      // Determine agent mode and project context
+      final projectProvider = context.read<ProjectProvider>();
+      final project = projectProvider.selectedProject;
+      String? agentMode;
+      
+      if (project != null && _projectMode == ProjectMode.seoAgent) {
+        // Check if WordPress is connected to determine if setup or active
+        // For now, default to setup mode (we can enhance this later)
+        agentMode = 'seo_agent_setup';
+      }
+      
       // Use streaming endpoint to get real-time status updates
       await for (final event in authProvider.apiService.sendMessageStream(
         message,
         chatProvider.currentConversationId,
+        projectId: project?.id,
+        agentMode: agentMode,
       )) {
         // Check if request was cancelled
         if (_shouldCancelRequest) {

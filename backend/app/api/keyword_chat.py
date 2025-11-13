@@ -28,6 +28,17 @@ from ..services.gsc_service import GSCService
 from ..models.backlink_analysis import BacklinkAnalysis
 from ..models.project import KeywordRanking
 from .auth import get_current_user
+from ..tools import get_seo_agent_tools
+from ..tools.seo_agent_handlers import (
+    handle_connect_cms,
+    handle_test_cms_connection,
+    handle_analyze_content_tone,
+    handle_generate_content_outline,
+    handle_generate_full_article,
+    handle_publish_content,
+    handle_list_generated_content,
+    handle_get_cms_categories,
+)
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 logger = logging.getLogger(__name__)
@@ -164,6 +175,8 @@ def save_technical_audit(
 class ChatRequest(BaseModel):
     message: str
     conversation_id: Optional[str] = None
+    project_id: Optional[str] = None
+    agent_mode: Optional[str] = None  # "seo_agent_setup", "seo_agent", "seo_analytics"
 
 class ChatResponse(BaseModel):
     message: str
@@ -690,13 +703,19 @@ async def send_message_stream(
                     }
                 }
             ]
+            
+            # Add SEO Agent tools if in SEO Agent mode
+            if request.agent_mode in ["seo_agent_setup", "seo_agent"]:
+                tools.extend(get_seo_agent_tools())
 
             # First LLM call
             response_text, reasoning, tool_calls = await llm_service.chat_with_tools(
                 user_message=request.message,
                 conversation_history=conversation_history,
                 available_tools=tools,
-                user_projects=user_projects_data if user_projects_data else None
+                user_projects=user_projects_data if user_projects_data else None,
+                agent_mode=request.agent_mode,
+                project_id=request.project_id
             )
             
             # Execute tool calls with status updates
@@ -756,6 +775,23 @@ async def send_message_stream(
                         yield await send_sse_event("status", {"message": "Fetching Google Search Console data..."})
                     elif tool_name == "link_gsc_property":
                         yield await send_sse_event("status", {"message": "Linking GSC property..."})
+                    # SEO Agent status messages
+                    elif tool_name == "connect_cms":
+                        yield await send_sse_event("status", {"message": "🔗 Connecting to CMS..."})
+                    elif tool_name == "test_cms_connection":
+                        yield await send_sse_event("status", {"message": "🔍 Testing CMS connection..."})
+                    elif tool_name == "analyze_content_tone":
+                        yield await send_sse_event("status", {"message": "🎨 Analyzing writing style from your posts..."})
+                    elif tool_name == "generate_content_outline":
+                        yield await send_sse_event("status", {"message": "📝 Generating article outline..."})
+                    elif tool_name == "generate_full_article":
+                        yield await send_sse_event("status", {"message": "✍️ Writing full article..."})
+                    elif tool_name == "publish_content":
+                        yield await send_sse_event("status", {"message": "🚀 Publishing to CMS..."})
+                    elif tool_name == "list_generated_content":
+                        yield await send_sse_event("status", {"message": "📚 Fetching content library..."})
+                    elif tool_name == "get_cms_categories":
+                        yield await send_sse_event("status", {"message": "📂 Fetching CMS categories..."})
                     
                     try:
                         if tool_name == "research_keywords":
@@ -1825,6 +1861,118 @@ OVERVIEW:
                                     "name": tool_name,
                                     "content": f"ERROR linking GSC property: {str(link_error)}"
                                 })
+                        
+                        # SEO Agent Tools
+                        elif tool_name == "connect_cms":
+                            result = await handle_connect_cms(
+                                db=db,
+                                project_id=args.get("project_id"),
+                                cms_type=args.get("cms_type"),
+                                cms_url=args.get("cms_url"),
+                                username=args.get("username"),
+                                password=args.get("password")
+                            )
+                            tool_results.append({
+                                "tool_call_id": tool_call["id"],
+                                "role": "tool",
+                                "name": tool_name,
+                                "content": json.dumps(result)
+                            })
+                        
+                        elif tool_name == "test_cms_connection":
+                            result = await handle_test_cms_connection(
+                                db=db,
+                                project_id=args.get("project_id")
+                            )
+                            tool_results.append({
+                                "tool_call_id": tool_call["id"],
+                                "role": "tool",
+                                "name": tool_name,
+                                "content": json.dumps(result)
+                            })
+                        
+                        elif tool_name == "analyze_content_tone":
+                            result = await handle_analyze_content_tone(
+                                db=db,
+                                project_id=args.get("project_id"),
+                                num_posts=args.get("num_posts", 5)
+                            )
+                            tool_results.append({
+                                "tool_call_id": tool_call["id"],
+                                "role": "tool",
+                                "name": tool_name,
+                                "content": json.dumps(result)
+                            })
+                        
+                        elif tool_name == "generate_content_outline":
+                            result = await handle_generate_content_outline(
+                                db=db,
+                                project_id=args.get("project_id"),
+                                topic=args.get("topic"),
+                                target_keywords=args.get("target_keywords", []),
+                                word_count_target=args.get("word_count_target", 1500)
+                            )
+                            tool_results.append({
+                                "tool_call_id": tool_call["id"],
+                                "role": "tool",
+                                "name": tool_name,
+                                "content": json.dumps(result)
+                            })
+                        
+                        elif tool_name == "generate_full_article":
+                            result = await handle_generate_full_article(
+                                db=db,
+                                project_id=args.get("project_id"),
+                                outline_id=args.get("outline_id"),
+                                modifications=args.get("modifications")
+                            )
+                            tool_results.append({
+                                "tool_call_id": tool_call["id"],
+                                "role": "tool",
+                                "name": tool_name,
+                                "content": json.dumps(result)
+                            })
+                        
+                        elif tool_name == "publish_content":
+                            result = await handle_publish_content(
+                                db=db,
+                                project_id=args.get("project_id"),
+                                content_id=args.get("content_id"),
+                                status=args.get("status", "draft"),
+                                categories=args.get("categories")
+                            )
+                            tool_results.append({
+                                "tool_call_id": tool_call["id"],
+                                "role": "tool",
+                                "name": tool_name,
+                                "content": json.dumps(result)
+                            })
+                        
+                        elif tool_name == "list_generated_content":
+                            result = await handle_list_generated_content(
+                                db=db,
+                                project_id=args.get("project_id"),
+                                status_filter=args.get("status_filter", "all"),
+                                limit=args.get("limit", 10)
+                            )
+                            tool_results.append({
+                                "tool_call_id": tool_call["id"],
+                                "role": "tool",
+                                "name": tool_name,
+                                "content": json.dumps(result)
+                            })
+                        
+                        elif tool_name == "get_cms_categories":
+                            result = await handle_get_cms_categories(
+                                db=db,
+                                project_id=args.get("project_id")
+                            )
+                            tool_results.append({
+                                "tool_call_id": tool_call["id"],
+                                "role": "tool",
+                                "name": tool_name,
+                                "content": json.dumps(result)
+                            })
 
                     except Exception as e:
                         logger.error(f"❌ Tool execution failed for {tool_name}: {str(e)}", exc_info=True)

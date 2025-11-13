@@ -42,14 +42,26 @@ class ApiService {
   
   Stream<Map<String, dynamic>> sendMessageStream(
     String message, 
-    String? conversationId
-  ) async* {
+    String? conversationId, {
+    String? projectId,
+    String? agentMode,
+  }) async* {
     final request = http.Request('POST', Uri.parse('$baseUrl/chat/message/stream'));
     request.headers.addAll(_headers());
-    request.body = jsonEncode({
+    
+    final body = {
       'message': message,
       'conversation_id': conversationId,
-    });
+    };
+    
+    if (projectId != null) {
+      body['project_id'] = projectId;
+    }
+    if (agentMode != null) {
+      body['agent_mode'] = agentMode;
+    }
+    
+    request.body = jsonEncode(body);
     
     final streamedResponse = await request.send();
     
