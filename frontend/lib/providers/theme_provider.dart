@@ -2,14 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum AppTheme {
-  deepPurple,
-  ayuMirage,
-  nord,
-  gruvboxLight,
+  paperColorLight,
+  paperColorDark,
 }
 
 class ThemeProvider with ChangeNotifier {
-  AppTheme _currentTheme = AppTheme.ayuMirage;
+  AppTheme _currentTheme = AppTheme.paperColorDark;
   
   AppTheme get currentTheme => _currentTheme;
   
@@ -19,8 +17,13 @@ class ThemeProvider with ChangeNotifier {
   
   Future<void> _loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
-    final themeIndex = prefs.getInt('theme') ?? 0;
-    _currentTheme = AppTheme.values[themeIndex];
+    final themeIndex = prefs.getInt('theme') ?? 1; // Default to dark theme
+    // Safety check for old saved preferences
+    if (themeIndex >= AppTheme.values.length) {
+      _currentTheme = AppTheme.paperColorDark;
+    } else {
+      _currentTheme = AppTheme.values[themeIndex];
+    }
     notifyListeners();
   }
   
@@ -33,179 +36,133 @@ class ThemeProvider with ChangeNotifier {
   
   ThemeData get themeData {
     switch (_currentTheme) {
-      case AppTheme.deepPurple:
-        return _deepPurpleTheme();
-      case AppTheme.ayuMirage:
-        return _ayuMirageTheme();
-      case AppTheme.nord:
-        return _nordTheme();
-      case AppTheme.gruvboxLight:
-        return _gruvboxLightTheme();
+      case AppTheme.paperColorLight:
+        return _paperColorLightTheme();
+      case AppTheme.paperColorDark:
+        return _paperColorDarkTheme();
     }
   }
   
   String get themeName {
     switch (_currentTheme) {
-      case AppTheme.deepPurple:
-        return 'Deep Purple';
-      case AppTheme.ayuMirage:
-        return 'Ayu Mirage';
-      case AppTheme.nord:
-        return 'Nord';
-      case AppTheme.gruvboxLight:
-        return 'Gruvbox Light';
+      case AppTheme.paperColorLight:
+        return 'PaperColor Light';
+      case AppTheme.paperColorDark:
+        return 'PaperColor Dark';
     }
   }
   
-  // Deep Purple Theme (current)
-  ThemeData _deepPurpleTheme() {
-    return ThemeData(
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: Colors.deepPurple,
-        brightness: Brightness.dark,
-      ).copyWith(
-        primary: const Color(0xFFBB86FC), // Vibrant purple (Material Design purple-200)
-      ),
-      useMaterial3: true,
-    );
-  }
-  
-  // Ayu Mirage Theme (modern vim)
-  ThemeData _ayuMirageTheme() {
-    const ayuBackground = Color(0xFF1f2430);      // main background
-    const ayuSurface = Color(0xFF242936);         // elevated surface
-    const ayuSurfaceLight = Color(0xFF2d3544);    // lighter surface
-    const ayuForeground = Color(0xFFcbccc6);      // text
-    const ayuComment = Color(0xFF5c6773);         // comments
-    const ayuOrange = Color(0xFFffd580);          // accent 1
-    const ayuBlue = Color(0xFF5ccfe6);            // accent 2
-    const ayuPurple = Color(0xFFd4bfff);          // accent 3
-    const ayuGreen = Color(0xFFbae67e);           // success
-    const ayuRed = Color(0xFFef6b73);             // error
-    
-    return ThemeData(
-      brightness: Brightness.dark,
-      scaffoldBackgroundColor: ayuBackground,
-      colorScheme: ColorScheme.dark(
-        primary: ayuOrange,
-        secondary: ayuBlue,
-        tertiary: ayuPurple,
-        surface: ayuSurface,
-        surfaceContainerHighest: ayuSurfaceLight,
-        background: ayuBackground,
-        error: ayuRed,
-        onPrimary: ayuBackground,
-        onSecondary: ayuBackground,
-        onSurface: ayuForeground,
-        onBackground: ayuForeground,
-        onError: ayuBackground,
-      ).copyWith(
-        // Add green for success states
-        tertiary: ayuGreen,
-      ),
-      textTheme: const TextTheme(
-        bodyMedium: TextStyle(color: ayuForeground),
-        bodyLarge: TextStyle(color: ayuForeground),
-        bodySmall: TextStyle(color: ayuComment),
-      ),
-      cardColor: ayuSurface,
-      dividerColor: ayuComment,
-      useMaterial3: true,
-    );
-  }
-  // Nord Theme (arctic palette)
-  ThemeData _nordTheme() {
-    const nordBg = Color(0xFF2e3440);             // background
-    const nordBgLight = Color(0xFF3b4252);        // lighter bg
-    const nordBgLighter = Color(0xFF434c5e);      // even lighter
-    const nordFg = Color(0xFFeceff4);             // foreground
-    const nordComment = Color(0xFF616e88);        // comment
-    const nordFrost1 = Color(0xFF8fbcbb);         // frost cyan
-    const nordFrost2 = Color(0xFF88c0d0);         // frost bright cyan
-    const nordFrost3 = Color(0xFF81a1c1);         // frost blue
-    const nordFrost4 = Color(0xFF5e81ac);         // frost dark blue
-    const nordRed = Color(0xFFbf616a);            // red
-    const nordOrange = Color(0xFFd08770);         // orange
-    const nordYellow = Color(0xFFebcb8b);         // yellow
-    const nordGreen = Color(0xFFa3be8c);          // green
-    const nordPurple = Color(0xFFb48ead);         // purple
-    
-    return ThemeData(
-      brightness: Brightness.dark,
-      scaffoldBackgroundColor: nordBg,
-      colorScheme: ColorScheme.dark(
-        primary: nordFrost3,
-        secondary: nordFrost2,
-        tertiary: nordPurple,
-        surface: nordBgLight,
-        surfaceContainerHighest: nordBgLighter,
-        background: nordBg,
-        error: nordRed,
-        onPrimary: nordBg,
-        onSecondary: nordBg,
-        onSurface: nordFg,
-        onBackground: nordFg,
-        onError: nordBg,
-      ).copyWith(
-        primaryContainer: nordBgLighter,
-        secondaryContainer: nordBgLight,
-      ),
-      textTheme: const TextTheme(
-        bodyMedium: TextStyle(color: nordFg),
-        bodyLarge: TextStyle(color: nordFg),
-        bodySmall: TextStyle(color: nordComment),
-      ),
-      cardColor: nordBgLight,
-      dividerColor: nordComment,
-      useMaterial3: true,
-    );
-  }
-  
-  // Gruvbox Light Theme (retro vim light theme)
-  ThemeData _gruvboxLightTheme() {
-    const gruvboxBg = Color(0xFFfbf1c7);             // light background
-    const gruvboxBgHard = Color(0xFFF9F5D7);         // even lighter
-    const gruvboxBg1 = Color(0xFFebdbb2);            // elevated surface
-    const gruvboxFg = Color(0xFF3c3836);             // dark foreground
-    const gruvboxFg0 = Color(0xFF282828);            // darker text
-    const gruvboxGray = Color(0xFF928374);           // gray/comment
-    const gruvboxRed = Color(0xFFcc241d);            // red
-    const gruvboxGreen = Color(0xFF98971a);          // green
-    const gruvboxYellow = Color(0xFFd79921);         // yellow
-    const gruvboxBlue = Color(0xFF458588);           // blue
-    const gruvboxPurple = Color(0xFFb16286);         // purple
-    const gruvboxAqua = Color(0xFF689d6a);           // aqua/cyan
-    const gruvboxOrange = Color(0xFFd65d0e);         // orange
+  // PaperColor Light Theme (inspired by Google Material Design)
+  ThemeData _paperColorLightTheme() {
+    const paperBg = Color(0xFFeeeeee);               // light gray background
+    const paperBgAlt = Color(0xFFffffff);            // white surfaces
+    const paperBg2 = Color(0xFFe4e4e4);              // darker gray for elevation
+    const paperFg = Color(0xFF444444);               // dark text
+    const paperFg2 = Color(0xFF005f87);              // darker blue-gray text
+    const paperComment = Color(0xFF808080);          // gray comment
+    const paperBlue = Color(0xFF005f87);             // blue
+    const paperBrightBlue = Color(0xFF0087af);       // bright blue
+    const paperCyan = Color(0xFF00afaf);             // cyan
+    const paperGreen = Color(0xFF008700);            // green
+    const paperYellow = Color(0xFFd75f00);           // orange-yellow
+    const paperOrange = Color(0xFFd70000);           // orange-red
+    const paperRed = Color(0xFFd70087);              // red-pink
+    const paperPurple = Color(0xFF8700af);           // purple
+    const paperPink = Color(0xFFd75f87);             // pink
     
     return ThemeData(
       brightness: Brightness.light,
-      scaffoldBackgroundColor: gruvboxBg,
+      scaffoldBackgroundColor: paperBg,
       colorScheme: ColorScheme.light(
-        primary: gruvboxBlue,
-        secondary: gruvboxAqua,
-        tertiary: gruvboxPurple,
-        surface: gruvboxBgHard,
-        surfaceContainerHighest: gruvboxBg1,
-        background: gruvboxBg,
-        error: gruvboxRed,
-        onPrimary: gruvboxBg,
-        onSecondary: gruvboxBg,
-        onSurface: gruvboxFg,
-        onBackground: gruvboxFg,
-        onError: gruvboxBg,
+        primary: paperBlue,
+        secondary: paperCyan,
+        tertiary: paperPurple,
+        surface: paperBgAlt,
+        surfaceContainerHighest: paperBg2,
+        background: paperBg,
+        error: paperOrange,
+        onPrimary: paperBgAlt,
+        onSecondary: paperBgAlt,
+        onSurface: paperFg,
+        onBackground: paperFg,
+        onError: paperBgAlt,
       ).copyWith(
-        primaryContainer: gruvboxBg1,
-        secondaryContainer: gruvboxBgHard,
-        outline: gruvboxGray,
+        primaryContainer: paperBg2,
+        secondaryContainer: paperBgAlt,
+        outline: paperComment,
+        // Yellow accent for key features
+        tertiary: const Color(0xFFd75f00),
       ),
       textTheme: const TextTheme(
-        bodyMedium: TextStyle(color: gruvboxFg),
-        bodyLarge: TextStyle(color: gruvboxFg0),
-        bodySmall: TextStyle(color: gruvboxGray),
+        bodyMedium: TextStyle(color: paperFg),
+        bodyLarge: TextStyle(color: paperFg2),
+        bodySmall: TextStyle(color: paperComment),
       ),
-      cardColor: gruvboxBgHard,
-      dividerColor: gruvboxGray,
-      iconTheme: const IconThemeData(color: gruvboxFg),
+      cardColor: paperBgAlt,
+      dividerColor: paperComment,
+      iconTheme: const IconThemeData(color: paperFg),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: paperBgAlt,
+        foregroundColor: paperFg,
+        elevation: 1,
+      ),
+      useMaterial3: true,
+    );
+  }
+  
+  // PaperColor Dark Theme (inspired by Google Material Design)
+  ThemeData _paperColorDarkTheme() {
+    const paperBgDark = Color(0xFF1c1c1c);           // dark background
+    const paperBgDark2 = Color(0xFF262626);          // slightly lighter
+    const paperBgDark3 = Color(0xFF303030);          // elevated surface
+    const paperFgDark = Color(0xFFd0d0d0);           // light text
+    const paperFg2Dark = Color(0xFFe4e4e4);          // brighter text
+    const paperCommentDark = Color(0xFF585858);      // gray comment
+    const paperBlueDark = Color(0xFF00afaf);         // bright cyan-blue
+    const paperCyanDark = Color(0xFF00d7d7);         // bright cyan
+    const paperGreenDark = Color(0xFF5faf00);        // green
+    const paperYellowDark = Color(0xFFd7af5f);       // yellow
+    const paperOrangeDark = Color(0xFFff5f00);       // orange
+    const paperRedDark = Color(0xFFd70000);          // red
+    const paperPurpleDark = Color(0xFFaf87d7);       // purple
+    const paperPinkDark = Color(0xFFff5faf);         // pink
+    
+    return ThemeData(
+      brightness: Brightness.dark,
+      scaffoldBackgroundColor: paperBgDark,
+      colorScheme: ColorScheme.dark(
+        primary: paperBlueDark,
+        secondary: paperCyanDark,
+        tertiary: paperPurpleDark,
+        surface: paperBgDark2,
+        surfaceContainerHighest: paperBgDark3,
+        background: paperBgDark,
+        error: paperOrangeDark,
+        onPrimary: paperBgDark,
+        onSecondary: paperBgDark,
+        onSurface: paperFgDark,
+        onBackground: paperFgDark,
+        onError: paperBgDark,
+      ).copyWith(
+        primaryContainer: paperBgDark3,
+        secondaryContainer: paperBgDark2,
+        outline: paperCommentDark,
+        // Yellow accent for key features
+        tertiary: paperYellowDark,
+      ),
+      textTheme: const TextTheme(
+        bodyMedium: TextStyle(color: paperFgDark),
+        bodyLarge: TextStyle(color: paperFg2Dark),
+        bodySmall: TextStyle(color: paperCommentDark),
+      ),
+      cardColor: paperBgDark2,
+      dividerColor: paperCommentDark,
+      iconTheme: const IconThemeData(color: paperFgDark),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: paperBgDark2,
+        foregroundColor: paperFgDark,
+        elevation: 1,
+      ),
       useMaterial3: true,
     );
   }

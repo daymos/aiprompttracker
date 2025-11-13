@@ -804,12 +804,6 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
         const SizedBox(width: 8),
         _buildSuggestionButton(
-          icon: Icons.bar_chart,
-          label: 'SERP',
-          message: 'Analyze SERP results for a keyword',
-        ),
-        const SizedBox(width: 8),
-        _buildSuggestionButton(
           icon: Icons.trending_up,
           label: 'Rankings',
           message: 'Check my rankings',
@@ -827,11 +821,7 @@ class _ChatScreenState extends State<ChatScreen> {
           message: 'Show me backlinks for my website',
         ),
         const SizedBox(width: 8),
-        _buildSuggestionButton(
-          icon: Icons.people_outline,
-          label: 'Competitors',
-          message: 'Analyze competitor keywords',
-        ),
+        _buildAgenticButton(),
       ],
     );
   }
@@ -876,6 +866,45 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
               ),
             ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAgenticButton() {
+    return Tooltip(
+      message: 'Let AI create an automated content strategy and generate SEO-optimized posts',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            _messageController.text = 'I want to use Agentic SEO mode to create an automated content strategy and generate blog posts for my website';
+            _sendMessage();
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: _PulsingButton(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.auto_awesome,
+                    size: 14,
+                    color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.6),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Agentic SEO',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -2972,65 +3001,84 @@ class _ChatScreenState extends State<ChatScreen> {
         return projectProvider.isLoading
             ? const Center(child: CircularProgressIndicator())
             : SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Row 1: Domain Authority & Total Backlinks
+                // Top row: Health Score (large) + Domain Rating + Referring Domains
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Health Score - Large prominent card
                     Expanded(
-                      child: _buildMetricCard(
-                        'Domain Authority',
+                      flex: 2,
+                      child: _buildHealthScoreCard(
+                        performanceScore,
+                        audits,
+                        project,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    // Domain Rating
+                    Expanded(
+                      child: _buildEnhancedMetricCard(
+                        'Domain Rating',
                         domainAuthority.toString(),
-                        Icons.shield_outlined,
+                        null,
                         _getDomainAuthorityColor(domainAuthority),
                         sparklineData: daSparkline,
-                        showSparklinePlaceholder: true,
-                        tooltip: 'A score (0-100) that predicts how well your site will rank. Higher is better. 70+ is excellent, 50-70 is good, 30-50 is average.',
+                        maxValue: 100,
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 16),
+                    // Referring domains (using backlinks)
                     Expanded(
-                      child: _buildMetricCard(
-                        'Total Backlinks',
+                      child: _buildEnhancedMetricCard(
+                        'Referring domains',
                         _formatNumber(totalBacklinks),
-                        Icons.link,
+                        _getBacklinkChange(overtime),
                         Colors.blue[400]!,
                         sparklineData: backlinksSparkline,
-                        showSparklinePlaceholder: true,
-                        tooltip: 'Total number of external links pointing to your website from other domains. More quality backlinks improve SEO.',
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                
-                // Row 2: Audit Performance & Average Ranking
-                Row(
-                  children: [
+                    const SizedBox(width: 16),
+                    // Total Visitors
                     Expanded(
-                      child: _buildMetricCard(
-                        'Audit Performance',
-                        audits.isEmpty ? 'N/A' : '$performanceScore/100',
-                        Icons.speed,
-                        audits.isEmpty ? Colors.grey[400]! : _getScoreColor(performanceScore.toDouble()),
-                        sparklineData: perfSparkline,
-                        showSparklinePlaceholder: true,
-                        tooltip: 'Technical site performance score from latest audit. Measures speed, SEO, and best practices. 90+ is excellent, 50-90 is good.',
+                      child: _buildEnhancedMetricCard(
+                        'Total visitors',
+                        '--',
+                        null,
+                        Colors.purple[400]!,
+                        showMonitoringButton: true,
+                        onMonitoringTap: () {
+                          // TODO: Implement visitor tracking setup
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Visitor tracking coming soon! Connect Google Analytics or install our tracking script.'),
+                              duration: Duration(seconds: 3),
+                            ),
+                          );
+                        },
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 16),
+                    // Organic traffic
                     Expanded(
-                      child: _buildMetricCard(
-                        'Avg Ranking',
-                        rankedKeywords.isEmpty ? 'N/A' : avgPosition.toStringAsFixed(1),
-                        Icons.trending_up,
-                        rankedKeywords.isEmpty ? Colors.grey[400]! : _getAvgRankingColor(avgPosition),
-                        sparklineData: avgPositionSparkline,
-                        showSparklinePlaceholder: true,
-                        invertSparkline: true, // Lower is better for rankings
-                        tooltip: 'Average Google search position for your tracked keywords. Lower is better. Top 3 is ideal, top 10 is good.',
+                      child: _buildEnhancedMetricCard(
+                        'Organic traffic',
+                        '--',
+                        null,
+                        Colors.teal[400]!,
+                        showMonitoringButton: true,
+                        onMonitoringTap: () {
+                          // TODO: Implement visitor tracking setup
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Organic traffic tracking coming soon! Connect Google Analytics to see visitors from search engines.'),
+                              duration: Duration(seconds: 3),
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ],
@@ -3380,6 +3428,252 @@ class _ChatScreenState extends State<ChatScreen> {
     }
     
     return cardContent;
+  }
+  
+  // Enhanced metric card for Ahrefs-style overview
+  Widget _buildEnhancedMetricCard(
+    String title,
+    String value,
+    String? change, // e.g., "+2" for referring domains
+    Color color, {
+    List<double>? sparklineData,
+    double? maxValue,
+    bool invertSparkline = false,
+    bool showMonitoringButton = false,
+    VoidCallback? onMonitoringTap,
+  }) {
+    final hasSparkline = sparklineData != null && sparklineData.length >= 2;
+    final showNoData = value == '--' || value == 'N/A';
+    
+    return Card(
+      elevation: 2,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Title
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey[500],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            // Value and change indicator
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                    color: showNoData ? Colors.grey[600] : color,
+                    height: 1.0,
+                  ),
+                ),
+                if (change != null) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.green[600]?.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      change,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green[600],
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            
+            // Start monitoring button
+            if (showMonitoringButton && showNoData) ...[
+              const SizedBox(height: 16),
+              OutlinedButton(
+                onPressed: onMonitoringTap,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white70,
+                  side: BorderSide(color: Colors.grey[700]!),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                ),
+                child: const Text(
+                  'Start monitoring',
+                  style: TextStyle(fontSize: 13),
+                ),
+              ),
+            ],
+            
+            // Sparkline graph
+            if (hasSparkline) ...[
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 40,
+                child: CustomPaint(
+                  painter: SparklinePainter(
+                    sparklineData!,
+                    color.withOpacity(0.5),
+                    invertY: invertSparkline,
+                  ),
+                ),
+              ),
+            ],
+            
+            // Max value indicator (for things like DR out of 100)
+            if (maxValue != null && !hasSparkline) ...[
+              const SizedBox(height: 16),
+              LinearProgressIndicator(
+                value: double.tryParse(value)! / maxValue,
+                backgroundColor: Colors.grey[800],
+                valueColor: AlwaysStoppedAnimation<Color>(color),
+                minHeight: 4,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+  
+  // Health Score Card - Large prominent card
+  Widget _buildHealthScoreCard(
+    int performanceScore,
+    List audits,
+    Project project,
+  ) {
+    final scoreColor = audits.isEmpty 
+        ? Colors.grey[600]! 
+        : _getScoreColor(performanceScore.toDouble());
+    
+    // Get breakdown data from latest audit
+    int crawled = 0;
+    int redirects = 0;
+    int broken = 0;
+    int blocked = 0;
+    
+    if (audits.isNotEmpty) {
+      final latestAudit = audits.first;
+      // You can extract these from your audit data structure
+      // For now, using placeholder logic
+      crawled = 28; // Example
+      redirects = 2;
+      broken = 0;
+      blocked = 0;
+    }
+    
+    return Card(
+      elevation: 2,
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Title
+            Text(
+              'Health Score',
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey[500],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 20),
+            
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Large circular score
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: scoreColor.withOpacity(0.2),
+                    border: Border.all(
+                      color: scoreColor,
+                      width: 3,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      audits.isEmpty ? '--' : performanceScore.toString(),
+                      style: TextStyle(
+                        fontSize: 40,
+                        fontWeight: FontWeight.bold,
+                        color: scoreColor,
+                      ),
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(width: 32),
+                
+                // Breakdown details
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHealthDetail('Crawled', crawled, Colors.grey[400]!),
+                      const SizedBox(height: 8),
+                      _buildHealthDetail('Redirects', redirects, Colors.orange[400]!),
+                      const SizedBox(height: 8),
+                      _buildHealthDetail('Broken', broken, broken > 0 ? Colors.red[400]! : Colors.grey[400]!),
+                      const SizedBox(height: 8),
+                      _buildHealthDetail('Blocked', blocked, blocked > 0 ? Colors.red[400]! : Colors.grey[400]!),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildHealthDetail(String label, int value, Color color) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            color: Colors.grey[400],
+          ),
+        ),
+        Text(
+          value.toString(),
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
+  
+  String? _getBacklinkChange(List overtime) {
+    if (overtime.length < 2) return null;
+    
+    final latest = overtime.last['backlinks'] as int? ?? 0;
+    final previous = overtime[overtime.length - 2]['backlinks'] as int? ?? 0;
+    final change = latest - previous;
+    
+    if (change > 0) return '+$change';
+    if (change < 0) return change.toString();
+    return null;
   }
   
   Color _getDomainAuthorityColor(int da) {
@@ -6844,5 +7138,58 @@ class __ExpandableAuditHistoryItemState extends State<_ExpandableAuditHistoryIte
   }
 }
 
+// Pulsing border animation for the Agentic SEO button
+class _PulsingButton extends StatefulWidget {
+  final Widget child;
+
+  const _PulsingButton({required this.child});
+
+  @override
+  State<_PulsingButton> createState() => _PulsingButtonState();
+}
+
+class _PulsingButtonState extends State<_PulsingButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    )..repeat(reverse: true);
+    
+    _animation = Tween<double>(begin: 0.3, end: 0.8).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Container(
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: const Color(0xFF4FC3F7).withOpacity(_animation.value),
+              width: 1.5,
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: widget.child,
+        );
+      },
+    );
+  }
+}
 
 
