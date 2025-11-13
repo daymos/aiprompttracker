@@ -234,6 +234,56 @@ class _KeywordsTabState extends State<KeywordsTab> {
                           child: SortableDataTable(
                             columns: [
                               TableColumn(
+                                key: 'keyword',
+                                label: 'Keyword',
+                                sortable: true,
+                                builder: (value, row) {
+                                  return Container(
+                                    constraints: const BoxConstraints(maxWidth: 250),
+                                    child: Text(
+                                      value.toString(),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                              TableColumn(
+                                key: 'status',
+                                label: 'Status',
+                                sortable: true,
+                                tooltip: 'Tracking status',
+                                builder: (value, row) {
+                                  final keyword = filteredKeywords.firstWhere((k) => k.id == row['id']);
+                                  final isTracking = keyword.isActive;
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: isTracking 
+                                          ? Colors.green.withOpacity(0.1)
+                                          : Colors.orange.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: isTracking ? Colors.green : Colors.orange,
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      isTracking ? 'Tracking' : 'Suggested',
+                                      style: TextStyle(
+                                        color: isTracking ? Colors.green : Colors.orange,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                              TableColumn(
                                 key: 'currentPosition',
                                 label: 'Rank',
                                 numeric: true,
@@ -258,25 +308,6 @@ class _KeywordsTabState extends State<KeywordsTab> {
                                       style: TextStyle(
                                         color: ColorHelpers.getPositionColor(position),
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                              TableColumn(
-                                key: 'keyword',
-                                label: 'Keyword',
-                                sortable: true,
-                                builder: (value, row) {
-                                  return Container(
-                                    constraints: const BoxConstraints(maxWidth: 250),
-                                    child: Text(
-                                      value.toString(),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w500,
                                         fontSize: 13,
                                       ),
                                     ),
@@ -328,13 +359,13 @@ class _KeywordsTabState extends State<KeywordsTab> {
                                         .where((p) => p != null)
                                         .map((p) => p!.toDouble())
                                         .toList();
-                                    
+
                                     if (positions.length >= 2) {
                                       final firstPos = positions.first;
                                       final lastPos = positions.last;
                                       final change = firstPos - lastPos;
                                       final isImproving = change > 0;
-                                      
+
                                       return SizedBox(
                                         width: 50,
                                         height: 24,
@@ -358,14 +389,66 @@ class _KeywordsTabState extends State<KeywordsTab> {
                                   );
                                 },
                               ),
+                              TableColumn(
+                                key: 'targetPage',
+                                label: 'Target Page',
+                                sortable: true,
+                                tooltip: 'Page/post targeting this keyword',
+                                builder: (value, row) {
+                                  final keyword = filteredKeywords.firstWhere((k) => k.id == row['id']);
+                                  final targetPage = keyword.targetPage;
+                                  
+                                  if (targetPage == null || targetPage.isEmpty) {
+                                    return Text(
+                                      'Not set',
+                                      style: TextStyle(
+                                        color: Colors.grey[500],
+                                        fontSize: 12,
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    );
+                                  }
+                                  
+                                  // Extract path from URL for display
+                                  String displayText = targetPage;
+                                  try {
+                                    final uri = Uri.parse(targetPage);
+                                    displayText = uri.path.isEmpty ? uri.host : uri.path;
+                                    if (displayText.startsWith('/')) {
+                                      displayText = displayText.substring(1);
+                                    }
+                                  } catch (e) {
+                                    // If parsing fails, use original text
+                                  }
+                                  
+                                  return Container(
+                                    constraints: const BoxConstraints(maxWidth: 200),
+                                    child: Tooltip(
+                                      message: targetPage,
+                                      child: Text(
+                                        displayText,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.blue[300],
+                                          decoration: TextDecoration.underline,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
                             ],
                             data: filteredKeywords.map((keyword) {
                               return {
                                 'id': keyword.id,
                                 'keyword': keyword.keyword,
+                                'status': keyword.isActive ? 'Tracking' : 'Suggested',
                                 'currentPosition': keyword.currentPosition,
                                 'searchVolume': keyword.searchVolume,
                                 'seoDifficulty': keyword.seoDifficulty,
+                                'targetPage': keyword.targetPage,
                               };
                             }).toList(),
                             emptyMessage: 'No keywords found',

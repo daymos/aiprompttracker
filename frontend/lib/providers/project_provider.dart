@@ -39,6 +39,7 @@ class TrackedKeyword {
   final int targetPosition;
   final String source; // "manual" or "auto_detected"
   final bool isActive; // true if actively tracked, false if just a suggestion
+  final String? targetPage; // URL of the page/post targeting this keyword
   final DateTime createdAt;
   final List<RankingHistoryPoint> rankingHistory;
 
@@ -52,6 +53,7 @@ class TrackedKeyword {
     required this.targetPosition,
     this.source = 'manual', // Default for backward compatibility
     this.isActive = true, // Default for backward compatibility
+    this.targetPage,
     required this.createdAt,
     this.rankingHistory = const [],
   });
@@ -190,6 +192,7 @@ class ProjectProvider with ChangeNotifier {
           targetPosition: k['target_position'],
           source: k['source'] ?? 'manual',
           isActive: k['is_active'] ?? true,
+          targetPage: k['target_page'],
           createdAt: DateTime.parse(k['created_at']),
           rankingHistory: history,
         );
@@ -234,6 +237,7 @@ class ProjectProvider with ChangeNotifier {
         targetPosition: response['target_position'],
         source: response['source'] ?? 'manual',
         isActive: response['is_active'] ?? true,
+        targetPage: response['target_page'],
         createdAt: DateTime.parse(response['created_at']),
         rankingHistory: history,
       );

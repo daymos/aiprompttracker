@@ -106,8 +106,8 @@ class _SortableDataTableState extends State<SortableDataTable> {
               showCheckboxColumn: widget.showCheckboxes,
               columnSpacing: 32,
               horizontalMargin: 24,
-              headingRowHeight: 48,
-              dataRowHeight: 56,
+              headingRowHeight: 42,
+              dataRowHeight: 44,
               headingRowColor: MaterialStateProperty.all(
                 Theme.of(context).brightness == Brightness.dark
                     ? const Color(0xFF2A2A2A)
