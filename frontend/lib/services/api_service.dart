@@ -23,14 +23,13 @@ class ApiService {
     return headers;
   }
   
-  Future<Map<String, dynamic>> sendMessage(String message, String? conversationId, {String mode = 'ask'}) async {
+  Future<Map<String, dynamic>> sendMessage(String message, String? conversationId) async {
     final response = await http.post(
       Uri.parse('$baseUrl/chat/message'),
       headers: _headers(),
       body: jsonEncode({
         'message': message,
         'conversation_id': conversationId,
-        'mode': mode,
       }),
     );
     
@@ -43,15 +42,13 @@ class ApiService {
   
   Stream<Map<String, dynamic>> sendMessageStream(
     String message, 
-    String? conversationId, 
-    {String mode = 'ask'}
+    String? conversationId
   ) async* {
     final request = http.Request('POST', Uri.parse('$baseUrl/chat/message/stream'));
     request.headers.addAll(_headers());
     request.body = jsonEncode({
       'message': message,
       'conversation_id': conversationId,
-      'mode': mode,
     });
     
     final streamedResponse = await request.send();

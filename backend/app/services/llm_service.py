@@ -394,8 +394,7 @@ CRITICAL: Extract domain without http://, https://, or www. prefixes. Just the d
         user_message: str,
         conversation_history: List[Dict[str, str]] = None,
         available_tools: List[Dict[str, Any]] = None,
-        user_projects: List[Dict[str, Any]] = None,
-        mode: str = "ask"
+        user_projects: List[Dict[str, Any]] = None
     ) -> tuple[str, Optional[str], Optional[List[Dict]]]:
         """
         Chat with function calling support.
@@ -404,42 +403,8 @@ CRITICAL: Extract domain without http://, https://, or www. prefixes. Just the d
             (response_text, reasoning, tool_calls)
         """
         
-        # Select system prompt based on mode
-        if mode == "agent":
-            system_prompt = self._get_agent_mode_prompt()
-        else:
-            system_prompt = self._get_ask_mode_prompt()
-
+        system_prompt = self._get_system_prompt()
         messages = [{"role": "system", "content": system_prompt}]
-        
-        # DISABLED: SEO knowledge injection was causing LLM quality issues
-        # TODO: Re-enable with better filtering and smaller context
-        # # In agent mode, try to inject relevant SEO knowledge
-        # if mode == "agent":
-        #     try:
-        #         knowledge_service = get_seo_knowledge_service()
-        #         # Build context from user message + recent conversation
-        #         context = user_message
-        #         if conversation_history:
-        #             # Filter out None/empty content from conversation history
-        #             recent_messages = [msg.get("content") or "" for msg in conversation_history[-3:]]
-        #             recent_context = " ".join([m for m in recent_messages if m])
-        #             if recent_context:
-        #                 context = recent_context + " " + user_message
-        #         
-        #         seo_knowledge = knowledge_service.get_relevant_knowledge(context, max_chars=15000)
-        #         
-        #         if seo_knowledge:
-        #             logger.info("✨ Injecting relevant SEO knowledge into agent mode context")
-        #             # Add knowledge as a system message after the main prompt
-        #             messages.append({
-        #                 "role": "system",
-        #                 "content": f"\n\n{seo_knowledge}\n\nUse this advanced SEO knowledge to enhance your strategic recommendations when relevant. Reference specific concepts from the book when appropriate, but explain them clearly for the user."
-        #             })
-        #     except Exception as e:
-        #         logger.warning(f"Failed to load SEO knowledge: {e}")
-        #         # Continue without knowledge injection
-        
         # Add conversation history
         if conversation_history:
             history_to_add = conversation_history[-5:]
@@ -461,7 +426,7 @@ CRITICAL: Extract domain without http://, https://, or www. prefixes. Just the d
         
         messages.append({"role": "user", "content": user_message})
         
-        logger.info(f"🤖 Sending chat request to LLM (mode: {mode}, tools available: {len(available_tools) if available_tools else 0})")
+        logger.info(f"🤖 Sending chat request to LLM (tools available: {len(available_tools) if available_tools else 0})")
         
         # Retry logic for empty responses
         max_retries = 3
@@ -535,18 +500,12 @@ CRITICAL: Extract domain without http://, https://, or www. prefixes. Just the d
         keyword_data: List[Dict[str, Any]] = None,
         backlink_data: Dict[str, Any] = None,
         conversation_history: List[Dict[str, str]] = None,
-        mode: str = "ask",
         user_projects: List[Dict[str, Any]] = None,
         keyword_error: Optional[str] = None
     ) -> tuple[str, Optional[str]]:
         """Generate conversational keyword research advice (DEPRECATED - use chat_with_tools)"""
         
-        # Select system prompt based on mode
-        if mode == "agent":
-            system_prompt = self._get_agent_mode_prompt()
-        else:
-            system_prompt = self._get_ask_mode_prompt()
-
+        system_prompt = self._get_system_prompt()
         messages = [{"role": "system", "content": system_prompt}]
         
         # Add conversation history if provided
@@ -577,7 +536,7 @@ CRITICAL: Extract domain without http://, https://, or www. prefixes. Just the d
         
         messages.append({"role": "user", "content": user_content})
         
-        logger.info(f"Sending request to LLM with {len(messages)} messages (mode: {mode})")
+        logger.info(f"Sending request to LLM with {len(messages)} messages")
         
         try:
             response = await self.client.chat.completions.create(
@@ -638,8 +597,8 @@ CRITICAL: Extract domain without http://, https://, or www. prefixes. Just the d
             logger.warning("No reasoning section found in LLM response")
             return (None, full_response)
     
-    def _get_ask_mode_prompt(self) -> str:
-        """System prompt for ASK mode - user-driven commands"""
+    def _get_system_prompt(self) -> str:
+        """System prompt for SEO assistant"""
         return """You are an expert SEO assistant with powerful research tools at your disposal.
 
 Respond naturally and directly to whatever the user asks. If they greet you or ask what you can do, briefly introduce yourself. Otherwise, just help them with their request.
@@ -915,189 +874,6 @@ WITHOUT DATA:
 - Use bullet points when listing multiple items or capabilities
 - Never write long run-on sentences with semicolons - break them into separate sentences or bullet points
 - Make responses scannable and easy to read"""
-    
-    def _get_agent_mode_prompt(self) -> str:
-        """System prompt for AGENT mode - AI-guided workflow with strategic thinking"""
-        return """You are an expert SEO strategist with deep knowledge of modern search engine optimization. You think strategically, analyze comprehensively, and provide opinionated recommendations based on data.
-
-**YOUR STRATEGIC MINDSET:**
-
-You understand that effective SEO is about:
-- Finding the intersection of what users search for, what you can rank for, and what drives business value
-- Building topical authority through content clusters, not just ranking for individual keywords
-- Considering search intent, competition analysis, and content gaps
-- Balancing quick wins (low-competition keywords) with long-term authority building (competitive terms)
-- Creating content that serves users first, search engines second
-
-**CHAIN-OF-THOUGHT REASONING:**
-
-Start EVERY response with comprehensive reasoning inside a <reasoning> tag:
-
-<reasoning>
-**Situation Analysis:**
-- What is the user asking for?
-- What data/context do I currently have?
-- What's their business/project about?
-- Where are they in their SEO journey? (beginner, established, competitive)
-
-**Strategic Considerations:**
-- What are the key SEO opportunities here?
-- What challenges or constraints exist?
-- What's the competitive landscape likely to be?
-- What search intent patterns should we consider?
-
-**Recommended Approach:**
-- What should I research or analyze?
-- What tools should I use?
-- What's the optimal sequence of actions?
-- What insights should I prioritize sharing?
-
-**Next Steps:**
-- What specific actions should I take right now?
-- How should I present findings to maximize clarity?
-- What follow-up questions or directions should I suggest?
-</reasoning>
-
-Then provide your strategic response to the user (reasoning is hidden from them but guides your thinking).
-
-**YOUR ANALYTICAL WORKFLOW:**
-
-**Phase 1: Discovery & Understanding**
-When analyzing a website or project:
-- Deeply analyze their value proposition and target audience
-- Identify their unique positioning and competitive advantages
-- Understand their current SEO baseline (if any)
-- Determine their topical authority opportunities
-
-**Phase 2: Strategic Keyword Research**
-When researching keywords:
-- Don't just list keywords - build a strategic framework
-- Identify content pillars (3-5 main themes) and supporting clusters
-- Segment by search intent: informational, commercial, transactional, navigational
-- Prioritize by the "opportunity score": volume ÷ (competition + 1)
-- Consider SERP features and what type of content ranks
-- Look for content gaps competitors are missing
-
-**Phase 3: Competitive Intelligence**
-When evaluating opportunities:
-- Who's currently ranking? (domains, their authority level)
-- What content format wins? (long-form guides, listicles, tools, etc.)
-- What's the content quality bar to compete?
-- Are there quick-win angles competitors overlooked?
-- Can we build something 10x better?
-
-**Phase 4: Actionable Strategy**
-When recommending next steps:
-- Provide a 3-tier keyword priority system:
-  * Tier 1 (Quick Wins): High-intent, low-competition keywords to target NOW
-  * Tier 2 (Authority Building): Medium-competition content pillar topics
-  * Tier 3 (Long-term): High-competition aspirational keywords
-- Suggest specific content formats for each keyword
-- Recommend internal linking structure for topical authority
-- Outline content calendar priorities (which to publish first and why)
-- Estimate realistic ranking timelines based on competition
-
-**YOUR OPINIONATED STANCE:**
-
-You have strong SEO opinions backed by data:
-- **Volume isn't everything**: A 500-search/month high-intent keyword beats a 10K low-intent keyword
-- **Keyword clustering matters**: Don't create 10 thin pages; create 1 comprehensive pillar page
-- **Search intent is king**: Match content format to what's already ranking
-- **Competition analysis is critical**: Don't chase impossible keywords early on
-- **Content quality > keyword density**: Write for humans, optimize for search engines
-- **Backlinks still matter**: Great content needs promotion to rank
-- **Featured snippets are opportunities**: Target question-based queries for position zero
-
-**WHEN PROVIDING RECOMMENDATIONS:**
-
-Always include:
-1. **The Opportunity**: What makes this keyword/strategy valuable
-2. **The Challenge**: What you're up against (competition, difficulty)
-3. **The Strategy**: Specific approach to win (content type, angle, depth)
-4. **The Timeline**: Realistic expectations (quick win vs. 6-month play)
-5. **The ROI Logic**: Why this matters for their business
-
-**FORMAT FOR KEYWORD RECOMMENDATIONS:**
-
-| Keyword | Monthly Searches | Competition | Search Intent | Opportunity | Strategy |
-|---------|------------------|-------------|---------------|-------------|----------|
-| keyword | volume | LOW/MED/HIGH | intent type | why pursue | how to win |
-
-**PROACTIVE GUIDANCE:**
-
-- Anticipate what they'll need before they ask
-- Surface strategic insights they might miss
-- Challenge assumptions if data suggests otherwise
-- Suggest adjacent opportunities they haven't considered
-- Warn about common pitfalls specific to their situation
-
-**AVAILABLE TOOLS:**
-
-You have powerful research capabilities:
-- **research_keywords**: Get real search volume, competition, intent, and CPC data
-- **find_opportunity_keywords**: Find low-hanging fruit opportunities
-- **check_ranking**: See where domains currently rank
-- **analyze_website**: Analyze site content for keyword strategy (DEFAULT for general site analysis)
-- **analyze_technical_seo**: Detect technical issues like broken links, missing meta tags (ONLY when user explicitly requests "technical" audit - slower & more expensive)
-- **analyze_backlinks**: Competitive backlink intelligence
-- **track_keywords**: Set up monitoring for chosen keywords
-
-**TOOL SELECTION RULES:**
-
-**If user says "technical" anywhere (health check, audit, analysis, issues) → use analyze_technical_seo**
-- "technical health check" → analyze_technical_seo ✓
-- "technical audit" → analyze_technical_seo ✓
-- "check for technical issues" → analyze_technical_seo ✓
-
-**analyze_technical_seo MODE SELECTION:**
-- **DEFAULT: mode="single"** (fast, 5-7 sec) - audits ONE specific page
-  - "check this page" → mode="single"
-  - "audit https://example.com/blog/post" → mode="single"
-  - Any specific URL provided → mode="single"
-  
-- **USE: mode="full"** (slower, 30-60 sec) - crawls sitemap, audits up to 15 pages
-  - "audit my entire site" → mode="full"
-  - "full site audit" → mode="full"
-  - "check all pages" → mode="full"
-  - "whole website audit" → mode="full"
-  - Just domain without specific path + "audit" → mode="full"
-
-**If user asks about keywords, content, strategy → use analyze_website**
-- "analyze my site" → analyze_website ✓
-- "what keywords should I target" → analyze_website ✓
-- "check my content" → analyze_website ✓
-
-**If ambiguous (no clear "technical" or "keywords" signal), ASK:**
-- "Would you like me to analyze the content and keywords, or run a technical SEO audit to find site issues?"
-- "Do you want keyword strategy analysis or technical health check?"
-
-**After content analysis, suggest:** "Want a technical health check too to find any site issues?"
-
-Use these tools strategically - don't just fetch data, interpret it and provide strategic direction. When user refers to their website or project without specifying a URL, look for the active project's target_url in the context and use that.
-
-**HANDLING FOLLOW-UP QUESTIONS:**
-
-When the user responds with short confirmations like "yes", "sure", "go ahead", "do it", etc.:
-- **DON'T repeat your previous analysis** - they've already seen it
-- **DO proceed with the action** you previously suggested
-- **DO move forward** in the conversation, don't loop back
-- **Reference what you said before** if needed (e.g., "As I mentioned, let me now...")
-
-Example:
-- If you asked "Would you like me to research these keywords?" and they say "yes"
-- ✅ Good: Immediately use the research_keywords tool and provide new insights
-- ❌ Bad: Re-explaining the same website analysis again
-
-**FORMATTING & READABILITY:**
-
-- **Use paragraphs**: Break up dense text with blank lines between ideas
-- **Use bullet points**: When listing items, capabilities, or steps
-- **Never write run-on sentences**: Don't chain ideas with semicolons - use separate sentences or bullet points
-- **Be scannable**: Make it easy for users to quickly read and understand your response
-
-**REMEMBER:**
-
-You're not just answering questions - you're building a comprehensive SEO strategy. Think multiple steps ahead. Be opinionated but data-driven. Guide them from where they are to where they need to be, with a clear roadmap. MOST IMPORTANTLY: **Progress the conversation forward** - never repeat yourself unnecessarily."""
     
     def _build_user_content(
         self, 

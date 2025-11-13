@@ -48,6 +48,7 @@ class ChatScreen extends StatefulWidget {
 enum ViewState { chat, conversations, projects }
 enum ProjectViewState { list, detail }
 enum ProjectTab { overview, keywords, backlinks, siteAudit, pinboard }
+enum SeoAgentTab { dashboard, contentLibrary, activity }
 enum ProjectMode { seo, seoAgent }
 
 class _ChatScreenState extends State<ChatScreen> {
@@ -56,12 +57,12 @@ class _ChatScreenState extends State<ChatScreen> {
   final FocusNode _messageFocusNode = FocusNode();
   bool _hasShownWelcomeModal = false;
   bool _hasLoadedProjects = false;
-  String _selectedMode = 'ask'; // Agent mode disabled
   bool _shouldCancelRequest = false;
   ViewState _currentView = ViewState.chat;
   ProjectViewState _projectViewState = ProjectViewState.list;
   ProjectTab _selectedProjectTab = ProjectTab.keywords;
   ProjectMode _projectMode = ProjectMode.seo;
+  SeoAgentTab _selectedSeoAgentTab = SeoAgentTab.dashboard;
   Timer? _keywordPollingTimer;
 
   @override
@@ -299,7 +300,6 @@ class _ChatScreenState extends State<ChatScreen> {
       await for (final event in authProvider.apiService.sendMessageStream(
         message,
         chatProvider.currentConversationId,
-        mode: _selectedMode,
       )) {
         // Check if request was cancelled
         if (_shouldCancelRequest) {
@@ -1309,35 +1309,35 @@ class _ChatScreenState extends State<ChatScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-            // Header with back button
-            Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Back button
-                  TextButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        _projectViewState = ProjectViewState.list;
-                      });
-                    },
-                    icon: const Icon(Icons.arrow_back, size: 18),
-                    label: const Text('Back to SEO projects'),
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Project info with action buttons in same row
-                  Row(
-                    children: [
-                      FaviconWidget(
-                        url: project.targetUrl,
-                        size: 56,
-                        iconSize: 28,
-                        apiService: authProvider.apiService,
+              // Header with back button
+              Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Back button
+                    TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _projectViewState = ProjectViewState.list;
+                        });
+                      },
+                      icon: const Icon(Icons.arrow_back, size: 18),
+                      label: const Text('Back to SEO projects'),
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
                       ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Project info with action buttons in same row
+                    Row(
+                      children: [
+                        FaviconWidget(
+                          url: project.targetUrl,
+                          size: 56,
+                          iconSize: 28,
+                          apiService: authProvider.apiService,
+                        ),
                       const SizedBox(width: 16),
                       Expanded(
                         child: Column(
@@ -1359,36 +1359,37 @@ class _ChatScreenState extends State<ChatScreen> {
                           ],
                         ),
                       ),
-                      // Only show SEO action buttons in SEO mode
-                      if (_projectMode == ProjectMode.seo) ...[
-                        // Chat button - prominent call to action
-                        FilledButton.icon(
-                          onPressed: () {
-                            // Start a new conversation with project context
-                            final chatProvider = context.read<ChatProvider>();
-                            final project = projectProvider.selectedProject!;
-                            chatProvider.startNewConversation();
-                            MessageBubble.clearAnimationCache();
-                            
-                            // Agent mode disabled - always use 'ask' mode
-                            _switchToChatView();
-                            
-                            // Switch to main chat and send initial message
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              Future.delayed(const Duration(milliseconds: 300)).then((_) {
-                                if (mounted) {
+                      // Chat button - prominent call to action
+                      FilledButton.icon(
+                        onPressed: () {
+                          // Start a new conversation with project context
+                          final chatProvider = context.read<ChatProvider>();
+                          final project = projectProvider.selectedProject!;
+                          chatProvider.startNewConversation();
+                          MessageBubble.clearAnimationCache();
+                          
+                          _switchToChatView();
+                          
+                          // Switch to main chat and send initial message
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            Future.delayed(const Duration(milliseconds: 300)).then((_) {
+                              if (mounted) {
+                                if (_projectMode == ProjectMode.seoAgent) {
+                                  _messageController.text = "Help me set up SEO Agent for ${project.name}";
+                                } else {
                                   _messageController.text = "Let's work on my ${project.name} project (${project.targetUrl}).";
-                                  _sendMessage();
                                 }
-                              });
+                                _sendMessage();
+                              }
                             });
-                          },
-                          icon: const Icon(Icons.forum_outlined, size: 20),
-                          label: const Text('Work on SEO Strategy'),
-                          style: FilledButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          ),
+                          });
+                        },
+                        icon: Icon(_projectMode == ProjectMode.seoAgent ? Icons.auto_awesome : Icons.forum_outlined, size: 20),
+                        label: Text(_projectMode == ProjectMode.seoAgent ? 'Setup SEO Agent' : 'Work on SEO Strategy'),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                         ),
+                      ),
                         const SizedBox(width: 12),
                         // Mode toggle button
                         Material(
@@ -1502,60 +1503,59 @@ class _ChatScreenState extends State<ChatScreen> {
                           color: Colors.red[400],
                         ),
                       ],
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  
-                  // Tabs with counts (only show in SEO mode)
-                  if (_projectMode == ProjectMode.seo)
-                  TabBar(
-                    onTap: (index) {
-                      setState(() {
-                        _selectedProjectTab = ProjectTab.values[index];
-                      });
-                      
-                      // Start polling if switching to keywords tab with no keywords
-                      if (_selectedProjectTab == ProjectTab.keywords && keywords.isEmpty) {
-                        _startKeywordPolling();
-                      } else {
-                        _stopKeywordPolling();
-                      }
-                    },
-                    tabs: [
-                      const Tab(text: 'Overview'),
-                      Tab(text: 'Keywords (${keywords.length})'),
-                      Tab(text: 'Backlinks (${projectProvider.backlinksData?['total_backlinks'] ?? 0})'),
-                      const Tab(text: 'Site Audit'),
-                      const Tab(text: 'Pinboard'),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(height: 8),
+                    
+                    // Tabs with counts (only show in SEO mode)
+                    if (_projectMode == ProjectMode.seo)
+                      TabBar(
+                        onTap: (index) {
+                          setState(() {
+                            _selectedProjectTab = ProjectTab.values[index];
+                          });
+                          
+                          // Start polling if switching to keywords tab with no keywords
+                          if (_selectedProjectTab == ProjectTab.keywords && keywords.isEmpty) {
+                            _startKeywordPolling();
+                          } else {
+                            _stopKeywordPolling();
+                          }
+                        },
+                        tabs: [
+                          const Tab(text: 'Overview'),
+                          Tab(text: 'Keywords (${keywords.length})'),
+                          Tab(text: 'Backlinks (${projectProvider.backlinksData?['total_backlinks'] ?? 0})'),
+                          const Tab(text: 'Site Audit'),
+                          const Tab(text: 'Pinboard'),
+                        ],
+                      ),
+                  ],
+                ),
               ),
-            ),
 
-            // Tab content
-            Expanded(
-              child: _projectMode == ProjectMode.seo
-                  ? TabBarView(
-                      physics: const NeverScrollableScrollPhysics(), // Disable swipe
-                      children: [
-                        _buildOverviewTab(project, projectProvider),
-                        _buildKeywordsTab(projectProvider, keywords),
-                        _buildBacklinksTab(project),
-                        SiteAuditTab(
-                          project: project,
-                          messageController: _messageController,
-                          onSwitchToChatView: _switchToChatView,
-                          onTabChanged: (tab) => setState(() => _selectedProjectTab = tab),
-                        ),
-                        PinboardTab(project: project),
-                      ],
-                    )
-                  : _buildSeoAgentView(project, projectProvider),
-            ),
-          ],
+              // Tab content
+              Expanded(
+                child: _projectMode == ProjectMode.seo
+                    ? TabBarView(
+                        physics: const NeverScrollableScrollPhysics(), // Disable swipe
+                        children: [
+                          _buildOverviewTab(project, projectProvider),
+                          _buildKeywordsTab(projectProvider, keywords),
+                          _buildBacklinksTab(project),
+                          SiteAuditTab(
+                            project: project,
+                            messageController: _messageController,
+                            onSwitchToChatView: _switchToChatView,
+                            onTabChanged: (tab) => setState(() => _selectedProjectTab = tab),
+                          ),
+                          PinboardTab(project: project),
+                        ],
+                      )
+                    : _buildSeoAgentView(project, projectProvider),
+              ),
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
@@ -1563,86 +1563,193 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildSeoAgentView(Project project, ProjectProvider projectProvider) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
+    // Check if WordPress is connected (mock for now)
+    final bool isWordPressConnected = false;
+    final bool hasSeenIntro = false; // TODO: Track if user has seen intro
+    
+    // Show intro if not connected and haven't seen it
+    if (!isWordPressConnected && !hasSeenIntro) {
+      return _buildSeoAgentIntro();
+    }
+    
+    // Show monitoring tabs when connected
+    return Column(
+      children: [
+        // SEO Agent Tabs
+        Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: TabBar(
+            onTap: (index) {
+              setState(() {
+                _selectedSeoAgentTab = SeoAgentTab.values[index];
+              });
+            },
+            tabs: const [
+              Tab(text: 'Dashboard'),
+              Tab(text: 'Content Library'),
+              Tab(text: 'Activity'),
+            ],
+          ),
+        ),
+        
+        // Tab Content
+        Expanded(
+          child: TabBarView(
+            physics: const NeverScrollableScrollPhysics(),
+            children: [
+              _buildSeoAgentDashboard(project),
+              _buildContentLibrary(project),
+              _buildActivityTab(project),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSeoAgentIntro() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 600),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFC107).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: const Color(0xFFFFC107).withOpacity(0.3),
-                  width: 2,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              // Icon
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      const Color(0xFFFFC107).withOpacity(0.2),
+                      const Color(0xFFFF9800).withOpacity(0.2),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: const Color(0xFFFFC107).withOpacity(0.3),
+                    width: 2,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.auto_awesome,
+                  size: 48,
+                  color: Color(0xFFFFC107),
                 ),
               ),
-              child: Icon(
-                Icons.auto_awesome,
-                size: 64,
-                color: const Color(0xFFFFC107),
+              
+              const SizedBox(height: 20),
+              
+              // Title
+              Text(
+                'SEO Agent',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'SEO Agent',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              
+              const SizedBox(height: 8),
+              
+              // Description
+              Text(
+                'AI-powered content generation and WordPress publishing automation',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                    ),
+                textAlign: TextAlign.center,
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Features
+              _buildFeatureItem(
+                context,
+                icon: Icons.article_outlined,
+                title: 'Generate SEO Content',
+                description: 'Create high-quality articles optimized for your target keywords',
+              ),
+              
+              const SizedBox(height: 16),
+              
+              _buildFeatureItem(
+                context,
+                icon: Icons.publish,
+                title: 'Auto-Publish to WordPress',
+                description: 'Seamlessly publish content directly to your WordPress site',
+              ),
+              
+              const SizedBox(height: 16),
+              
+              _buildFeatureItem(
+                context,
+                icon: Icons.trending_up,
+                title: 'Track Performance',
+                description: 'Monitor your content\'s impact on rankings and traffic',
+              ),
+              
+              const SizedBox(height: 48),
+              
+              // CTA Button
+              ElevatedButton(
+                onPressed: () {
+                  // Switch to chat view with setup message
+                  final chatProvider = context.read<ChatProvider>();
+                  final projectProvider = context.read<ProjectProvider>();
+                  final project = projectProvider.selectedProject!;
+                  
+                  chatProvider.startNewConversation();
+                  MessageBubble.clearAnimationCache();
+                  
+                  setState(() {
+                    _currentView = ViewState.chat;
+                  });
+                  
+                  // Send setup message
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    Future.delayed(const Duration(milliseconds: 300)).then((_) {
+                      if (mounted) {
+                        _messageController.text = "Help me set up SEO Agent for ${project.name}";
+                        _sendMessage();
+                      }
+                    });
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFFC107),
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 40,
+                    vertical: 16,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 2,
+                ),
+                child: const Text(
+                  "Let's Start",
+                  style: TextStyle(
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'AI-powered content generation and SEO automation',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: isDark ? Colors.grey[400] : Colors.grey[600],
-                  ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: isDark ? Colors.grey[850] : Colors.grey[100],
-                borderRadius: BorderRadius.circular(12),
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildFeatureItem(
-                    context,
-                    icon: Icons.article_outlined,
-                    title: 'Content Generation',
-                    description: 'Generate blog posts from keyword research',
-                  ),
-                  const SizedBox(height: 16),
-                  _buildFeatureItem(
-                    context,
-                    icon: Icons.publish_outlined,
-                    title: 'Auto Publishing',
-                    description: 'Publish directly to WordPress and other platforms',
-                  ),
-                  const SizedBox(height: 16),
-                  _buildFeatureItem(
-                    context,
-                    icon: Icons.schedule_outlined,
-                    title: 'Scheduled Campaigns',
-                    description: 'Plan and schedule content campaigns',
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
-            Text(
-              'Coming soon...',
-              style: TextStyle(
-                color: const Color(0xFFFFC107),
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -2777,6 +2884,722 @@ class _ChatScreenState extends State<ChatScreen> {
 
 
   Widget _buildBacklinksTab(Project project) => BacklinksTab(project: project);
+
+
+  Widget _buildWordPressOnboarding(Project project) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final siteUrlController = TextEditingController();
+    final usernameController = TextEditingController();
+    final appPasswordController = TextEditingController();
+    
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      const Color(0xFFFFC107).withOpacity(0.1),
+                      const Color(0xFFFF9800).withOpacity(0.1),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: const Color(0xFFFFC107).withOpacity(0.3),
+                    width: 2,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.integration_instructions,
+                      size: 64,
+                      color: const Color(0xFFFFC107),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Connect WordPress',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Generate SEO-optimized blog posts and publish directly to your WordPress site',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: isDark ? Colors.grey[400] : Colors.grey[600],
+                          ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 32),
+              
+              // Connection Form
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.grey[850] : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'WordPress Site Details',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    // Site URL
+                    TextField(
+                      controller: siteUrlController,
+                      decoration: InputDecoration(
+                        labelText: 'Site URL',
+                        hintText: 'https://yourblog.com',
+                        prefixIcon: const Icon(Icons.language),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // Username
+                    TextField(
+                      controller: usernameController,
+                      decoration: InputDecoration(
+                        labelText: 'Username',
+                        hintText: 'admin',
+                        prefixIcon: const Icon(Icons.person_outline),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // Application Password
+                    TextField(
+                      controller: appPasswordController,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        labelText: 'Application Password',
+                        hintText: 'xxxx xxxx xxxx xxxx',
+                        prefixIcon: const Icon(Icons.key_outlined),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        helperText: 'Generate this in WordPress: Users → Profile → Application Passwords',
+                        helperMaxLines: 2,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    
+                    // Connect Button
+                    ElevatedButton(
+                      onPressed: () {
+                        // TODO: Implement WordPress connection
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Connecting to WordPress...'),
+                            backgroundColor: Color(0xFFFFC107),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFFC107),
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text(
+                        'Connect WordPress',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Help Text
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2196F3).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: const Color(0xFF2196F3).withOpacity(0.3),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: const Color(0xFF2196F3),
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Application Passwords are a secure way to connect without exposing your main password. Learn how to create one in WordPress.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: isDark ? Colors.blue[300] : Colors.blue[700],
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSeoAgentDashboard(Project project) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // Mock data
+    final mockDrafts = 3;
+    final mockScheduled = 5;
+    final mockPublished = 12;
+    
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Connection Status
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.grey[850] : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF4CAF50).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.check_circle_outline,
+                    color: Color(0xFF4CAF50),
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Connected to WordPress',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'https://yourblog.com',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: isDark ? Colors.grey[400] : Colors.grey[600],
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    // Switch to chat to manage settings
+                    setState(() {
+                      _currentView = ViewState.chat;
+                    });
+                    _messageFocusNode.requestFocus();
+                  },
+                  child: const Text('Manage'),
+                ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 32),
+          
+          // Content Library Stats
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  context,
+                  icon: Icons.edit_note,
+                  label: 'Drafts',
+                  count: mockDrafts,
+                  color: const Color(0xFF9E9E9E),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildStatCard(
+                  context,
+                  icon: Icons.schedule,
+                  label: 'Scheduled',
+                  count: mockScheduled,
+                  color: const Color(0xFF2196F3),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildStatCard(
+                  context,
+                  icon: Icons.check_circle,
+                  label: 'Published',
+                  count: mockPublished,
+                  color: const Color(0xFF4CAF50),
+                ),
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 32),
+          
+          // Quick Actions
+          Text(
+            'Quick Actions',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 16),
+          
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color(0xFFFFC107).withOpacity(0.1),
+                  const Color(0xFFFF9800).withOpacity(0.1),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFFFFC107).withOpacity(0.3),
+                width: 2,
+              ),
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.chat_bubble_outline,
+                  size: 48,
+                  color: const Color(0xFFFFC107),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Use Chat to Control SEO Agent',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Try saying:\n• "Generate a post about [keyword]"\n• "Schedule 3 posts this week"\n• "Show me draft content"',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _currentView = ViewState.chat;
+                    });
+                    _messageFocusNode.requestFocus();
+                  },
+                  icon: const Icon(Icons.arrow_forward),
+                  label: const Text('Go to Chat'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFFC107),
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required int count,
+    required Color color,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey[850] : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 32),
+          const SizedBox(height: 12),
+          Text(
+            count.toString(),
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContentItem(
+    BuildContext context, {
+    required String title,
+    required String status,
+    required Color statusColor,
+    required String timeAgo,
+    required int seoScore,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey[850] : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        status,
+                        style: TextStyle(
+                          color: statusColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      timeAgo,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: isDark ? Colors.grey[400] : Colors.grey[600],
+                          ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          Column(
+            children: [
+              Text(
+                'SEO',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                    ),
+              ),
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: _getScoreColor(seoScore.toDouble()).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: _getScoreColor(seoScore.toDouble()),
+                    width: 2,
+                  ),
+                ),
+                child: Text(
+                  seoScore.toString(),
+                  style: TextStyle(
+                    color: _getScoreColor(seoScore.toDouble()),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContentLibrary(Project project) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // Mock content data
+    final mockContent = [
+      {'title': 'Best SEO Tools for 2025', 'status': 'Published', 'color': const Color(0xFF4CAF50), 'date': '2 hours ago', 'score': 85},
+      {'title': 'Keyword Research Guide', 'status': 'Scheduled', 'color': const Color(0xFF2196F3), 'date': 'Tomorrow 10:00 AM', 'score': 92},
+      {'title': 'Technical SEO Checklist', 'status': 'Draft', 'color': const Color(0xFF9E9E9E), 'date': '1 day ago', 'score': 78},
+      {'title': 'Link Building Strategies', 'status': 'Published', 'color': const Color(0xFF4CAF50), 'date': '3 days ago', 'score': 88},
+      {'title': 'On-Page SEO Guide', 'status': 'Draft', 'color': const Color(0xFF9E9E9E), 'date': '5 days ago', 'score': 82},
+    ];
+    
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header with filters
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Content Library',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              Row(
+                children: [
+                  FilterChip(
+                    label: const Text('All'),
+                    selected: true,
+                    onSelected: (value) {},
+                  ),
+                  const SizedBox(width: 8),
+                  FilterChip(
+                    label: const Text('Drafts'),
+                    selected: false,
+                    onSelected: (value) {},
+                  ),
+                  const SizedBox(width: 8),
+                  FilterChip(
+                    label: const Text('Published'),
+                    selected: false,
+                    onSelected: (value) {},
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          
+          // Content list
+          ...mockContent.map((content) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _buildContentItem(
+              context,
+              title: content['title'] as String,
+              status: content['status'] as String,
+              statusColor: content['color'] as Color,
+              timeAgo: content['date'] as String,
+              seoScore: content['score'] as int,
+            ),
+          )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActivityTab(Project project) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // Mock activity data
+    final mockActivity = [
+      {'action': 'Generated', 'title': 'Best SEO Tools for 2025', 'time': '2 hours ago', 'icon': Icons.auto_awesome, 'color': const Color(0xFFFFC107)},
+      {'action': 'Published', 'title': 'Keyword Research Guide', 'time': '1 day ago', 'icon': Icons.publish, 'color': const Color(0xFF4CAF50)},
+      {'action': 'Scheduled', 'title': 'Technical SEO Checklist', 'time': '2 days ago', 'icon': Icons.schedule, 'color': const Color(0xFF2196F3)},
+      {'action': 'Generated', 'title': 'Link Building Strategies', 'time': '3 days ago', 'icon': Icons.auto_awesome, 'color': const Color(0xFFFFC107)},
+      {'action': 'Published', 'title': 'On-Page SEO Guide', 'time': '5 days ago', 'icon': Icons.publish, 'color': const Color(0xFF4CAF50)},
+    ];
+    
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header
+          Text(
+            'Recent Activity',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Track all SEO Agent actions and content generation history',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                ),
+          ),
+          const SizedBox(height: 24),
+          
+          // Activity timeline
+          ...mockActivity.map((activity) => Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.grey[850] : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: (activity['color'] as Color).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    activity['icon'] as IconData,
+                    color: activity['color'] as Color,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            activity['action'] as String,
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: activity['color'] as Color,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            activity['time'] as String,
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: isDark ? Colors.grey[500] : Colors.grey[500],
+                                ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        activity['title'] as String,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          )),
+        ],
+      ),
+    );
+  }
 
 
 

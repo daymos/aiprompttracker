@@ -164,7 +164,6 @@ def save_technical_audit(
 class ChatRequest(BaseModel):
     message: str
     conversation_id: Optional[str] = None
-    mode: Optional[str] = "ask"  # "ask" or "agent"
 
 class ChatResponse(BaseModel):
     message: str
@@ -697,8 +696,7 @@ async def send_message_stream(
                 user_message=request.message,
                 conversation_history=conversation_history,
                 available_tools=tools,
-                user_projects=user_projects_data if user_projects_data else None,
-                mode=request.mode or "ask"
+                user_projects=user_projects_data if user_projects_data else None
             )
             
             # Execute tool calls with status updates
@@ -1869,8 +1867,7 @@ OVERVIEW:
                     user_message="Based on the tool results above, provide a clear and helpful response to the user.",
                     conversation_history=conversation_history,
                     available_tools=tools,  # Keep tools available so LLM doesn't get confused
-                    user_projects=user_projects_data if user_projects_data else None,
-                    mode=request.mode or "ask"
+                    user_projects=user_projects_data if user_projects_data else None
                 )
                 
                 # Log the response for debugging
