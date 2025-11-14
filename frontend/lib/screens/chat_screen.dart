@@ -70,11 +70,16 @@ class _ChatScreenState extends State<ChatScreen> {
   String? _lastCheckedProjectId; // Track which project we last checked
   Timer? _keywordPollingTimer;
   
-  // Performance table sorting
+  // Performance table sorting and filtering
   String _sortColumn = 'title';
   bool _sortAscending = true;
   List<Map<String, dynamic>>? _cachedContentList;
   String? _cachedProjectId;
+  String _searchQuery = '';
+  
+  // Shared content data cache for all SEO Agent tabs
+  Future<Map<String, dynamic>>? _contentDataFuture;
+  String? _contentDataProjectId;
 
   @override
   void initState() {
@@ -1847,11 +1852,38 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  // Get or create the shared content data future for SEO Agent tabs
+  Future<Map<String, dynamic>> _getContentDataFuture(String projectId) {
+    // If we have a cached future for this project, return it
+    if (_contentDataFuture != null && _contentDataProjectId == projectId) {
+      return _contentDataFuture!;
+    }
+    
+    // Create a new future and cache it
+    final authProvider = context.read<AuthProvider>();
+    _contentDataFuture = authProvider.apiService.listGeneratedContent(projectId);
+    _contentDataProjectId = projectId;
+    
+    return _contentDataFuture!;
+  }
+  
+  // Clear the content data cache (call this when data changes)
+  void _clearContentDataCache() {
+    setState(() {
+      _contentDataFuture = null;
+      _contentDataProjectId = null;
+      _cachedContentList = null;
+      _cachedProjectId = null;
+    });
+  }
+
   Widget _buildSeoAgentView(Project project, ProjectProvider projectProvider) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    // Always check CMS status (the method handles deduplication internally)
-    Future.microtask(() => _checkCmsStatus());
+    // Check CMS status only once per project (the method handles deduplication internally)
+    if (_lastCheckedProjectId != project.id) {
+      Future.microtask(() => _checkCmsStatus());
+    }
     
     // Show intro if not connected
     if (!_cmsConnected) {
@@ -1859,6 +1891,9 @@ class _ChatScreenState extends State<ChatScreen> {
         ? const Center(child: CliSpinner())
         : _buildSeoAgentIntro();
     }
+    
+    // Initialize the shared content data future for all tabs
+    _getContentDataFuture(project.id);
     
     // Show monitoring tabs when connected
     return Column(
@@ -3376,10 +3411,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildSeoAgentDashboard(Project project) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final authProvider = context.watch<AuthProvider>();
     
     return FutureBuilder<Map<String, dynamic>>(
-      future: authProvider.apiService.listGeneratedContent(project.id),
+      future: _getContentDataFuture(project.id),
       builder: (context, snapshot) {
         // Calculate counts from real data - separate AI-generated vs imported
         int draftsCount = 0;
@@ -3469,6 +3503,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     OutlinedButton.icon(
                       onPressed: () async {
                         try {
+                          final authProvider = context.read<AuthProvider>();
+                          
                           // Show loading indicator
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
@@ -3494,9 +3530,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           
                           if (result['success'] == true) {
                             // Clear cache and refresh the dashboard
-                            setState(() {
-                              _cachedContentList = null;
-                            });
+                            _clearContentDataCache();
                             
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
@@ -4006,7 +4040,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildContentLibrary(Project project) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final authProvider = context.watch<AuthProvider>();
     
     // If we have cached data for this project, render it immediately (no FutureBuilder)
     if (_cachedContentList != null && _cachedProjectId == project.id) {
@@ -4050,7 +4083,7 @@ class _ChatScreenState extends State<ChatScreen> {
     
     // Only use FutureBuilder when we need to fetch data
     return FutureBuilder<Map<String, dynamic>>(
-      future: authProvider.apiService.listGeneratedContent(project.id),
+      future: _getContentDataFuture(project.id),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CliSpinner());
@@ -4066,10 +4099,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 Text('Error loading content: ${snapshot.error}'),
                 const SizedBox(height: 16),
                 TextButton(
-                  onPressed: () {
-                    _cachedContentList = null;
-                    setState(() {});
-                  },
+                  onPressed: _clearContentDataCache,
                   child: const Text('Retry'),
                 ),
               ],
@@ -4185,69 +4215,85 @@ class _ChatScreenState extends State<ChatScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Header with filters
+          // Header with search
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
-                'Performance',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Monitor how each of your article is ranking on search engines for the keywords that it targets',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isDark ? Colors.grey[500] : Colors.grey[600],
+                        height: 1.4,
+                      ),
                     ),
+                  ],
+                ),
               ),
-              Wrap(
-                spacing: 8,
-                children: [
-                  FilterChip(
-                    label: const Text('All'),
-                    selected: true,
-                    onSelected: (value) {},
-                  ),
-                  FilterChip(
-                    label: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.auto_awesome, size: 14),
-                        SizedBox(width: 4),
-                        Text('AI Generated'),
-                      ],
+              const SizedBox(width: 24),
+              SizedBox(
+                width: 350,
+                child: TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Search articles...',
+                    hintStyle: TextStyle(
+                      color: isDark ? Colors.grey[600] : Colors.grey[400],
                     ),
-                    selected: false,
-                    onSelected: (value) {},
-                  ),
-                  FilterChip(
-                    label: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.cloud_download, size: 14),
-                        SizedBox(width: 4),
-                        Text('Imported'),
-                      ],
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: isDark ? Colors.grey[600] : Colors.grey[400],
                     ),
-                    selected: false,
-                    onSelected: (value) {},
+                    filled: true,
+                    fillColor: isDark ? Colors.grey[900] : Colors.grey[50],
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(
+                        color: isDark ? Colors.grey[800]! : Colors.grey[300]!,
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(
+                        color: isDark ? Colors.grey[800]! : Colors.grey[300]!,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF2196F3),
+                        width: 2,
+                      ),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   ),
-                  FilterChip(
-                    label: const Text('Drafts'),
-                    selected: false,
-                    onSelected: (value) {},
-                  ),
-                  FilterChip(
-                    label: const Text('Published'),
-                    selected: false,
-                    onSelected: (value) {},
-                  ),
-                ],
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value.toLowerCase();
+                    });
+                  },
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           
           // Content table
           Builder(
             builder: (context) {
               try {
-                return _buildContentTable(contentList, isDark);
+                // Filter content list based on search query
+                final filteredList = _searchQuery.isEmpty
+                    ? contentList
+                    : contentList.where((content) {
+                        final title = (content['title'] ?? '').toString().toLowerCase();
+                        return title.contains(_searchQuery);
+                      }).toList();
+                
+                return _buildContentTable(filteredList, isDark);
               } catch (e) {
                 print('Error building content table: $e');
                 return Container(
@@ -4342,6 +4388,7 @@ class _ChatScreenState extends State<ChatScreen> {
   
   Widget _buildContentTable(List<Map<String, dynamic>> content, bool isDark) {
     return Container(
+      width: double.infinity,
       decoration: BoxDecoration(
         color: isDark ? Colors.grey[850] : Colors.white,
         borderRadius: BorderRadius.circular(8),
@@ -4351,16 +4398,17 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
       ),
       child: Table(
+        defaultColumnWidth: const IntrinsicColumnWidth(),
         columnWidths: const {
-          0: FlexColumnWidth(10), // Title
-          1: FixedColumnWidth(90), // Status (reduced)
-          2: FixedColumnWidth(100), // Date (reduced)
-          3: FixedColumnWidth(120), // Keywords (reduced)
-          4: FixedColumnWidth(60), // Google (reduced)
-          5: FixedColumnWidth(60), // Bing (reduced)
-          6: FixedColumnWidth(60), // Trend (reduced)
-          7: FixedColumnWidth(50), // SEO Score (reduced)
-          8: FixedColumnWidth(45), // Actions (reduced)
+          0: FlexColumnWidth(10), // Title - takes remaining space
+          1: IntrinsicColumnWidth(), // Status
+          2: IntrinsicColumnWidth(), // Date
+          3: IntrinsicColumnWidth(), // Keywords
+          4: IntrinsicColumnWidth(), // Google
+          5: IntrinsicColumnWidth(), // Bing
+          6: IntrinsicColumnWidth(), // Trend
+          7: IntrinsicColumnWidth(), // SEO Score
+          8: IntrinsicColumnWidth(), // Actions
         },
         children: [
           // Header row
@@ -4721,10 +4769,9 @@ class _ChatScreenState extends State<ChatScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final now = DateTime.now();
     final currentMonth = DateTime(now.year, now.month, 1);
-    final authProvider = context.watch<AuthProvider>();
     
     return FutureBuilder<Map<String, dynamic>>(
-      future: authProvider.apiService.listGeneratedContent(project.id),
+      future: _getContentDataFuture(project.id),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CliSpinner());
@@ -4740,7 +4787,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 Text('Error loading content: ${snapshot.error}'),
                 const SizedBox(height: 16),
                 TextButton(
-                  onPressed: () => setState(() {}),
+                  onPressed: _clearContentDataCache,
                   child: const Text('Retry'),
                 ),
               ],

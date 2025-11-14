@@ -356,12 +356,12 @@ class _AddKeywordDialogState extends State<_AddKeywordDialog> with SingleTickerP
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+        return AlertDialog(
       title: const Text('Add Keywords'),
       content: SizedBox(
         width: 500,
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+            mainAxisSize: MainAxisSize.min,
           children: [
             TabBar(
               controller: _tabController,
@@ -380,27 +380,27 @@ class _AddKeywordDialogState extends State<_AddKeywordDialog> with SingleTickerP
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      TextField(
+            children: [
+              TextField(
                         controller: _keywordController,
-                        decoration: const InputDecoration(
-                          labelText: 'Keyword',
-                          hintText: 'Enter keyword to track',
+                decoration: const InputDecoration(
+                  labelText: 'Keyword',
+                  hintText: 'Enter keyword to track',
                           border: OutlineInputBorder(),
-                        ),
-                        textCapitalization: TextCapitalization.words,
-                        autofocus: true,
+                ),
+                textCapitalization: TextCapitalization.words,
+                autofocus: true,
                         enabled: !_isProcessing,
-                      ),
+              ),
                       const SizedBox(height: 12),
-                      const Text(
-                        'Search volume and competition will be automatically fetched and tracked.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
+              const Text(
+                'Search volume and competition will be automatically fetched and tracked.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                ),
+              ),
+            ],
                   ),
                   // CSV upload tab
                   Column(
@@ -458,13 +458,13 @@ class _AddKeywordDialogState extends State<_AddKeywordDialog> with SingleTickerP
             ),
           ],
         ),
-      ),
-      actions: [
-        TextButton(
+          ),
+          actions: [
+            TextButton(
           onPressed: _isProcessing ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
           onPressed: _isProcessing
               ? null
               : () {
@@ -481,8 +481,8 @@ class _AddKeywordDialogState extends State<_AddKeywordDialog> with SingleTickerP
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : Text(_tabController.index == 0 ? 'Add' : 'Upload'),
-        ),
-      ],
+            ),
+          ],
     );
   }
 }
