@@ -2956,5 +2956,5 @@ async def sync_cms_content(
         return {
             "success": False,
             "error": f"Failed to sync content: {str(e)}"
-        }
+    }
 
