@@ -96,143 +96,107 @@ class _SortableDataTableState extends State<SortableDataTable> {
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final headerColor = isDark ? const Color(0xFF2A2A2A) : Colors.grey[100];
+    final backgroundColor = isDark ? Colors.grey[850] : Colors.white;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Column(
-          children: [
-            // Fixed header
-            Container(
-              width: constraints.maxWidth,
-              color: headerColor,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                physics: const NeverScrollableScrollPhysics(),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minWidth: constraints.maxWidth),
-                  child: DataTable(
-            sortColumnIndex: _sortColumnIndex,
-            sortAscending: _sortAscending,
-            showCheckboxColumn: widget.showCheckboxes,
-            columnSpacing: 32,
-            horizontalMargin: 24,
-            headingRowHeight: 42,
-            dataRowHeight: 0, // Hide data rows, we only want the header
-            headingRowColor: MaterialStateProperty.all(headerColor),
-            columns: widget.columns.map((column) {
-              return DataColumn(
-                label: Row(
-                  children: [
-                    Text(
-                      column.label,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
+    return Container(
+      decoration: BoxDecoration(
+        color: backgroundColor,
+      ),
+      child: SingleChildScrollView(
+        child: DataTable(
+          sortColumnIndex: _sortColumnIndex,
+          sortAscending: _sortAscending,
+          showCheckboxColumn: widget.showCheckboxes,
+          columnSpacing: 32,
+          horizontalMargin: 24,
+          headingRowHeight: 42,
+          dataRowHeight: 44,
+          headingRowColor: MaterialStateProperty.all(headerColor),
+          dataRowColor: MaterialStateProperty.resolveWith((states) {
+            if (states.contains(MaterialState.hovered)) {
+              return isDark 
+                  ? Colors.grey[800]!.withOpacity(0.5)
+                  : Colors.grey[200]!.withOpacity(0.5);
+            }
+            return backgroundColor;
+          }),
+          columns: widget.columns.map((column) {
+            return DataColumn(
+              label: Row(
+                children: [
+                  Text(
+                    column.label,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                  if (column.tooltip != null) ...[
+                    const SizedBox(width: 4),
+                    Tooltip(
+                      message: column.tooltip!,
+                      child: Icon(
+                        Icons.info_outline,
+                        size: 14,
+                        color: Colors.grey[600],
                       ),
                     ),
-                    if (column.tooltip != null) ...[
-                      const SizedBox(width: 4),
-                      Tooltip(
-                        message: column.tooltip!,
-                        child: Icon(
-                          Icons.info_outline,
-                          size: 14,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
                   ],
-                ),
-                numeric: column.numeric,
-                onSort: column.sortable
-                    ? (columnIndex, ascending) {
-                        setState(() {
-                          _sortAscending = ascending;
-                        });
-                        _sortData(widget.columns.indexOf(column));
-                      }
-                    : null,
-              );
-            }).toList(),
-            rows: [], // No rows in the header table
-                  ),
-                ),
+                ],
               ),
-            ),
-            // Scrollable body
-            Expanded(
-              child: SingleChildScrollView(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  physics: const NeverScrollableScrollPhysics(),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(minWidth: constraints.maxWidth),
-                    child: DataTable(
-              showCheckboxColumn: widget.showCheckboxes,
-              columnSpacing: 32,
-              horizontalMargin: 24,
-              headingRowHeight: 0, // Hide header in the body table
-              dataRowHeight: 44,
-              dataRowColor: MaterialStateProperty.resolveWith((states) {
-                if (states.contains(MaterialState.hovered)) {
-                  return Theme.of(context).hoverColor.withOpacity(0.1);
-                }
-                return null;
-              }),
-              columns: widget.columns.map((column) {
-                return DataColumn(
-                  label: const SizedBox.shrink(), // Empty label since header is hidden
-                  numeric: column.numeric,
-                );
-              }).toList(),
-              rows: _sortedData.map((row) {
-                final rowId = row['id']?.toString() ?? '';
-                final isSelected = widget.selectedIds.contains(rowId);
-                final isHovered = _hoveredRowId == rowId;
+              numeric: column.numeric,
+              onSort: column.sortable
+                  ? (columnIndex, ascending) {
+                      setState(() {
+                        _sortAscending = ascending;
+                      });
+                      _sortData(widget.columns.indexOf(column));
+                    }
+                  : null,
+            );
+          }).toList(),
+          rows: _sortedData.map((row) {
+            final rowId = row['id']?.toString() ?? '';
+            final isSelected = widget.selectedIds.contains(rowId);
+            final isHovered = _hoveredRowId == rowId;
 
-                return DataRow(
-                  selected: isSelected,
-                  onSelectChanged: widget.showCheckboxes && widget.onSelectionChanged != null
-                      ? (selected) {
-                          widget.onSelectionChanged!(rowId, selected ?? false);
-                        }
+            return DataRow(
+              selected: isSelected,
+              onSelectChanged: widget.showCheckboxes && widget.onSelectionChanged != null
+                  ? (selected) {
+                      widget.onSelectionChanged!(rowId, selected ?? false);
+                    }
+                  : null,
+              cells: widget.columns.map((column) {
+                final value = row[column.key];
+                return DataCell(
+                  MouseRegion(
+                    onEnter: (_) => setState(() => _hoveredRowId = rowId),
+                    onExit: (_) => setState(() => _hoveredRowId = null),
+                    cursor: widget.onRowTap != null
+                        ? SystemMouseCursors.click
+                        : SystemMouseCursors.basic,
+                    child: column.builder != null
+                        ? column.builder!(value, row)
+                        : Text(
+                            _formatValue(value),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isHovered
+                                  ? Theme.of(context).primaryColor
+                                  : null,
+                            ),
+                          ),
+                  ),
+                  onTap: widget.onRowTap != null
+                      ? () => widget.onRowTap!(row)
                       : null,
-                  cells: widget.columns.map((column) {
-                    final value = row[column.key];
-                    return DataCell(
-                      MouseRegion(
-                        onEnter: (_) => setState(() => _hoveredRowId = rowId),
-                        onExit: (_) => setState(() => _hoveredRowId = null),
-                        cursor: widget.onRowTap != null
-                            ? SystemMouseCursors.click
-                            : SystemMouseCursors.basic,
-                        child: column.builder != null
-                            ? column.builder!(value, row)
-                            : Text(
-                                _formatValue(value),
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: isHovered
-                                      ? Theme.of(context).primaryColor
-                                      : null,
-                                ),
-                              ),
-                      ),
-                      onTap: widget.onRowTap != null
-                          ? () => widget.onRowTap!(row)
-                          : null,
-                    );
-                  }).toList(),
                 );
               }).toList(),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
+            );
+          }).toList(),
+        ),
+      ),
     );
   }
 
