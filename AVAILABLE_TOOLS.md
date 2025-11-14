@@ -1,8 +1,8 @@
 # 🛠️ Available SEO Tools
 
-**CONSOLIDATED** - Reduced from 20 to 9 core tools for better performance and clarity.
+**CONSOLIDATED** - Reduced from 20 to 11 core tools for better performance and clarity.
 
-The LLM has access to these 9 essential tools during conversations:
+The LLM has access to these 11 essential tools during conversations:
 
 ---
 
@@ -237,6 +237,51 @@ LLM: pin_important_info(title="SEO Strategy", content="...", content_type="recom
 
 ---
 
+## 10. **get_project_keywords**
+Get all keywords for a project (both tracked and suggested) and display them in the side panel.
+
+**When to use:** User wants to see/view/display keywords for their project, or asks to "open the side view" with keywords, or wants to download/export keywords
+
+**Parameters:**
+- `project_id` (required): The ID of the project to get keywords for
+
+**Returns:**
+- `tracked_keywords`: List of actively monitored keywords
+- `suggested_keywords`: List of auto-detected keyword suggestions
+- Automatically opens the side panel with all keywords displayed
+
+**Example:**
+```
+User: "Show me all the keywords for keywords.chat"
+LLM: get_project_keywords(project_id="abc-123-xyz")
+
+User: "I want to open the side view with my keywords"
+LLM: get_project_keywords(project_id="abc-123-xyz")
+```
+
+---
+
+## 11. **get_project_backlinks**
+Get backlink data for a project and display in the side panel.
+
+**When to use:** User wants to see/view backlinks for their project
+
+**Parameters:**
+- `project_id` (required): The ID of the project to get backlinks for
+
+**Returns:**
+- Backlink profile data
+- Top backlinks with metrics
+- Displays in side panel
+
+**Example:**
+```
+User: "Show me the backlinks for this project"
+LLM: get_project_backlinks(project_id="abc-123-xyz")
+```
+
+---
+
 ## Tool Consolidation Notes
 
 **Removed/Merged Tools:**
@@ -246,10 +291,7 @@ LLM: pin_important_info(title="SEO Strategy", content="...", content_type="recom
 - ❌ `analyze_technical_seo` - Merged into `analyze_website` via `mode` parameter
 - ❌ `check_ai_bot_access` - Merged into `analyze_website` technical mode
 - ❌ `analyze_performance` - Merged into `analyze_website` technical mode
-- ❌ `get_project_keywords` - Use `analyze_project_status` which returns all project data
-- ❌ `get_project_backlinks` - Use `analyze_project_status` which returns backlink data
 - ❌ `get_project_pinboard` - Less critical, removed for simplicity
-- ❌ `link_gsc_property` - Handle in UI, not chat
 
 **Benefits:**
 - ✅ Faster LLM response times (fewer tools to process)
@@ -272,7 +314,9 @@ LLM: pin_important_info(title="SEO Strategy", content="...", content_type="recom
 | track_keywords | Database | Internal |
 | get_gsc_performance | `gsc_service.py` | Google Search Console API |
 | pin_important_info | Database | Internal |
+| get_project_keywords | Database | Internal |
+| get_project_backlinks | Database | Internal |
 
 ---
 
-**The LLM now has 8 powerful, focused SEO tools at its disposal! 🎉**
+**The LLM now has 11 powerful, focused SEO tools at its disposal! 🎉**

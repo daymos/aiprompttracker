@@ -3221,33 +3221,51 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildSeoAgentDashboard(Project project) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final authProvider = context.watch<AuthProvider>();
     
-    // Mock data
-    final mockDrafts = 3;
-    final mockScheduled = 5;
-    final mockPublished = 12;
-    
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Connection Status
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.grey[850] : Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+    return FutureBuilder<Map<String, dynamic>>(
+      future: authProvider.apiService.listGeneratedContent(project.id),
+      builder: (context, snapshot) {
+        // Calculate counts from real data
+        int draftsCount = 0;
+        int scheduledCount = 0;
+        int publishedCount = 0;
+        
+        if (snapshot.hasData && snapshot.data!['success'] == true) {
+          final content = snapshot.data!['content'] as List;
+          for (var item in content) {
+            final status = item['status'].toString().toLowerCase();
+            if (status == 'draft') {
+              draftsCount++;
+            } else if (status == 'scheduled') {
+              scheduledCount++;
+            } else if (status == 'published') {
+              publishedCount++;
+            }
+          }
+        }
+        
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Connection Status
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.grey[850] : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: Row(
-              children: [
+                child: Row(
+                  children: [
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -3305,7 +3323,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   context,
                   icon: Icons.edit_note,
                   label: 'Drafts',
-                  count: mockDrafts,
+                  count: draftsCount,
                   color: const Color(0xFF9E9E9E),
                 ),
               ),
@@ -3315,7 +3333,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   context,
                   icon: Icons.schedule,
                   label: 'Scheduled',
-                  count: mockScheduled,
+                  count: scheduledCount,
                   color: const Color(0xFF2196F3),
                 ),
               ),
@@ -3325,7 +3343,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   context,
                   icon: Icons.check_circle,
                   label: 'Published',
-                  count: mockPublished,
+                  count: publishedCount,
                   color: const Color(0xFF4CAF50),
                 ),
               ),
@@ -3407,6 +3425,8 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ],
       ),
+    );
+      },
     );
   }
 

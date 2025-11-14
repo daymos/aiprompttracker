@@ -1166,7 +1166,11 @@ async def send_message_stream(
                                     kw_info = {
                                         "keyword": kw.keyword,
                                         "search_volume": kw.search_volume,
-                                        "competition": kw.competition,
+                                        "ad_competition": kw.competition,  # Frontend expects 'ad_competition'
+                                        "seo_difficulty": kw.seo_difficulty,
+                                        "cpc": kw.cpc if kw.cpc is not None else 0.0,
+                                        "intent": kw.intent if kw.intent else "unknown",
+                                        "trend": kw.trend if kw.trend is not None else 0.0,
                                         "status": "tracked" if kw.is_active else "suggestion"
                                     }
                                     
@@ -1392,7 +1396,11 @@ async def send_message_stream(
                                             project_id=project_id,
                                             keyword=keyword,
                                             search_volume=kw_data.get("search_volume"),
-                                            competition=kw_data.get("competition")
+                                            competition=kw_data.get("competition") or kw_data.get("ad_competition"),
+                                            seo_difficulty=kw_data.get("seo_difficulty"),
+                                            intent=kw_data.get("intent"),
+                                            cpc=kw_data.get("cpc"),
+                                            trend=kw_data.get("trend")
                                         )
                                         db.add(tracked_keyword)
                                         tracked_count += 1
@@ -2061,6 +2069,51 @@ OVERVIEW:
                                             break
                                     except:
                                         pass
+                        
+                        elif tool_call["name"] == "get_project_keywords":
+                            # Extract keyword data from project keywords tool
+                            for result in tool_results:
+                                if result.get("name") == "get_project_keywords":
+                                    try:
+                                        import json as json_module
+                                        result_data = json_module.loads(result.get("content", "{}"))
+                                        
+                                        # Combine tracked and suggested keywords into flat list for the data panel
+                                        keyword_data = []
+                                        
+                                        # Add tracked keywords
+                                        for kw in result_data.get("tracked_keywords", []):
+                                            keyword_data.append({
+                                                "keyword": kw.get("keyword"),
+                                                "search_volume": kw.get("search_volume"),
+                                                "ad_competition": kw.get("ad_competition"),
+                                                "seo_difficulty": kw.get("seo_difficulty"),
+                                                "cpc": kw.get("cpc", 0.0),
+                                                "intent": kw.get("intent", "unknown"),
+                                                "trend": kw.get("trend", 0.0),
+                                                "source": "tracked"
+                                            })
+                                        
+                                        # Add suggested keywords
+                                        for kw in result_data.get("suggested_keywords", []):
+                                            keyword_data.append({
+                                                "keyword": kw.get("keyword"),
+                                                "search_volume": kw.get("search_volume"),
+                                                "ad_competition": kw.get("ad_competition"),
+                                                "seo_difficulty": kw.get("seo_difficulty"),
+                                                "cpc": kw.get("cpc", 0.0),
+                                                "intent": kw.get("intent", "unknown"),
+                                                "trend": kw.get("trend", 0.0),
+                                                "source": "suggested"
+                                            })
+                                        
+                                        if keyword_data:
+                                            metadata["keyword_data"] = keyword_data
+                                            logger.info(f"📊 Set metadata with {len(keyword_data)} keywords from get_project_keywords")
+                                            break
+                                    except Exception as e:
+                                        logger.error(f"Failed to extract keyword data from get_project_keywords: {e}")
+                                        pass
 
                 assistant_message = Message(
                     id=str(uuid.uuid4()),
@@ -2474,5 +2527,278 @@ async def get_project_audits(
         "project_name": project.name,
         "total_audits": len(audits),
         "audits": audit_history
+    }
+
+
+# SEO Agent - Content Management Endpoints
+
+@router.get("/seo-agent/content/{content_id}")
+async def get_generated_content(
+    content_id: str,
+    project_id: str,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """Get a generated content article by ID"""
+    token = authorization.replace("Bearer ", "")
+    user = get_current_user(token, db)
+    
+    # Verify project belongs to user
+    project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.user_id == user.id
+    ).first()
+    
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Get content
+    from ..models.seo_agent import GeneratedContent
+    content = db.query(GeneratedContent).filter(
+        GeneratedContent.id == content_id,
+        GeneratedContent.project_id == project_id
+    ).first()
+    
+    if not content:
+        raise HTTPException(status_code=404, detail="Content not found")
+    
+    return {
+        "success": True,
+        "content": {
+            "id": content.id,
+            "title": content.title,
+            "content": content.content,
+            "excerpt": content.excerpt,
+            "target_keywords": content.target_keywords,
+            "seo_score": content.seo_score,
+            "word_count": content.word_count,
+            "readability_score": content.readability_score,
+            "status": content.status,
+            "published_at": content.published_at.isoformat() if content.published_at else None,
+            "published_url": content.published_url,
+            "cms_post_id": content.cms_post_id,
+            "created_at": content.created_at.isoformat() if content.created_at else None,
+            "metadata": content.generation_metadata or {}
+        }
+    }
+
+
+@router.post("/seo-agent/content")
+async def create_generated_content(
+    request: dict,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """Create a new generated content article"""
+    token = authorization.replace("Bearer ", "")
+    user = get_current_user(token, db)
+    
+    project_id = request.get("project_id")
+    
+    # Verify project belongs to user
+    project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.user_id == user.id
+    ).first()
+    
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Create content
+    from ..models.seo_agent import GeneratedContent
+    import uuid
+    
+    content = GeneratedContent(
+        id=str(uuid.uuid4()),
+        project_id=project_id,
+        title=request.get("title"),
+        content=request.get("content"),
+        excerpt=request.get("excerpt"),
+        target_keywords=request.get("target_keywords", []),
+        status=request.get("status", "draft"),
+        word_count=len(request.get("content", "").split()),
+        generation_metadata=request.get("metadata", {})
+    )
+    
+    db.add(content)
+    db.commit()
+    db.refresh(content)
+    
+    return {
+        "success": True,
+        "content_id": content.id,
+        "message": "Content created successfully"
+    }
+
+
+@router.put("/seo-agent/content/{content_id}")
+async def update_generated_content(
+    content_id: str,
+    request: dict,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """Update an existing generated content article"""
+    token = authorization.replace("Bearer ", "")
+    user = get_current_user(token, db)
+    
+    project_id = request.get("project_id")
+    
+    # Verify project belongs to user
+    project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.user_id == user.id
+    ).first()
+    
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Get content
+    from ..models.seo_agent import GeneratedContent
+    content = db.query(GeneratedContent).filter(
+        GeneratedContent.id == content_id,
+        GeneratedContent.project_id == project_id
+    ).first()
+    
+    if not content:
+        raise HTTPException(status_code=404, detail="Content not found")
+    
+    # Update fields
+    if "title" in request:
+        content.title = request["title"]
+    if "content" in request:
+        content.content = request["content"]
+        content.word_count = len(request["content"].split())
+    if "excerpt" in request:
+        content.excerpt = request["excerpt"]
+    if "target_keywords" in request:
+        content.target_keywords = request["target_keywords"]
+    if "status" in request:
+        content.status = request["status"]
+    if "metadata" in request:
+        content.generation_metadata = request["metadata"]
+    
+    db.commit()
+    
+    # If status is published, trigger actual publishing
+    if request.get("status") == "published" and not content.published_url:
+        # TODO: Trigger actual CMS publishing
+        pass
+    
+    return {
+        "success": True,
+        "content_id": content.id,
+        "message": "Content updated successfully"
+    }
+
+
+@router.get("/seo-agent/cms/categories")
+async def get_cms_categories(
+    project_id: str,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """Get available CMS categories for a project"""
+    token = authorization.replace("Bearer ", "")
+    user = get_current_user(token, db)
+    
+    # Verify project belongs to user
+    project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.user_id == user.id
+    ).first()
+    
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Get CMS integration
+    from ..models.seo_agent import ProjectIntegration
+    integration = db.query(ProjectIntegration).filter(
+        ProjectIntegration.project_id == project_id,
+        ProjectIntegration.is_active == True
+    ).first()
+    
+    if not integration:
+        return {"success": False, "error": "No active CMS integration"}
+    
+    # Get categories from CMS
+    try:
+        from ..tools.seo_agent_handlers import _decrypt_password
+        from ..services.cms_service import create_cms_service
+        
+        password = _decrypt_password(integration.encrypted_password)
+        cms_service = create_cms_service(
+            integration.cms_type,
+            cms_url=integration.cms_url,
+            username=integration.username,
+            password=password
+        )
+        
+        categories_result = await cms_service.get_categories()
+        
+        return {
+            "success": True,
+            "categories": categories_result.get("categories", [])
+        }
+    except Exception as e:
+        logger.error(f"Error getting CMS categories: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@router.get("/seo-agent/project/{project_id}/content")
+async def list_generated_content(
+    project_id: str,
+    status: str = None,
+    limit: int = 50,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """List all generated content for a project"""
+    token = authorization.replace("Bearer ", "")
+    user = get_current_user(token, db)
+    
+    # Verify project belongs to user
+    project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.user_id == user.id
+    ).first()
+    
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Query content
+    from ..models.seo_agent import GeneratedContent
+    query = db.query(GeneratedContent).filter(
+        GeneratedContent.project_id == project_id
+    )
+    
+    if status:
+        query = query.filter(GeneratedContent.status == status)
+    
+    contents = query.order_by(GeneratedContent.created_at.desc()).limit(limit).all()
+    
+    # Format response
+    content_list = []
+    for content in contents:
+        content_list.append({
+            "id": content.id,
+            "title": content.title,
+            "excerpt": content.excerpt,
+            "target_keywords": content.target_keywords or [],
+            "seo_score": content.seo_score,
+            "word_count": content.word_count,
+            "readability_score": content.readability_score,
+            "status": content.status,
+            "published_at": content.published_at.isoformat() if content.published_at else None,
+            "published_url": content.published_url,
+            "cms_post_id": content.cms_post_id,
+            "created_at": content.created_at.isoformat() if content.created_at else None,
+            "metadata": content.generation_metadata or {}
+        })
+    
+    return {
+        "success": True,
+        "content": content_list,
+        "total": len(content_list)
     }
 

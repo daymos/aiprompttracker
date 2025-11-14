@@ -546,7 +546,7 @@ class ApiService {
   
   Future<Map<String, dynamic>> getGeneratedContent(String projectId, String contentId) async {
     final response = await http.get(
-      Uri.parse('$baseUrl/seo-agent/content/$contentId?project_id=$projectId'),
+      Uri.parse('$baseUrl/chat/seo-agent/content/$contentId?project_id=$projectId'),
       headers: _headers(),
     );
     
@@ -579,12 +579,12 @@ class ApiService {
 
     final response = articleId == null
         ? await http.post(
-            Uri.parse('$baseUrl/seo-agent/content'),
+            Uri.parse('$baseUrl/chat/seo-agent/content'),
             headers: _headers(),
             body: jsonEncode(body),
           )
         : await http.put(
-            Uri.parse('$baseUrl/seo-agent/content/$articleId'),
+            Uri.parse('$baseUrl/chat/seo-agent/content/$articleId'),
             headers: _headers(),
             body: jsonEncode(body),
           );
@@ -598,7 +598,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> getCMSCategories(String projectId) async {
     final response = await http.get(
-      Uri.parse('$baseUrl/seo-agent/cms/categories?project_id=$projectId'),
+      Uri.parse('$baseUrl/chat/seo-agent/cms/categories?project_id=$projectId'),
       headers: _headers(),
     );
     
@@ -611,8 +611,8 @@ class ApiService {
 
   Future<Map<String, dynamic>> listGeneratedContent(String projectId, {String? status}) async {
     final uri = status != null
-        ? Uri.parse('$baseUrl/seo-agent/project/$projectId/content?status=$status')
-        : Uri.parse('$baseUrl/seo-agent/project/$projectId/content');
+        ? Uri.parse('$baseUrl/chat/seo-agent/project/$projectId/content?status=$status')
+        : Uri.parse('$baseUrl/chat/seo-agent/project/$projectId/content');
     
     final response = await http.get(
       uri,

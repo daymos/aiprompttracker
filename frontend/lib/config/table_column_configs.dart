@@ -104,15 +104,8 @@ class TableColumnConfigs {
         csvFormatter: (value) => value?.toString() ?? '0',
       ),
       DataColumnConfig(
-        id: 'ad_competition',
-        label: 'Ad Comp',
-        sortable: true,
-        cellBuilder: (row) => CompetitionChip(competition: row['ad_competition']?.toString() ?? ''),
-        csvFormatter: (value) => value?.toString() ?? '',
-      ),
-      DataColumnConfig(
         id: 'seo_difficulty',
-        label: 'SEO Diff',
+        label: 'KD',
         numeric: true,
         sortable: true,
         cellBuilder: (row) {

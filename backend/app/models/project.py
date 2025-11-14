@@ -15,9 +15,10 @@ class Project(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
-    tracked_keywords = relationship("TrackedKeyword", back_populates="project")
+    tracked_keywords = relationship("TrackedKeyword", back_populates="project", cascade="all, delete-orphan")
     backlink_analysis = relationship("BacklinkAnalysis", back_populates="project", uselist=False, cascade="all, delete-orphan")
     technical_audits = relationship("TechnicalAudit", back_populates="project", cascade="all, delete-orphan")
+    integrations = relationship("ProjectIntegration", back_populates="project", cascade="all, delete-orphan")
     user = relationship("User", back_populates="projects")
 
 class TrackedKeyword(Base):
@@ -30,6 +31,9 @@ class TrackedKeyword(Base):
     search_volume = Column(Integer, nullable=True)
     competition = Column(String, nullable=True)  # LOW, MEDIUM, HIGH (Google Ads competition)
     seo_difficulty = Column(Integer, nullable=True)  # 0-100 organic ranking difficulty
+    intent = Column(String, nullable=True)  # Search intent: informational, commercial, transactional, navigational
+    cpc = Column(Float, nullable=True)  # Cost per click
+    trend = Column(Float, nullable=True)  # Trend percentage
     target_position = Column(Integer, default=10)  # Goal ranking position
     target_page = Column(String, nullable=True)  # Specific page to track (e.g., "/blog/seo-tips")
     source = Column(String, default="manual")  # "manual" or "auto_detected"
@@ -37,7 +41,7 @@ class TrackedKeyword(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     project = relationship("Project", back_populates="tracked_keywords")
-    rankings = relationship("KeywordRanking", back_populates="tracked_keyword", order_by="KeywordRanking.checked_at.desc()")
+    rankings = relationship("KeywordRanking", back_populates="tracked_keyword", order_by="KeywordRanking.checked_at.desc()", cascade="all, delete-orphan")
 
 class KeywordRanking(Base):
     """Historical ranking data for a tracked keyword"""
