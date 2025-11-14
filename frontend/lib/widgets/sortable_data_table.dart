@@ -95,15 +95,14 @@ class _SortableDataTableState extends State<SortableDataTable> {
     }
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final headerColor = isDark ? const Color(0xFF2A2A2A) : Colors.grey[100];
+    final headerColor = isDark ? Colors.grey[800] : Colors.grey[100];
     final backgroundColor = isDark ? Colors.grey[850] : Colors.white;
 
     return Container(
       decoration: BoxDecoration(
         color: backgroundColor,
       ),
-      child: SingleChildScrollView(
-        child: DataTable(
+      child: DataTable(
           sortColumnIndex: _sortColumnIndex,
           sortAscending: _sortAscending,
           showCheckboxColumn: widget.showCheckboxes,
@@ -111,6 +110,7 @@ class _SortableDataTableState extends State<SortableDataTable> {
           horizontalMargin: 24,
           headingRowHeight: 42,
           dataRowHeight: 44,
+          dividerThickness: 0.5,
           headingRowColor: MaterialStateProperty.all(headerColor),
           dataRowColor: MaterialStateProperty.resolveWith((states) {
             if (states.contains(MaterialState.hovered)) {
@@ -195,7 +195,6 @@ class _SortableDataTableState extends State<SortableDataTable> {
               }).toList(),
             );
           }).toList(),
-        ),
       ),
     );
   }

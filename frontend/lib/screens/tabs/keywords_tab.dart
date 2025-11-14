@@ -30,6 +30,36 @@ class _KeywordsTabState extends State<KeywordsTab> {
   String _keywordFilter = 'all';
   String _keywordSortBy = 'position';
   bool _keywordSortAscending = true;
+  final ScrollController _scrollController = ScrollController();
+  bool _showAddButton = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    // Check if scrolled to bottom (within 100 pixels)
+    if (_scrollController.hasClients) {
+      final maxScroll = _scrollController.position.maxScrollExtent;
+      final currentScroll = _scrollController.position.pixels;
+      final isAtBottom = currentScroll >= (maxScroll - 100);
+      
+      if (isAtBottom != _showAddButton) {
+        setState(() {
+          _showAddButton = isAtBottom;
+        });
+      }
+    }
+  }
 
   List<TrackedKeyword> _filterAndSortKeywords(List<TrackedKeyword> keywords) {
     return KeywordFilters.filterAndSort(
@@ -192,9 +222,10 @@ class _KeywordsTabState extends State<KeywordsTab> {
                   ),
                   // Keywords table
                   Expanded(
-                    child: Column(
+                    child: Stack(
                       children: [
-                        Expanded(
+                        SingleChildScrollView(
+                          controller: _scrollController,
                           child: SortableDataTable(
                             columns: [
                               TableColumn(
@@ -418,18 +449,23 @@ class _KeywordsTabState extends State<KeywordsTab> {
                             emptyMessage: 'No keywords found',
                           ),
                         ),
-                        // Add keyword button at bottom
-                        Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: ElevatedButton.icon(
-                            onPressed: widget.onAddKeyword,
-                            icon: const Icon(Icons.add),
-                            label: const Text('Add Keyword'),
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        // Floating Add keyword button (shown only when scrolled to bottom)
+                        if (_showAddButton)
+                          Positioned(
+                            bottom: 16,
+                            right: 16,
+                            child: AnimatedOpacity(
+                              opacity: _showAddButton ? 1.0 : 0.0,
+                              duration: const Duration(milliseconds: 200),
+                              child: FloatingActionButton.extended(
+                                onPressed: widget.onAddKeyword,
+                                icon: const Icon(Icons.add),
+                                label: const Text('Add Keyword'),
+                                backgroundColor: Theme.of(context).primaryColor,
+                                elevation: 4,
+                              ),
                             ),
                           ),
-                        ),
                       ],
                     ),
                   ),
