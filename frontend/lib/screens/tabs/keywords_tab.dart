@@ -99,9 +99,9 @@ class _KeywordsTabState extends State<KeywordsTab> {
               )
             : Column(
                 children: [
-                  // Search and filter controls
+                  // Header with description and search
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.surface,
                       border: Border(
@@ -112,17 +112,36 @@ class _KeywordsTabState extends State<KeywordsTab> {
                       ),
                     ),
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // Search bar
+                        // Description text on the left
+                        Expanded(
+                          child: Text(
+                            'Track keyword rankings and monitor your SEO performance',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 24),
+                        // Search bar on the right
                         SizedBox(
                           width: 300,
-                          height: 36,
                           child: TextField(
                             style: const TextStyle(fontSize: 13),
                             decoration: InputDecoration(
                               hintText: 'Search keywords...',
-                              hintStyle: const TextStyle(fontSize: 13),
-                              prefixIcon: const Icon(Icons.search, size: 18),
+                              hintStyle: TextStyle(
+                                fontSize: 13,
+                                color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5),
+                              ),
+                              prefixIcon: Icon(
+                                Icons.search,
+                                size: 18,
+                                color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5),
+                              ),
                               suffixIcon: _keywordSearchQuery.isNotEmpty
                                   ? IconButton(
                                       icon: const Icon(Icons.clear, size: 16),
@@ -134,94 +153,39 @@ class _KeywordsTabState extends State<KeywordsTab> {
                                     )
                                   : null,
                               isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              filled: true,
+                              fillColor: Theme.of(context).brightness == Brightness.dark 
+                                  ? Colors.grey[900] 
+                                  : Colors.grey[50],
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(color: Theme.of(context).dividerColor),
+                                borderSide: BorderSide(
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.grey[800]!
+                                      : Colors.grey[300]!,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.grey[800]!
+                                      : Colors.grey[300]!,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF2196F3),
+                                  width: 2,
+                                ),
                               ),
                             ),
                             onChanged: (value) {
                               setState(() => _keywordSearchQuery = value);
                             },
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        // Filter chips
-                        Wrap(
-                          spacing: 6,
-                          children: [
-                            ChoiceChip(
-                              label: const Text('All', style: TextStyle(fontSize: 12)),
-                              selected: _keywordFilter == 'all',
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                              labelPadding: EdgeInsets.zero,
-                              visualDensity: VisualDensity.compact,
-                              onSelected: (selected) {
-                                if (selected) setState(() => _keywordFilter = 'all');
-                              },
-                            ),
-                            ChoiceChip(
-                              label: const Text('Tracking', style: TextStyle(fontSize: 12)),
-                              selected: _keywordFilter == 'tracking',
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                              labelPadding: EdgeInsets.zero,
-                              visualDensity: VisualDensity.compact,
-                              onSelected: (selected) {
-                                if (selected) setState(() => _keywordFilter = 'tracking');
-                              },
-                            ),
-                            ChoiceChip(
-                              label: const Text('Suggestions', style: TextStyle(fontSize: 12)),
-                              selected: _keywordFilter == 'suggestions',
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                              labelPadding: EdgeInsets.zero,
-                              visualDensity: VisualDensity.compact,
-                              onSelected: (selected) {
-                                if (selected) setState(() => _keywordFilter = 'suggestions');
-                              },
-                            ),
-                          ],
-                        ),
-                        const SizedBox(width: 12),
-                        // Sort dropdown
-                        Container(
-                          height: 36,
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Theme.of(context).dividerColor),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: DropdownButton<String>(
-                            value: _keywordSortBy,
-                            underline: const SizedBox(),
-                            style: const TextStyle(fontSize: 13),
-                            isDense: true,
-                            items: const [
-                              DropdownMenuItem(value: 'position', child: Text('Position')),
-                              DropdownMenuItem(value: 'name', child: Text('Name')),
-                              DropdownMenuItem(value: 'volume', child: Text('Volume')),
-                              DropdownMenuItem(value: 'status', child: Text('Status')),
-                            ],
-                            onChanged: (value) {
-                              if (value != null) {
-                                setState(() => _keywordSortBy = value);
-                              }
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        // Sort direction
-                        IconButton(
-                          icon: Icon(
-                            _keywordSortAscending ? Icons.arrow_upward : Icons.arrow_downward,
-                            size: 18,
-                          ),
-                          padding: const EdgeInsets.all(6),
-                          constraints: const BoxConstraints(),
-                          tooltip: _keywordSortAscending ? 'Ascending' : 'Descending',
-                          onPressed: () {
-                            setState(() => _keywordSortAscending = !_keywordSortAscending);
-                          },
                         ),
                       ],
                     ),
