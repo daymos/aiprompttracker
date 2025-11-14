@@ -2273,51 +2273,70 @@ class _ChatScreenState extends State<ChatScreen> {
                   ],
                 ),
                 
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
                 
-                // Quick action tips
-                if (totalBacklinks == 0 || audits.isEmpty || keywords.isEmpty) ...[
-                  Card(
-                    color: Colors.blue[900]?.withOpacity(0.3),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.lightbulb_outline, size: 20, color: Colors.blue[300]),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Quick Start Tips',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blue[300],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          if (totalBacklinks == 0)
-                            _buildQuickTip('Analyze your backlink profile', 'analyze backlinks for ${project.targetUrl}'),
-                          if (audits.isEmpty)
-                            _buildQuickTip('Run your first site audit', 'run a site audit for ${project.targetUrl}'),
-                          if (keywords.isEmpty)
-                            _buildQuickTip('Start tracking keywords', 'track keyword "your keyword" for ${project.targetUrl}'),
+                // Quick Actions
+                Card(
+                  elevation: 2,
+                  child: Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          const Color(0xFF2196F3).withOpacity(0.03),
+                          const Color(0xFF1976D2).withOpacity(0.02),
                         ],
                       ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          'Quick Actions',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                        ),
+                        const SizedBox(height: 20),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          alignment: WrapAlignment.center,
+                          children: [
+                            _buildQuickActionButton(
+                              icon: Icons.search,
+                              label: 'Research Keywords',
+                              prompt: 'Research keywords for ${project.targetUrl}',
+                            ),
+                            _buildQuickActionButton(
+                              icon: Icons.trending_up,
+                              label: 'Check Rankings',
+                              prompt: 'Check my keyword rankings for ${project.targetUrl}',
+                            ),
+                            _buildQuickActionButton(
+                              icon: Icons.language,
+                              label: 'Audit Website',
+                              prompt: 'Run a comprehensive SEO audit on ${project.targetUrl}',
+                            ),
+                            _buildQuickActionButton(
+                              icon: Icons.link,
+                              label: 'Analyze Backlinks',
+                              prompt: 'Analyze backlinks for ${project.targetUrl}',
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                ],
+                ),
               ],
             ),
           );
       },
     );
   }
-  
-  Widget _buildQuickTip(String title, String command) => QuickTip(title: title, command: command);
   
   Widget _buildPerformanceChart(Project project, List overtime, List<TrackedKeyword> keywords) {
     final authProvider = context.watch<AuthProvider>();
@@ -3581,7 +3600,7 @@ class _ChatScreenState extends State<ChatScreen> {
           
           const SizedBox(height: 32),
           
-          // Content Library Stats
+          // Content Library Stats - All in one row
           Row(
             children: [
               Expanded(
@@ -3593,7 +3612,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   color: const Color(0xFF9E9E9E),
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Expanded(
                 child: _buildStatCard(
                   context,
@@ -3603,11 +3622,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   color: const Color(0xFF2196F3),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
+              const SizedBox(width: 12),
               Expanded(
                 child: _buildStatCard(
                   context,
@@ -3617,7 +3632,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   color: const Color(0xFF4CAF50),
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Expanded(
                 child: _buildStatCard(
                   context,
@@ -3633,74 +3648,54 @@ class _ChatScreenState extends State<ChatScreen> {
           const SizedBox(height: 32),
           
           // Quick Actions
-          Text(
-            'Quick Actions',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
+          Card(
+            elevation: 2,
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    const Color(0xFF2196F3).withOpacity(0.03),
+                    const Color(0xFF1976D2).withOpacity(0.02),
+                  ],
                 ),
-          ),
-          const SizedBox(height: 16),
-          
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  const Color(0xFFFFC107).withOpacity(0.1),
-                  const Color(0xFFFF9800).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    'Quick Actions',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const SizedBox(height: 20),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    alignment: WrapAlignment.center,
+                    children: [
+                      _buildQuickActionButton(
+                        icon: Icons.auto_awesome,
+                        label: 'Generate Posts',
+                        prompt: 'Generate new SEO-optimized articles',
+                      ),
+                      _buildQuickActionButton(
+                        icon: Icons.schedule,
+                        label: 'Schedule Publishing',
+                        prompt: 'Help me schedule content publishing',
+                      ),
+                      _buildQuickActionButton(
+                        icon: Icons.analytics,
+                        label: 'Review Performance',
+                        prompt: 'Show me content performance metrics',
+                      ),
+                    ],
+                  ),
                 ],
               ),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: const Color(0xFFFFC107).withOpacity(0.3),
-                width: 2,
-              ),
-            ),
-            child: Column(
-              children: [
-                Icon(
-                  Icons.chat_bubble_outline,
-                  size: 48,
-                  color: const Color(0xFFFFC107),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Use Chat to Control SEO Agent',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Try saying:\n• "Generate a post about [keyword]"\n• "Schedule 3 posts this week"\n• "Show me draft content"',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: isDark ? Colors.grey[400] : Colors.grey[600],
-                      ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _currentView = ViewState.chat;
-                    });
-                    _messageFocusNode.requestFocus();
-                  },
-                  icon: const Icon(Icons.arrow_forward),
-                  label: const Text('Go to Chat'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFFC107),
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
-                    ),
-                  ),
-                ),
-              ],
             ),
           ),
         ],
@@ -3717,40 +3712,97 @@ class _ChatScreenState extends State<ChatScreen> {
     required int count,
     required Color color,
   }) {
+    return Card(
+      elevation: 2,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Icon with label
+            Row(
+              children: [
+                Icon(icon, color: color, size: 20),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[500],
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Count value
+            Text(
+              count.toString(),
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: color,
+                height: 1.0,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickActionButton({
+    required IconData icon,
+    required String label,
+    required String prompt,
+  }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.grey[850] : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+    return InkWell(
+      onTap: () {
+        // Switch to chat view
+        setState(() {
+          _currentView = ViewState.chat;
+        });
+        // Set the message and send it
+        _messageController.text = prompt;
+        // Wait a frame for the view to update, then send the message
+        Future.microtask(() => _sendMessage());
+      },
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        decoration: BoxDecoration(
+          color: isDark ? Colors.grey[800]!.withOpacity(0.6) : Colors.grey[200]!.withOpacity(0.6),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isDark ? Colors.grey[700]! : Colors.grey[400]!,
+            width: 1,
           ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 32),
-          const SizedBox(height: 12),
-          Text(
-            count.toString(),
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: isDark ? Colors.grey[400] : Colors.grey[600],
-                ),
-          ),
-        ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isDark ? Colors.grey[400] : Colors.grey[600],
+            ),
+            const SizedBox(width: 10),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: isDark ? Colors.grey[300] : Colors.grey[700],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

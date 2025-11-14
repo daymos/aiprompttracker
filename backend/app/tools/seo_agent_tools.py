@@ -169,8 +169,8 @@ SEO_AGENT_TOOLS = [
     {
         "type": "function",
         "function": {
-            "name": "list_generated_content",
-            "description": "List previously generated content for this project. View content library with status, titles, and metrics.",
+            "name": "list_content",
+            "description": "List AI-generated and imported content for a project (drafts, scheduled, published articles). Use when user asks about their content, drafts, scheduled posts, or published articles.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -178,19 +178,126 @@ SEO_AGENT_TOOLS = [
                         "type": "string",
                         "description": "The project ID"
                     },
-                    "status_filter": {
+                    "status": {
                         "type": "string",
-                        "enum": ["all", "draft", "published"],
-                        "description": "Filter by status (default 'all')",
-                        "default": "all"
+                        "enum": ["draft", "scheduled", "published"],
+                        "description": "Filter by status (optional - returns all if not specified)"
                     },
                     "limit": {
                         "type": "integer",
-                        "description": "Number of items to return (default 10)",
-                        "default": 10
+                        "description": "Number of articles to return (default 50)",
+                        "default": 50
                     }
                 },
                 "required": ["project_id"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_content_details",
+            "description": "Get full details of a specific article/content piece. Use when user wants to read, review, or edit a specific article.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "content_id": {
+                        "type": "string",
+                        "description": "The ID of the content piece"
+                    }
+                },
+                "required": ["content_id"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "create_content",
+            "description": "Create and save a new SEO-optimized article. Use when user wants to generate new content.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "project_id": {
+                        "type": "string",
+                        "description": "The project ID"
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "Article title"
+                    },
+                    "content": {
+                        "type": "string",
+                        "description": "Full article content (HTML or markdown)"
+                    },
+                    "excerpt": {
+                        "type": "string",
+                        "description": "Short excerpt/summary (optional)"
+                    },
+                    "target_keywords": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Array of target keywords (optional)"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": ["draft", "scheduled", "published"],
+                        "description": "Content status (default 'draft')",
+                        "default": "draft"
+                    },
+                    "metadata": {
+                        "type": "object",
+                        "description": "Additional metadata like tone, style, etc (optional)"
+                    }
+                },
+                "required": ["project_id", "title", "content"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "update_content",
+            "description": "Update an existing article - change status, schedule publishing, or edit content. Use when user wants to publish, schedule, or update content.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "content_id": {
+                        "type": "string",
+                        "description": "The ID of the content to update"
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "Updated title (optional)"
+                    },
+                    "content": {
+                        "type": "string",
+                        "description": "Updated content body (optional)"
+                    },
+                    "excerpt": {
+                        "type": "string",
+                        "description": "Updated excerpt (optional)"
+                    },
+                    "target_keywords": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Updated keywords (optional)"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": ["draft", "scheduled", "published"],
+                        "description": "New status (optional)"
+                    },
+                    "published_at": {
+                        "type": "string",
+                        "description": "Schedule date for publishing in ISO format (optional)"
+                    },
+                    "published_url": {
+                        "type": "string",
+                        "description": "URL where content is published (optional)"
+                    }
+                },
+                "required": ["content_id"]
             }
         }
     },

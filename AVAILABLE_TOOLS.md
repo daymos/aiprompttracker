@@ -319,4 +319,115 @@ LLM: get_project_backlinks(project_id="abc-123-xyz")
 
 ---
 
-**The LLM now has 11 powerful, focused SEO tools at its disposal! 🎉**
+## 12. **list_content**
+Get AI-generated and imported content for a project (drafts, scheduled, published articles).
+
+**When to use:** User asks about their content, drafts, scheduled posts, published articles, or wants to review content performance
+
+**Parameters:**
+- `project_id` (required): The ID of the project
+- `status` (optional): Filter by status - "draft", "scheduled", "published" (default: all)
+- `limit` (optional): Number of articles to return (default: 50)
+
+**Returns:**
+- List of content with:
+  - Title, excerpt, content
+  - Target keywords
+  - SEO score, word count, readability score
+  - Status (draft/scheduled/published)
+  - Published date and URL
+  - Creation date and metadata
+
+**Example:**
+```
+User: "Show me my draft articles"
+LLM: list_content(project_id="abc-123", status="draft")
+
+User: "What content do I have scheduled?"
+LLM: list_content(project_id="abc-123", status="scheduled")
+
+User: "Show me all my published posts"
+LLM: list_content(project_id="abc-123", status="published")
+```
+
+---
+
+## 13. **get_content_details**
+Get full details of a specific article/content piece.
+
+**When to use:** User wants to read, review, or edit a specific article
+
+**Parameters:**
+- `content_id` (required): The ID of the content piece
+
+**Returns:**
+- Complete article details including full content body
+- All metadata, SEO metrics, and publishing info
+
+**Example:**
+```
+User: "Show me the full article about keyword research"
+LLM: get_content_details(content_id="content-123")
+```
+
+---
+
+## 14. **create_content**
+Generate and save a new SEO-optimized article.
+
+**When to use:** User wants to create/generate new content or articles
+
+**Parameters:**
+- `project_id` (required): The ID of the project
+- `title` (required): Article title
+- `content` (required): Full article content (HTML or markdown)
+- `excerpt` (optional): Short excerpt/summary
+- `target_keywords` (optional): Array of target keywords
+- `status` (optional): "draft", "scheduled", or "published" (default: "draft")
+- `metadata` (optional): Additional metadata (tone, style, etc.)
+
+**Returns:**
+- Success status
+- Created content ID
+- Confirmation message
+
+**Example:**
+```
+User: "Generate an article about SEO best practices"
+LLM: [generates content then] create_content(project_id="abc-123", title="SEO Best Practices 2024", content="...", target_keywords=["seo", "best practices"], status="draft")
+```
+
+---
+
+## 15. **update_content**
+Update an existing article (change status, schedule publishing, edit content).
+
+**When to use:** User wants to publish, schedule, update, or edit existing content
+
+**Parameters:**
+- `content_id` (required): The ID of the content to update
+- `title` (optional): Updated title
+- `content` (optional): Updated content body
+- `excerpt` (optional): Updated excerpt
+- `target_keywords` (optional): Updated keywords
+- `status` (optional): New status ("draft", "scheduled", "published")
+- `published_at` (optional): Schedule date for publishing (ISO format)
+- `published_url` (optional): URL where content is published
+
+**Returns:**
+- Success status
+- Updated content details
+- Confirmation message
+
+**Example:**
+```
+User: "Publish my draft article about keyword research"
+LLM: update_content(content_id="content-123", status="published")
+
+User: "Schedule this article for next Monday"
+LLM: update_content(content_id="content-123", status="scheduled", published_at="2024-01-15T09:00:00")
+```
+
+---
+
+**The LLM now has 15 powerful, focused SEO tools at its disposal! 🎉**
