@@ -102,7 +102,10 @@ class _SortableDataTableState extends State<SortableDataTable> {
       decoration: BoxDecoration(
         color: backgroundColor,
       ),
-      child: DataTable(
+      child: SingleChildScrollView(
+        child: SizedBox(
+          width: double.infinity,
+          child: DataTable(
           sortColumnIndex: _sortColumnIndex,
           sortAscending: _sortAscending,
           showCheckboxColumn: widget.showCheckboxes,
@@ -195,6 +198,8 @@ class _SortableDataTableState extends State<SortableDataTable> {
               }).toList(),
             );
           }).toList(),
+          ),
+        ),
       ),
     );
   }

@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/project_provider.dart';
 import '../../utils/backlink_filters.dart';
+import '../../widgets/sortable_data_table.dart';
 
 /// Tab for displaying and managing project backlinks
 class BacklinksTab extends StatefulWidget {
@@ -20,18 +21,17 @@ class BacklinksTab extends StatefulWidget {
 
 class _BacklinksTabState extends State<BacklinksTab> {
   String _backlinkSearchQuery = '';
-  String _backlinkFilter = 'all';
-  String _backlinkSortBy = 'rank';
-  bool _backlinkSortAscending = false;
 
-  List<Map<String, dynamic>> _filterAndSortBacklinks(List<Map<String, dynamic>> backlinks) {
-    return BacklinkFilters.filterAndSort(
-      backlinks,
-      searchQuery: _backlinkSearchQuery,
-      filter: _backlinkFilter,
-      sortBy: _backlinkSortBy,
-      sortAscending: _backlinkSortAscending,
-    );
+  List<Map<String, dynamic>> _filterBacklinks(List<Map<String, dynamic>> backlinks) {
+    if (_backlinkSearchQuery.isEmpty) return backlinks;
+    
+    return backlinks.where((backlink) {
+      final sourceUrl = (backlink['url_from'] as String?)?.toLowerCase() ?? '';
+      final anchor = (backlink['anchor'] as String?)?.toLowerCase() ?? '';
+      final query = _backlinkSearchQuery.toLowerCase();
+      
+      return sourceUrl.contains(query) || anchor.contains(query);
+    }).toList();
   }
 
   @override
@@ -69,7 +69,7 @@ class _BacklinksTabState extends State<BacklinksTab> {
 
     final data = projectProvider.backlinksData;
     final allBacklinks = (data?['backlinks'] as List?)?.cast<Map<String, dynamic>>() ?? [];
-    final filteredBacklinks = _filterAndSortBacklinks(allBacklinks);
+    final filteredBacklinks = _filterBacklinks(allBacklinks);
 
     if (allBacklinks.isEmpty) {
       return Center(
@@ -125,272 +125,250 @@ class _BacklinksTabState extends State<BacklinksTab> {
     
     return Column(
       children: [
-        // Search, Filter, and Sort Controls
-        Padding(
-          padding: const EdgeInsets.all(16.0),
+        // Header with description and search
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            border: Border(
+              bottom: BorderSide(
+                color: Theme.of(context).dividerColor,
+                width: 1,
+              ),
+            ),
+          ),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Search field
+              // Description text on the left
               Expanded(
-                flex: 2,
-                child: SizedBox(
-                  height: 32,
-                  child: TextField(
-                    style: const TextStyle(fontSize: 13),
-                    decoration: InputDecoration(
-                      hintText: 'Search backlinks...',
-                      hintStyle: const TextStyle(fontSize: 13),
-                      prefixIcon: const Icon(Icons.search, size: 16),
-                      suffixIcon: _backlinkSearchQuery.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear, size: 16),
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                              onPressed: () {
-                                setState(() => _backlinkSearchQuery = '');
-                              },
-                            )
-                          : null,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(6),
-                        borderSide: BorderSide(color: Theme.of(context).dividerColor),
+                child: Text(
+                  'Monitor the quality and authority of websites linking to your content',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                    height: 1.4,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 24),
+              // Search bar on the right
+              SizedBox(
+                width: 300,
+                child: TextField(
+                  style: const TextStyle(fontSize: 13),
+                  decoration: InputDecoration(
+                    hintText: 'Search backlinks...',
+                    hintStyle: TextStyle(
+                      fontSize: 13,
+                      color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5),
+                    ),
+                    prefixIcon: Icon(
+                      Icons.search,
+                      size: 18,
+                      color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5),
+                    ),
+                    suffixIcon: _backlinkSearchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 16),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () {
+                              setState(() => _backlinkSearchQuery = '');
+                            },
+                          )
+                        : null,
+                    isDense: true,
+                    filled: true,
+                    fillColor: Theme.of(context).brightness == Brightness.dark 
+                        ? Colors.grey[900] 
+                        : Colors.grey[50],
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey[800]!
+                            : Colors.grey[300]!,
                       ),
                     ),
-                    onChanged: (value) {
-                      setState(() => _backlinkSearchQuery = value);
-                    },
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey[800]!
+                            : Colors.grey[300]!,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF2196F3),
+                        width: 2,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              
-              // Filter chips
-              Wrap(
-                spacing: 4,
-                children: [
-                  ChoiceChip(
-                    label: const Text('All', style: TextStyle(fontSize: 12)),
-                    selected: _backlinkFilter == 'all',
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                    labelPadding: EdgeInsets.zero,
-                    visualDensity: VisualDensity.compact,
-                    onSelected: (selected) {
-                      if (selected) {
-                        setState(() => _backlinkFilter = 'all');
-                      }
-                    },
-                  ),
-                  const SizedBox(width: 2),
-                  ChoiceChip(
-                    label: const Text('Follow', style: TextStyle(fontSize: 12)),
-                    selected: _backlinkFilter == 'follow',
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                    labelPadding: EdgeInsets.zero,
-                    visualDensity: VisualDensity.compact,
-                    onSelected: (selected) {
-                      if (selected) {
-                        setState(() => _backlinkFilter = 'follow');
-                      }
-                    },
-                  ),
-                  const SizedBox(width: 2),
-                  ChoiceChip(
-                    label: const Text('Nofollow', style: TextStyle(fontSize: 12)),
-                    selected: _backlinkFilter == 'nofollow',
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                    labelPadding: EdgeInsets.zero,
-                    visualDensity: VisualDensity.compact,
-                    onSelected: (selected) {
-                      if (selected) {
-                        setState(() => _backlinkFilter = 'nofollow');
-                      }
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(width: 8),
-              
-              // Sort dropdown
-              Container(
-                height: 32,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Theme.of(context).dividerColor),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: DropdownButton<String>(
-                  value: _backlinkSortBy,
-                  underline: const SizedBox(),
-                  style: const TextStyle(fontSize: 13),
-                  isDense: true,
-                  items: const [
-                    DropdownMenuItem(value: 'rank', child: Text('Rank')),
-                    DropdownMenuItem(value: 'anchor', child: Text('Anchor')),
-                    DropdownMenuItem(value: 'source', child: Text('Source')),
-                  ],
                   onChanged: (value) {
-                    if (value != null) {
-                      setState(() => _backlinkSortBy = value);
-                    }
+                    setState(() => _backlinkSearchQuery = value);
                   },
                 ),
-              ),
-              const SizedBox(width: 4),
-              
-              // Sort direction
-              IconButton(
-                icon: Icon(
-                  _backlinkSortAscending ? Icons.arrow_upward : Icons.arrow_downward,
-                  size: 16,
-                ),
-                padding: const EdgeInsets.all(4),
-                constraints: const BoxConstraints(),
-                tooltip: _backlinkSortAscending ? 'Ascending' : 'Descending',
-                onPressed: () {
-                  setState(() => _backlinkSortAscending = !_backlinkSortAscending);
-                },
               ),
             ],
           ),
         ),
-
-        // Separator line
-        Divider(
-          height: 1,
-          thickness: 1,
-          color: Theme.of(context).dividerColor.withOpacity(0.3),
-        ),
-
-        // List of backlinks
+        // Backlinks table
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.only(left: 24.0, right: 24.0, top: 16.0),
-            itemCount: filteredBacklinks.length,
-            itemBuilder: (context, index) {
-              final backlink = filteredBacklinks[index];
-              final sourceUrl = backlink['url_from'] as String?;
-              final targetUrl = backlink['url_to'] as String?;
-              final anchorText = backlink['anchor'] as String?;
-              final inlinkRank = backlink['inlink_rank'] as num?;
-              final isNofollow = backlink['nofollow'] == true;
-
-              return InkWell(
-                onTap: () async {
-                  if (sourceUrl != null) {
-                    final uri = Uri.parse(sourceUrl);
-                    if (await canLaunchUrl(uri)) {
-                      await launchUrl(uri, mode: LaunchMode.externalApplication);
-                    }
-                  }
-                },
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: Theme.of(context).dividerColor.withOpacity(0.3),
-                      width: 1,
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-                    child: Row(
-                      children: [
-                        // Leading icon
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: isNofollow 
-                              ? Theme.of(context).colorScheme.surfaceVariant
-                              : Theme.of(context).colorScheme.primaryContainer,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            isNofollow ? Icons.link_off : Icons.link,
-                            color: isNofollow
-                              ? Theme.of(context).colorScheme.onSurfaceVariant
-                              : Theme.of(context).colorScheme.onPrimaryContainer,
-                            size: 18,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        
-                        // Main content
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      sourceUrl ?? 'Unknown source',
-                                      style: const TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w500,
-                                        decoration: TextDecoration.underline,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Icon(
-                                    Icons.open_in_new,
-                                    size: 14,
-                                    color: Colors.grey[600],
-                                  ),
-                                ],
-                              ),
-                              if (anchorText != null && anchorText.isNotEmpty) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Anchor: "$anchorText"',
-                                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                              if (inlinkRank != null) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Quality: ${inlinkRank.toStringAsFixed(0)}',
-                                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                        
-                        // Trailing badge
-                        if (isNofollow)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.surfaceVariant,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
+          child: SortableDataTable(
+              columns: [
+                TableColumn(
+                  key: 'url_from',
+                  label: 'Source URL',
+                  sortable: true,
+                  builder: (value, row) {
+                    final sourceUrl = value as String?;
+                    return Container(
+                      constraints: const BoxConstraints(maxWidth: 300),
+                      child: Row(
+                        children: [
+                          Expanded(
                             child: Text(
-                              'NOFOLLOW',
+                              sourceUrl ?? 'Unknown',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                fontSize: 10,
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                fontWeight: FontWeight.w500,
+                                fontSize: 13,
+                                color: Colors.blue[300],
+                                decoration: TextDecoration.underline,
                               ),
                             ),
                           ),
-                      ],
-                    ),
-                  ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.open_in_new,
+                            size: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
-              );
-            },
+                TableColumn(
+                  key: 'anchor',
+                  label: 'Anchor',
+                  sortable: true,
+                  tooltip: 'Anchor text used in the link',
+                  builder: (value, row) {
+                    final anchor = value as String?;
+                    if (anchor == null || anchor.isEmpty) {
+                      return Text(
+                        '--',
+                        style: TextStyle(color: Colors.grey[500]),
+                      );
+                    }
+                    return Container(
+                      constraints: const BoxConstraints(maxWidth: 200),
+                      child: Text(
+                        anchor,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                TableColumn(
+                  key: 'inlink_rank',
+                  label: 'Rank',
+                  numeric: true,
+                  sortable: true,
+                  tooltip: 'Link quality/authority score',
+                  builder: (value, row) {
+                    final rank = value as num?;
+                    if (rank == null) return const Text('--');
+                    final rankInt = rank.round();
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _getRankColor(rankInt).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        rankInt.toString(),
+                        style: TextStyle(
+                          color: _getRankColor(rankInt),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                TableColumn(
+                  key: 'nofollow',
+                  label: 'Status',
+                  sortable: true,
+                  tooltip: 'Link follow status',
+                  builder: (value, row) {
+                    final isNofollow = value == true;
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: isNofollow 
+                            ? Colors.orange.withOpacity(0.1)
+                            : Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: isNofollow ? Colors.orange : Colors.green,
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        isNofollow ? 'Nofollow' : 'Follow',
+                        style: TextStyle(
+                          color: isNofollow ? Colors.orange : Colors.green,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 11,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+              data: filteredBacklinks.map((backlink) {
+                return {
+                  'id': backlink['url_from'] ?? '',
+                  'url_from': backlink['url_from'],
+                  'anchor': backlink['anchor'],
+                  'inlink_rank': backlink['inlink_rank'],
+                  'nofollow': backlink['nofollow'] ?? false,
+                };
+              }).toList(),
+              emptyMessage: 'No backlinks found',
+              onRowTap: (row) async {
+                final sourceUrl = row['url_from'] as String?;
+                if (sourceUrl != null) {
+                  final uri = Uri.parse(sourceUrl);
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                }
+              },
           ),
         ),
       ],
     );
+  }
+
+  Color _getRankColor(int rank) {
+    if (rank >= 80) return Colors.green;
+    if (rank >= 60) return Colors.lightGreen;
+    if (rank >= 40) return Colors.orange;
+    if (rank >= 20) return Colors.deepOrange;
+    return Colors.red;
   }
 }
 
