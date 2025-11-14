@@ -2802,3 +2802,159 @@ async def list_generated_content(
         "total": len(content_list)
     }
 
+
+@router.post("/seo-agent/project/{project_id}/sync-cms-content")
+async def sync_cms_content(
+    project_id: str,
+    limit: int = 100,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """Sync existing WordPress posts to our database"""
+    token = authorization.replace("Bearer ", "")
+    user = get_current_user(token, db)
+    
+    # Verify project belongs to user
+    project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.user_id == user.id
+    ).first()
+    
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Get WordPress integration
+    from ..models.seo_agent import ProjectIntegration, GeneratedContent
+    integration = db.query(ProjectIntegration).filter(
+        ProjectIntegration.project_id == project_id,
+        ProjectIntegration.cms_type == "wordpress",
+        ProjectIntegration.is_active == True
+    ).first()
+    
+    if not integration:
+        return {
+            "success": False,
+            "error": "No active WordPress integration found for this project"
+        }
+    
+    try:
+        # Create CMS service
+        from ..services.cms_service import create_cms_service
+        cms_service = create_cms_service(
+            cms_type=integration.cms_type,
+            cms_url=integration.cms_url,
+            username=integration.username,
+            password=integration.encrypted_password  # In production, decrypt this
+        )
+        
+        if not cms_service:
+            return {"success": False, "error": "Failed to create CMS service"}
+        
+        # Fetch posts from WordPress
+        wp_posts = await cms_service.list_posts(limit=limit, offset=0)
+        
+        if not wp_posts:
+            return {
+                "success": True,
+                "message": "No posts found in WordPress",
+                "synced_count": 0,
+                "skipped_count": 0
+            }
+        
+        synced_count = 0
+        skipped_count = 0
+        updated_count = 0
+        
+        for wp_post in wp_posts:
+            wp_post_id = str(wp_post.get("id"))
+            
+            # Check if this post already exists in our database
+            existing = db.query(GeneratedContent).filter(
+                GeneratedContent.project_id == project_id,
+                GeneratedContent.cms_post_id == wp_post_id
+            ).first()
+            
+            # Extract content
+            title = wp_post.get("title", {}).get("rendered", "") if isinstance(wp_post.get("title"), dict) else wp_post.get("title", "")
+            content = wp_post.get("content", {}).get("rendered", "") if isinstance(wp_post.get("content"), dict) else wp_post.get("content", "")
+            excerpt = wp_post.get("excerpt", {}).get("rendered", "") if isinstance(wp_post.get("excerpt"), dict) else wp_post.get("excerpt", "")
+            
+            # Parse status
+            wp_status = wp_post.get("status", "publish")
+            status_map = {
+                "publish": "published",
+                "draft": "draft",
+                "future": "scheduled",
+                "pending": "draft",
+                "private": "published"
+            }
+            status = status_map.get(wp_status, "published")
+            
+            # Get published date
+            published_at = None
+            if wp_post.get("date"):
+                try:
+                    from datetime import datetime
+                    published_at = datetime.fromisoformat(wp_post["date"].replace("Z", "+00:00"))
+                except:
+                    pass
+            
+            # Get URL
+            published_url = wp_post.get("link", "")
+            
+            # Calculate word count
+            import re
+            word_count = len(re.findall(r'\w+', re.sub(r'<[^>]+>', '', content)))
+            
+            if existing:
+                # Update existing record
+                existing.title = title
+                existing.content = content
+                existing.excerpt = excerpt
+                existing.status = status
+                existing.published_at = published_at
+                existing.published_url = published_url
+                existing.word_count = word_count
+                updated_count += 1
+            else:
+                # Create new record
+                new_content = GeneratedContent(
+                    id=str(uuid.uuid4()),
+                    project_id=project_id,
+                    integration_id=integration.id,
+                    title=title,
+                    content=content,
+                    excerpt=excerpt,
+                    status=status,
+                    published_at=published_at,
+                    published_url=published_url,
+                    cms_post_id=wp_post_id,
+                    word_count=word_count,
+                    generation_metadata={
+                        "imported_from_cms": True,
+                        "import_date": datetime.utcnow().isoformat(),
+                        "original_wp_status": wp_status
+                    }
+                )
+                db.add(new_content)
+                synced_count += 1
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": f"Successfully synced {synced_count + updated_count} posts from WordPress",
+            "synced_count": synced_count,
+            "updated_count": updated_count,
+            "total_posts": len(wp_posts)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error syncing CMS content: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return {
+            "success": False,
+            "error": f"Failed to sync content: {str(e)}"
+        }
+

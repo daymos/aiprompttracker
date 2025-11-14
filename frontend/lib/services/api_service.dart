@@ -625,6 +625,19 @@ class ApiService {
       throw Exception('Failed to list content: ${response.body}');
     }
   }
+
+  Future<Map<String, dynamic>> syncCMSContent(String projectId, {int limit = 100}) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/chat/seo-agent/project/$projectId/sync-cms-content?limit=$limit'),
+      headers: _headers(),
+    );
+    
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to sync CMS content: ${response.body}');
+    }
+  }
 }
 
 
