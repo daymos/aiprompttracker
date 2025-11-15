@@ -1,0 +1,9 @@
+version: 2
+
+paths-ignore:
+  - backend/docker-compose.yml  # Local dev credentials only
+
+matches-ignore:
+  - name: docker-compose local credentials
+    match: keywordschat
+
