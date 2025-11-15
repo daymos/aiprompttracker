@@ -2,18 +2,15 @@ from pydantic_settings import BaseSettings
 from functools import lru_cache
 
 class Settings(BaseSettings):
-    # API Keys
-    RAPIDAPI_KEY: str = ""
-    GROQ_API_KEY: str = ""
-    
-    # DataForSEO API (for rank checking)
-    DATAFORSEO_LOGIN: str = ""
-    DATAFORSEO_PASSWORD: str = ""
+    # LLM Provider API Keys
+    OPENAI_API_KEY: str = "placeholder"  # Required for ChatGPT
+    GEMINI_API_KEY: str = "placeholder"  # Optional for Gemini
+    PERPLEXITY_API_KEY: str = "placeholder"  # Optional for Perplexity
     
     # Auth
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
-    JWT_EXPIRATION_MINUTES: int = 10080  # 1 week
+    JWT_EXPIRATION_MINUTES: int = 43200  # 30 days
     
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
@@ -26,7 +23,7 @@ class Settings(BaseSettings):
     API_V1_PREFIX: str = "/api/v1"
     
     # Feature Flags
-    WAITLIST_MODE: bool = False  # Set to True to disable app and show waitlist only
+    WAITLIST_MODE: bool = False
     
     class Config:
         env_file = ".env"

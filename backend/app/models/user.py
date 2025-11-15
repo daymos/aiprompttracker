@@ -12,20 +12,15 @@ class User(Base):
     provider = Column(String, nullable=False)  # 'google' or 'apple'
     is_subscribed = Column(Boolean, default=False)
     
-    # Backlink usage tracking (resets monthly) - tracks API requests, not rows
-    backlink_rows_used = Column(Integer, default=0)  # Actually tracks requests
-    backlink_rows_limit = Column(Integer, default=1000)  # Testing mode: 1000 requests/month
-    backlink_usage_reset_at = Column(DateTime(timezone=True), server_default=func.now())
-    
-    # Google Search Console integration
-    gsc_access_token = Column(String, nullable=True)  # OAuth access token
-    gsc_refresh_token = Column(String, nullable=True)  # OAuth refresh token
-    gsc_token_expires_at = Column(DateTime(timezone=True), nullable=True)
+    # Usage limits
+    projects_limit = Column(Integer, default=10)  # Max projects for free tier
+    scans_per_month = Column(Integer, default=3)  # Free tier: 3 scans/month
+    scans_used_this_month = Column(Integer, default=0)
+    usage_reset_at = Column(DateTime(timezone=True), server_default=func.now())
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
-    conversations = relationship("Conversation", back_populates="user")
-    projects = relationship("Project", back_populates="user")
-    technical_audits = relationship("TechnicalAudit", back_populates="user")
+    # Relationships
+    projects = relationship("Project", back_populates="user", cascade="all, delete-orphan")
 
