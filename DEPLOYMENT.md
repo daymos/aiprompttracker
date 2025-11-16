@@ -83,7 +83,7 @@ Store secrets in **Google Cloud Secret Manager**:
 ```bash
 # Database URL
 echo -n "postgresql://user:pass@host:5432/dbname" | \
-  gcloud secrets create keywordschat-db-url --data-file=-
+  gcloud secrets create aiprompttracker-db-url --data-file=-
 
 # RapidAPI Key
 echo -n "your-rapidapi-key" | \
@@ -105,7 +105,7 @@ echo -n "your-google-client-secret" | \
   gcloud secrets create google-client-secret --data-file=-
 
 # Grant Cloud Run access to secrets
-for secret in keywordschat-db-url rapidapi-key groq-api-key jwt-secret google-client-id google-client-secret; do
+for secret in aiprompttracker-db-url rapidapi-key groq-api-key jwt-secret google-client-id google-client-secret; do
   gcloud secrets add-iam-policy-binding $secret \
     --member="serviceAccount:github-actions@$PROJECT_ID.iam.gserviceaccount.com" \
     --role="roles/secretmanager.secretAccessor"
@@ -144,7 +144,7 @@ cd ..
 
 # 2. Build and push Docker image
 PROJECT_ID="your-project-id"
-SERVICE_NAME="keywordschat-api"
+SERVICE_NAME="aiprompttracker-api"
 
 docker build -f backend/Dockerfile -t gcr.io/$PROJECT_ID/$SERVICE_NAME:latest .
 docker push gcr.io/$PROJECT_ID/$SERVICE_NAME:latest
@@ -156,7 +156,7 @@ gcloud run deploy $SERVICE_NAME \
   --region us-central1 \
   --allow-unauthenticated \
   --set-env-vars="ENVIRONMENT=production" \
-  --set-secrets="DATABASE_URL=keywordschat-db-url:latest,RAPIDAPI_KEY=rapidapi-key:latest,GROQ_API_KEY=groq-api-key:latest,JWT_SECRET_KEY=jwt-secret:latest,GOOGLE_CLIENT_ID=google-client-id:latest,GOOGLE_CLIENT_SECRET=google-client-secret:latest"
+  --set-secrets="DATABASE_URL=aiprompttracker-db-url:latest,RAPIDAPI_KEY=rapidapi-key:latest,GROQ_API_KEY=groq-api-key:latest,JWT_SECRET_KEY=jwt-secret:latest,GOOGLE_CLIENT_ID=google-client-id:latest,GOOGLE_CLIENT_SECRET=google-client-secret:latest"
 ```
 
 ---
@@ -168,7 +168,7 @@ gcloud run deploy $SERVICE_NAME \
 ```bash
 # Map your domain
 gcloud run domain-mappings create \
-  --service=keywordschat-api \
+  --service=aiprompttracker-api \
   --domain=keywords.chat \
   --region=us-central1
 ```
@@ -204,10 +204,10 @@ gcloud run domain-mappings describe \
 
 ```bash
 # Stream logs
-gcloud run services logs tail keywordschat-api --region=us-central1
+gcloud run services logs tail aiprompttracker-api --region=us-central1
 
 # View in console
-# https://console.cloud.google.com/run/detail/us-central1/keywordschat-api/logs
+# https://console.cloud.google.com/run/detail/us-central1/aiprompttracker-api/logs
 ```
 
 ### Metrics
@@ -233,7 +233,7 @@ Set in Cloud Run via `--set-secrets`:
 
 | Secret Reference | Cloud Secret Name | Description |
 |------------------|-------------------|-------------|
-| `DATABASE_URL` | `keywordschat-db-url` | PostgreSQL connection |
+| `DATABASE_URL` | `aiprompttracker-db-url` | PostgreSQL connection |
 | `RAPIDAPI_KEY` | `rapidapi-key` | RapidAPI key |
 | `GROQ_API_KEY` | `groq-api-key` | Groq LLM key |
 | `JWT_SECRET_KEY` | `jwt-secret` | JWT signing |
@@ -263,7 +263,7 @@ curl http://localhost:8000/api/v1/health    # API health check
 
 ```bash
 # Get Cloud Run URL
-CLOUD_RUN_URL=$(gcloud run services describe keywordschat-api \
+CLOUD_RUN_URL=$(gcloud run services describe aiprompttracker-api \
   --region=us-central1 \
   --format='value(status.url)')
 
@@ -285,11 +285,11 @@ curl $CLOUD_RUN_URL/api/v1/health
 
 ```bash
 # List revisions
-gcloud run revisions list --service=keywordschat-api --region=us-central1
+gcloud run revisions list --service=aiprompttracker-api --region=us-central1
 
 # Rollback to specific revision
-gcloud run services update-traffic keywordschat-api \
-  --to-revisions=keywordschat-api-00042-abc=100 \
+gcloud run services update-traffic aiprompttracker-api \
+  --to-revisions=aiprompttracker-api-00042-abc=100 \
   --region=us-central1
 ```
 
@@ -325,7 +325,7 @@ If you need guaranteed zero cold starts:
 
 ```bash
 # Set minimum instances (costs ~$15-30/month extra)
-gcloud run services update keywordschat-api \
+gcloud run services update aiprompttracker-api \
   --min-instances=1 \
   --region=europe-west1
 ```
@@ -368,24 +368,24 @@ gcloud run services update keywordschat-api \
 
 **Check Cloud Run logs**:
 ```bash
-gcloud run services logs tail keywordschat-api --region=us-central1
+gcloud run services logs tail aiprompttracker-api --region=us-central1
 ```
 
 **Check if service is running**:
 ```bash
-gcloud run services describe keywordschat-api --region=us-central1
+gcloud run services describe aiprompttracker-api --region=us-central1
 ```
 
 ### Issue: Database Connection Fails
 
 **Verify DATABASE_URL secret**:
 ```bash
-gcloud secrets versions access latest --secret=keywordschat-db-url
+gcloud secrets versions access latest --secret=aiprompttracker-db-url
 ```
 
 **Check Cloud Run has access**:
 ```bash
-gcloud secrets get-iam-policy keywordschat-db-url
+gcloud secrets get-iam-policy aiprompttracker-db-url
 ```
 
 ---

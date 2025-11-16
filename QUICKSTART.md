@@ -20,7 +20,7 @@ cp .env.example .env
 Edit `.env` and add your keys:
 ```bash
 # Required
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/app_db
+DATABASE_URL=postgresql://aiprompttracker:aiprompttracker@localhost:5432/aiprompttracker
 JWT_SECRET_KEY=<run: openssl rand -hex 32>
 OPENAI_API_KEY=<your-openai-api-key>
 GOOGLE_CLIENT_ID=<your-google-oauth-client-id>

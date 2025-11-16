@@ -183,7 +183,7 @@ CREATE TABLE users (
 
 ```bash
 # Database
-DATABASE_URL=postgresql://user:pass@host:5432/dbname
+DATABASE_URL=postgresql://aiprompttracker:aiprompttracker@localhost:5432/aiprompttracker
 
 # JWT
 JWT_SECRET_KEY=<generate-with-openssl-rand-hex-32>

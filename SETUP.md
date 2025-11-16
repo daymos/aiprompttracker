@@ -52,7 +52,7 @@ GROQ_API_KEY=your_groq_key
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_secret
 JWT_SECRET_KEY=generate_random_string_here
-DATABASE_URL=postgresql://keywordschat:keywordschat@localhost:5432/keywordschat
+DATABASE_URL=postgresql://aiprompttracker:aiprompttracker@localhost:5432/aiprompttracker
 ```
 
 6. Start database:
@@ -111,7 +111,7 @@ Frontend should open at http://localhost:XXXXX
    - `jwt-secret`
    - `google-client-id`
    - `google-client-secret`
-   - `keywordschat-db-url`
+   - `aiprompttracker-db-url`
 
 5. Add GitHub secrets:
    - `GCP_PROJECT_ID`

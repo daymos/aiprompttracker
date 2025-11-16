@@ -150,7 +150,7 @@ See `DEPLOYMENT.md` for manual deployment instructions.
    - Backend API (Python/FastAPI)
    - Landing page (static HTML)
    - Flutter web build
-7. **Push image to GCR** (`gcr.io/PROJECT_ID/keywordschat-api`)
+7. **Push image to GCR** (`gcr.io/PROJECT_ID/aiprompttracker-api`)
 8. **Deploy to Cloud Run**
    - Load secrets from Secret Manager
    - Set environment variables
@@ -195,10 +195,10 @@ After deployment, verify:
 
 ```bash
 # Check Cloud Run logs
-gcloud run services logs tail keywordschat-api --region=us-central1
+gcloud run services logs tail aiprompttracker-api --region=us-central1
 
 # Check service status
-gcloud run services describe keywordschat-api --region=us-central1
+gcloud run services describe aiprompttracker-api --region=us-central1
 ```
 
 ---
@@ -264,7 +264,7 @@ COPY backend/ .
 ### Monitor Deployments:
 ```bash
 # Watch deployment in real-time
-gcloud run services logs tail keywordschat-api --region=us-central1
+gcloud run services logs tail aiprompttracker-api --region=us-central1
 ```
 
 ---

@@ -4,9 +4,9 @@ services:
   db:
     image: postgres:15
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-keywordschat}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-keywordschat}
-      POSTGRES_DB: ${POSTGRES_DB:-keywordschat}
+      POSTGRES_USER: ${POSTGRES_USER:-aiprompttracker}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aiprompttracker}
+      POSTGRES_DB: ${POSTGRES_DB:-aiprompttracker}
     ports:
       - "5432:5432"
     volumes:
@@ -17,7 +17,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgresql://keywordschat:keywordschat@db:5432/keywordschat}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://aiprompttracker:aiprompttracker@db:5432/aiprompttracker}
     env_file:
       - .env
     depends_on:

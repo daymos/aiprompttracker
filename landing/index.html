@@ -3,1209 +3,839 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Keywords.chat - Simple SEO Tool | Easy Keyword Research for Beginners</title>
-    <meta name="description" content="The simplest SEO tool for indie hackers and beginners. Chat-based keyword research, rank tracking & SERP analysis. No complex dashboard, no bloat. Just ask questions and get answers. Starting at $59/month.">
-    <meta name="keywords" content="simple seo tool, easy seo software, seo tools for beginners, beginner friendly seo, chat-based seo tool, easy keyword research, simple keyword tool, ahrefs alternative, affordable seo tool, seo tool without dashboard">
-    <meta property="og:title" content="Keywords.chat - Chat-Based SEO Tool | Affordable Ahrefs Alternative">
-    <meta property="og:description" content="Chat-based SEO tool without dashboard bloat. Keyword research, SERP analysis & rank tracking for $29/month. Affordable alternative to Ahrefs & SEMrush.">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://keywords.chat">
-    <meta property="og:image" content="https://keywords.chat/og-image.png">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Keywords.chat - Chat-Based SEO Tool">
-    <meta name="twitter:description" content="Affordable chat-based SEO tool starting at $29/month. No complex dashboards, just natural conversations.">
-    <meta name="twitter:image" content="https://keywords.chat/og-image.png">
-    <link rel="canonical" href="https://keywords.chat">
-    
-    <!-- Favicon -->
+    <title>AI Prompt Tracker - Monitor Your Brand Across ChatGPT, Gemini & More</title>
+    <meta name="description" content="Track how AI models like ChatGPT, Gemini, and Perplexity mention your brand. Get visibility scores, competitive analysis, and automated monitoring.">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="shortcut icon" href="/favicon.ico">
-    <link rel="manifest" href="/site.webmanifest">
-    
-    <!-- Google Site Verification -->
-    <meta name="google-site-verification" content="8j_KhmyEn5QDN2jhiWO2BEr3xebBj49IAFWV-dTzfu4" />
-    
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-11PY1QFBK5"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-11PY1QFBK5');
-    </script>
-    
-    <!-- Structured Data (JSON-LD) for SEO -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": "Keywords.chat",
-      "applicationCategory": "BusinessApplication",
-      "operatingSystem": "Web",
-      "offers": {
-        "@type": "Offer",
-        "price": "59",
-        "priceCurrency": "USD",
-        "priceValidUntil": "2026-12-31",
-        "availability": "https://schema.org/PreOrder"
-      },
-      "description": "Simple, easy-to-use SEO tool for beginners and indie hackers. Chat-based keyword research, SERP analysis, and rank tracking. No complex dashboard required.",
-      "url": "https://keywords.chat",
-      "screenshot": "https://keywords.chat/og-image.png",
-      "featureList": [
-        "Keyword Research with Search Volume",
-        "SERP Analysis",
-        "Rank Tracking",
-        "Website SEO Audits",
-        "Backlink Analysis",
-        "Conversational AI Interface"
-      ],
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.8",
-        "reviewCount": "127"
-      }
-    }
-    </script>
-    
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "Organization",
-      "name": "Keywords.chat",
-      "url": "https://keywords.chat",
-      "logo": "https://keywords.chat/logo.png",
-      "sameAs": [
-        "https://twitter.com/keywordschat",
-        "https://github.com/keywordschat"
-      ],
-      "contactPoint": {
-        "@type": "ContactPoint",
-        "contactType": "Customer Support",
-        "email": "support@keywords.chat"
-      }
-    }
-    </script>
-    
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      "mainEntity": [
-        {
-          "@type": "Question",
-          "name": "Is Keywords.chat really an alternative to Ahrefs?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Yes! Keywords.chat provides all the core SEO tools you need: keyword research, SERP analysis, rank tracking, and backlink analysis. The difference? We use a chat-based interface that's faster and easier to use, without the complex dashboard bloat."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "What makes Keywords.chat different from other SEO tools?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "We're the first truly chat-based SEO tool. Instead of navigating complex menus and dashboards, you simply chat with our AI assistant in natural language."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "How much does Keywords.chat cost compared to Ahrefs?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Keywords.chat is $59/month vs Ahrefs at $129/month. That's a savings of $840 per year while still getting all the essential SEO tools you need."
-          }
-        }
-      ]
-    }
-    </script>
-    
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background-color: #1f2430;
-            color: #cbccc6;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             line-height: 1.6;
-            overflow-x: hidden;
+            color: #e5e7eb;
+            background: #0a0a0a;
         }
-        
-        /* Decorative Background Pattern */
-        .bg-pattern {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            opacity: 0.03;
-            background-image: 
-                linear-gradient(30deg, #ffd580 12%, transparent 12.5%, transparent 87%, #ffd580 87.5%, #ffd580),
-                linear-gradient(150deg, #ffd580 12%, transparent 12.5%, transparent 87%, #ffd580 87.5%, #ffd580),
-                linear-gradient(30deg, #ffd580 12%, transparent 12.5%, transparent 87%, #ffd580 87.5%, #ffd580),
-                linear-gradient(150deg, #ffd580 12%, transparent 12.5%, transparent 87%, #ffd580 87.5%, #ffd580);
-            background-size: 80px 140px;
-            background-position: 0 0, 0 0, 40px 70px, 40px 70px;
-            pointer-events: none;
-            z-index: 0;
-        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
         
         /* Header */
         header {
-            position: fixed;
+            padding: 20px 0;
+            border-bottom: 1px solid #1f2937;
+            position: sticky;
             top: 0;
-            left: 0;
-            right: 0;
-            padding: 1rem 2rem;
-            background: rgba(31, 36, 48, 0.95);
+            background: rgba(10,10,10,0.95);
             backdrop-filter: blur(10px);
-            border-bottom: 1px solid #2d3544;
-            z-index: 1000;
+            z-index: 100;
+        }
+        header .container {
+            display: grid;
+            grid-template-columns: 200px 1fr 200px;
+            align-items: center;
+            gap: 20px;
+        }
+        .logo { font-size: 20px; font-weight: 700; color: #10b981; }
+        nav {
+            display: flex;
+            gap: 50px;
+            align-items: center;
+            justify-content: center;
+        }
+        nav a {
+            text-decoration: none;
+            color: #9ca3af;
+            font-weight: 500;
+            transition: color 0.2s;
+            font-size: 15px;
+        }
+        nav a:hover { color: #10b981; }
+        .header-right {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 20px;
+        }
+        .btn-login {
+            padding: 10px 20px;
+            background: transparent;
+            border-radius: 8px;
+            color: #e5e7eb;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-login:hover {
+            background: #1f2937;
+        }
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #10b981;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: white;
         }
         
-        .header-content {
-            max-width: 1400px;
+        /* Hero */
+        .hero {
+            padding: 80px 0 60px;
+            text-align: center;
+        }
+        .hero-badge {
+            color: #9ca3af;
+            font-size: 14px;
+            font-style: italic;
+            margin-bottom: 20px;
+        }
+        .sample-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 16px;
+            background: #1f2937;
+            padding: 16px 24px;
+            border-radius: 12px;
+            margin-bottom: 40px;
+            border: 1px solid #374151;
+        }
+        .badge-score {
+            font-size: 36px;
+            font-weight: 800;
+            color: #10b981;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 3px solid #10b981;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .badge-text {
+            text-align: left;
+        }
+        .badge-domain {
+            font-weight: 600;
+            color: #f3f4f6;
+            font-size: 16px;
+        }
+        .badge-label {
+            font-size: 11px;
+            color: #9ca3af;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+        h1 {
+            font-size: 64px;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 20px;
+            color: #f9fafb;
+        }
+        .highlight-text {
+            background: linear-gradient(90deg, #ef4444 0%, #f59e0b 50%, #10b981 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            position: relative;
+            display: inline-block;
+        }
+        .subtitle {
+            font-size: 18px;
+            color: #9ca3af;
+            margin-bottom: 50px;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.6;
+        }
+        .input-wrapper {
+            max-width: 700px;
+            margin: 0 auto 40px;
+        }
+        .input-label {
+            text-align: left;
+            color: #9ca3af;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .cta-input {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            background: #1f2937;
+            padding: 6px;
+            border-radius: 12px;
+            border: 1px solid #374151;
+        }
+        .globe-icon {
+            font-size: 20px;
+            padding: 0 10px;
+        }
+        .cta-input input {
+            flex: 1;
+            padding: 14px 8px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            background: transparent;
+            color: #e5e7eb;
+        }
+        .cta-input input:focus {
+            outline: none;
+        }
+        .cta-input input::placeholder {
+            color: #6b7280;
+        }
+        .btn-primary {
+            padding: 14px 32px;
+            background: #f3f4f6;
+            color: #0a0a0a;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .btn-primary:hover {
+            background: #e5e7eb;
+            transform: translateY(-1px);
+        }
+        .trusted {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            color: #9ca3af;
+            font-size: 14px;
+        }
+        .trusted strong {
+            color: #f3f4f6;
+        }
+        .trusted-avatars {
+            display: flex;
+            align-items: center;
+        }
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #1f2937;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: -8px;
+            border: 2px solid #0a0a0a;
+            font-size: 18px;
+        }
+        .avatar:first-child {
+            margin-left: 0;
+        }
+        
+        /* Features Section */
+        .features-section {
+            padding: 80px 0;
+            text-align: center;
+        }
+        .features-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            border: 1px solid #10b981;
+            border-radius: 50px;
+            color: #10b981;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            margin-bottom: 30px;
+        }
+        .features-title {
+            font-size: 54px;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 20px;
+            color: #f9fafb;
+        }
+        .highlight-green {
+            color: #10b981;
+        }
+        .features-subtitle {
+            font-size: 18px;
+            color: #9ca3af;
+            margin-bottom: 60px;
+        }
+        .screenshot-mockup {
+            max-width: 900px;
             margin: 0 auto;
+            background: #111111;
+            border-radius: 16px;
+            border: 1px solid #1f2937;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        .mockup-header {
+            background: #1a1a1a;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid #1f2937;
+        }
+        .mockup-dots {
+            display: flex;
+            gap: 6px;
+        }
+        .mockup-dots span {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #374151;
+        }
+        .mockup-dots span:nth-child(1) { background: #ef4444; }
+        .mockup-dots span:nth-child(2) { background: #f59e0b; }
+        .mockup-dots span:nth-child(3) { background: #10b981; }
+        .mockup-title {
+            color: #9ca3af;
+            font-size: 14px;
+        }
+        .mockup-content {
+            padding: 30px;
+        }
+        .mockup-table {
+            width: 100%;
+        }
+        .table-header {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+            gap: 16px;
+            padding: 12px 16px;
+            background: #1a1a1a;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .th {
+            font-size: 12px;
+            font-weight: 600;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .table-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+            gap: 16px;
+            padding: 16px;
+            border-bottom: 1px solid #1f2937;
+            transition: background 0.2s;
+        }
+        .table-row:hover {
+            background: #1a1a1a;
+        }
+        .td {
+            display: flex;
+            align-items: center;
+            color: #e5e7eb;
+            font-size: 14px;
+        }
+        .td.keyword {
+            color: #f3f4f6;
+            font-weight: 500;
+        }
+        .score {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 13px;
+        }
+        .score.high {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+        .score.medium {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+        .score.low {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+        
+        /* Feature Description */
+        .feature-description {
+            margin-top: 30px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .feature-description h3 {
+            font-size: 24px;
+            color: #f3f4f6;
+            margin-bottom: 12px;
+        }
+        .feature-description p {
+            color: #9ca3af;
+            line-height: 1.6;
+        }
+        
+        /* Tracking Timeline */
+        .tracking-timeline {
+            padding: 20px 0;
+        }
+        .timeline-item {
+            margin-bottom: 24px;
+        }
+        .timeline-date {
+            font-size: 12px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            text-align: left;
+        }
+        .timeline-card {
+            background: #1a1a1a;
+            border: 1px solid #1f2937;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: left;
+        }
+        .timeline-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-bottom: 8px;
         }
-        
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            text-decoration: none;
-        }
-        
-        .logo-k {
-            width: 40px;
-            height: 40px;
-            color: #ffd580;
-            fill: #ffd580;
-        }
-        
-        .logo-k:hover {
-            color: #ffde99;
-            fill: #ffde99;
-            transition: all 0.2s;
-        }
-        
-        .logo-text {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: #cbccc6;
-        }
-        
-        .logo-text .highlight {
-            color: #ffd580;
-        }
-        
-        .header-cta {
-            background: linear-gradient(135deg, #ffd580 0%, #ffb347 100%);
-            color: #1f2430;
-            padding: 0.6rem 1.5rem;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 0.95rem;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        
-        .header-cta:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(255, 213, 128, 0.3);
-        }
-        
-        /* Hero Split Layout */
-        .hero-split {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            min-height: 100vh;
-            padding-top: 70px;
-        }
-        
-        /* Left Side - Marketing Copy */
-        .hero-left {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            padding: 4rem 3rem 4rem 6rem;
-            background: #1f2430;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .hero-content {
-            max-width: 550px;
-            margin: 0 auto;
-            position: relative;
-            z-index: 1;
-        }
-        
-        .hero-badge {
-            display: inline-block;
-            padding: 0.4rem 1rem;
-            background: rgba(255, 213, 128, 0.1);
-            border: 1px solid rgba(255, 213, 128, 0.3);
-            border-radius: 20px;
-            color: #ffd580;
-            font-size: 0.85rem;
-            font-weight: 600;
-            margin-bottom: 2rem;
-        }
-        
-        .hero-title {
-            font-size: 3.2rem;
-            font-weight: 700;
-            line-height: 1.1;
-            margin-bottom: 1.5rem;
-            color: #cbccc6;
-        }
-        
-        .hero-title .highlight {
-            background: linear-gradient(135deg, #ffd580 0%, #5ccfe6 50%, #d4bfff 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        
-        .hero-subtitle {
-            font-size: 1.3rem;
-            color: #a6a9b0;
-            margin-bottom: 2rem;
-            line-height: 1.6;
-        }
-        
-        .hero-features {
-            list-style: none;
-            margin-bottom: 2.5rem;
-        }
-        
-        .hero-features li {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.5rem 0;
-            color: #cbccc6;
-            font-size: 1.05rem;
-        }
-        
-        .hero-features li::before {
-            content: '✓';
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 24px;
-            height: 24px;
-            background: rgba(255, 213, 128, 0.15);
-            border-radius: 50%;
-            color: #ffd580;
-            font-weight: bold;
-            flex-shrink: 0;
-        }
-        
-        .hero-cta-group {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-        }
-        
-        .primary-button {
-            display: inline-block;
-            background: linear-gradient(135deg, #ffd580 0%, #ffb347 100%);
-            color: #1f2430;
-            padding: 1rem 2rem;
-            border-radius: 12px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 1.1rem;
-            transition: transform 0.2s, box-shadow 0.2s;
-            box-shadow: 0 4px 12px rgba(255, 213, 128, 0.3);
-        }
-        
-        .primary-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(255, 213, 128, 0.4);
-        }
-        
-        .secondary-button {
-            display: inline-block;
-            color: #cbccc6;
-            padding: 1rem 2rem;
-            border: 1px solid rgba(203, 204, 198, 0.3);
-            border-radius: 12px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 1.1rem;
-            transition: all 0.2s;
-        }
-        
-        .secondary-button:hover {
-            border-color: #ffd580;
-            color: #ffd580;
-        }
-        
-        /* Right Side - Carousel */
-        .hero-right {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 4rem 4rem 4rem 3rem;
-            background: linear-gradient(135deg, #242936 0%, #1f2430 100%);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .hero-right::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -50%;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle, rgba(255, 213, 128, 0.05) 0%, transparent 70%);
-            animation: pulse 8s ease-in-out infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 0.3; transform: scale(1); }
-            50% { opacity: 0.6; transform: scale(1.1); }
-        }
-        
-        .carousel-container {
-            width: 100%;
-            max-width: 650px;
-            position: relative;
-            z-index: 1;
-        }
-        
-        .carousel-slides {
-            position: relative;
-            width: 100%;
-            height: 500px;
-            overflow: hidden;
-            border-radius: 16px;
-            background: #1f2430;
-            border: 1px solid #2d3544;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-        }
-        
-        .carousel-slide {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            transition: opacity 0.5s ease-in-out;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .carousel-slide.active {
-            opacity: 1;
-        }
-        
-        .carousel-slide img {
-            width: 100%;
-            height: auto;
-            display: block;
-            border-radius: 16px;
-        }
-        
-        /* Slide 1: Welcome Screen */
-        .slide-welcome {
-            text-align: center;
-            padding: 3rem 2rem;
-        }
-        
-        .slide-welcome h2 {
-            font-size: 2rem;
-            margin-bottom: 1rem;
-            color: #cbccc6;
-        }
-        
-        .slide-welcome .keywords {
-            background: linear-gradient(135deg, #ffd580 0%, #5ccfe6 50%, #d4bfff 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        
-        .slide-welcome p {
-            font-size: 1rem;
-            color: #a6a9b0;
-            margin-bottom: 2rem;
-        }
-        
-        .suggestions-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.75rem;
-            margin-bottom: 2rem;
-        }
-        
-        .suggestion-item {
-            padding: 0.75rem;
-            background: transparent;
-            border: 1px solid rgba(203, 204, 198, 0.3);
-            border-radius: 12px;
-            color: #a6a9b0;
-            font-size: 0.85rem;
-            text-align: center;
-        }
-        
-        .input-box-preview {
-            padding: 0.75rem;
-            background: #242936;
-            border: 1px solid rgba(203, 204, 198, 0.3);
-            border-radius: 12px;
-            color: #6b7280;
-            font-size: 0.9rem;
-            text-align: center;
-        }
-        
-        /* Slide 2-4: Chat Examples */
-        .slide-chat {
-            padding: 1.5rem;
-        }
-        
-        .chat-message {
-            margin-bottom: 1.5rem;
-        }
-        
-        .user-message {
-            text-align: right;
-        }
-        
-        .user-message .message-bubble {
-            display: inline-block;
-            background: rgba(255, 213, 128, 0.15);
-            border: 1px solid rgba(255, 213, 128, 0.3);
-            padding: 0.75rem 1rem;
-            border-radius: 12px 12px 4px 12px;
-            color: #cbccc6;
-            max-width: 80%;
-        }
-        
-        .ai-message {
-            display: flex;
-            gap: 0.75rem;
-        }
-        
-        .ai-avatar {
-            width: 32px;
-            height: 32px;
-            background: linear-gradient(135deg, #ffd580 0%, #ffb347 100%);
-            border-radius: 50%;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            color: #1f2430;
-        }
-        
-        .ai-message .message-bubble {
-            background: #242936;
-            border: 1px solid #2d3544;
-            padding: 0.75rem 1rem;
-            border-radius: 12px 12px 12px 4px;
-            color: #cbccc6;
-            flex: 1;
-        }
-        
-        .message-bubble pre {
-            margin-top: 0.75rem;
-            padding: 0.75rem;
-            background: rgba(255, 213, 128, 0.05);
-            border: 1px solid rgba(255, 213, 128, 0.2);
-            border-radius: 8px;
-            overflow-x: auto;
-            font-family: 'Courier New', monospace;
-            font-size: 0.75rem;
-            line-height: 1.4;
-            color: #a6a9b0;
-        }
-        
-        /* Carousel Dots */
-        .carousel-dots {
-            display: flex;
-            justify-content: center;
-            gap: 0.5rem;
-            margin-top: 1.5rem;
-        }
-        
-        .dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: rgba(203, 204, 198, 0.3);
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .dot.active {
-            background: #ffd580;
-            width: 24px;
+        .timeline-status {
+            font-size: 12px;
+            padding: 4px 10px;
             border-radius: 4px;
+            font-weight: 500;
+        }
+        .timeline-status.success {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+        .timeline-time {
+            font-size: 12px;
+            color: #6b7280;
+        }
+        .timeline-text {
+            color: #e5e7eb;
+            margin-bottom: 8px;
+        }
+        .timeline-change {
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .timeline-change.positive {
+            color: #10b981;
+        }
+        .timeline-change.negative {
+            color: #ef4444;
+        }
+        .timeline-change.neutral {
+            color: #9ca3af;
         }
         
-        /* Typing Animation */
-        .typing-text {
-            overflow: hidden;
-            white-space: nowrap;
-            animation: typing 1.4s steps(40) 0.35s forwards;
-            opacity: 0;
+        /* CTA Button */
+        .btn-cta {
+            margin-top: 60px;
+            padding: 16px 40px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-cta:hover {
+            background: #059669;
+            transform: translateY(-2px);
         }
         
-        .typing-text.visible {
-            opacity: 1;
+        /* Pricing */
+        .pricing {
+            padding: 80px 0;
+            background: #0a0a0a;
         }
-        
-        @keyframes typing {
-            from { width: 0; }
-            to { width: 100%; }
-        }
-        
-        .typing-table {
-            opacity: 0;
-            animation: fadeIn 0.35s 1.75s forwards;
-        }
-        
-        @keyframes fadeIn {
-            to { opacity: 1; }
-        }
-        
-        .cursor {
-            display: inline-block;
-            width: 2px;
-            height: 1em;
-            background: #ffd580;
-            margin-left: 2px;
-            animation: blink 1s infinite;
-        }
-        
-        @keyframes blink {
-            0%, 50% { opacity: 1; }
-            51%, 100% { opacity: 0; }
-        }
-        
-        /* Sections Below */
-        .content-section {
-            max-width: 1200px;
-            margin: 4rem auto;
-            padding: 0 2rem;
-        }
-        
-        .section-title {
-            text-align: center;
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-            color: #cbccc6;
-        }
-        
-        .section-subtitle {
-            text-align: center;
-            color: #a6a9b0;
-            font-size: 1.2rem;
-            margin-bottom: 3rem;
-        }
-        
-        .features-grid {
+        .pricing-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-        }
-        
-        .feature-card {
-            background: #242936;
-            padding: 2rem;
-            border-radius: 12px;
-            border: 1px solid #2d3544;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        
-        .feature-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-        }
-        
-        .feature-card h3 {
-            color: #ffd580;
-            font-size: 1.3rem;
-            margin-bottom: 0.75rem;
-        }
-        
-        .feature-card p {
-            color: #a6a9b0;
-            line-height: 1.6;
-        }
-        
-        /* Waitlist Section */
-        .waitlist-section {
-            max-width: 600px;
-            margin: 4rem auto;
-            padding: 3rem 2rem;
-            background: #242936;
-            border-radius: 16px;
-            border: 1px solid #2d3544;
-            text-align: center;
-        }
-        
-        .waitlist-section h2 {
-            font-size: 2rem;
-            margin-bottom: 1rem;
-            color: #cbccc6;
-        }
-        
-        .waitlist-section p {
-            color: #a6a9b0;
-            margin-bottom: 2rem;
-        }
-        
-        .waitlist-form .form-group {
-            display: flex;
-            gap: 0.75rem;
-            margin-bottom: 1rem;
-        }
-        
-        .email-input {
-            flex: 1;
-            padding: 1rem;
-            background: #1f2430;
-            border: 1px solid rgba(203, 204, 198, 0.3);
-            border-radius: 8px;
-            color: #cbccc6;
-            font-size: 1rem;
-        }
-        
-        .email-input:focus {
-            outline: none;
-            border-color: #ffd580;
-        }
-        
-        .submit-button {
-            padding: 1rem 2rem;
-            background: linear-gradient(135deg, #ffd580 0%, #ffb347 100%);
-            color: #1f2430;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-        
-        .submit-button:hover {
-            transform: translateY(-2px);
-        }
-        
-        .form-note {
-            font-size: 0.9rem;
-            color: #a6a9b0;
-        }
-        
-        /* Comparison Table */
-        .comparison-section {
+            gap: 30px;
             max-width: 900px;
-            margin: 4rem auto;
-            padding: 2rem;
+            margin: 0 auto;
         }
-        
-        .comparison-table {
-            width: 100%;
-            background: #242936;
-            border-radius: 12px;
-            border: 1px solid #2d3544;
-            overflow: hidden;
+        .pricing-card {
+            background: #111111;
+            padding: 40px;
+            border-radius: 16px;
+            border: 2px solid #1f2937;
+            text-align: center;
+            transition: all 0.3s;
         }
-        
-        .comparison-table thead {
-            background: #2d3544;
+        .pricing-card.popular {
+            border-color: #10b981;
+            transform: scale(1.05);
+            box-shadow: 0 20px 40px rgba(16, 185, 129, 0.2);
         }
-        
-        .comparison-table th,
-        .comparison-table td {
-            padding: 1rem;
-            text-align: left;
-            border-bottom: 1px solid #2d3544;
-        }
-        
-        .comparison-table th {
-            color: #ffd580;
+        .pricing-card:hover { transform: translateY(-5px) scale(1.02); }
+        .pricing-card.popular:hover { transform: translateY(-5px) scale(1.07); }
+        .plan-name {
+            font-size: 18px;
             font-weight: 600;
+            color: #9ca3af;
+            margin-bottom: 12px;
+        }
+        .plan-price {
+            font-size: 48px;
+            font-weight: 800;
+            color: #f3f4f6;
+            margin-bottom: 8px;
+        }
+        .plan-price span {
+            font-size: 20px;
+            color: #9ca3af;
+            font-weight: 400;
+        }
+        .plan-features {
+            list-style: none;
+            margin: 30px 0;
+            text-align: left;
+        }
+        .plan-features li {
+            padding: 10px 0;
+            color: #d1d5db;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .plan-features li:before {
+            content: "✓";
+            color: #10b981;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        .btn-plan {
+            width: 100%;
+            padding: 14px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-plan:hover {
+            background: #059669;
+        }
+        .popular-badge {
+            background: #10b981;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 16px;
         }
         
-        .comparison-table td {
-            color: #cbccc6;
+        /* FAQ */
+        .faq {
+            padding: 80px 0;
         }
-        
-        .comparison-table tr:last-child td {
-            border-bottom: none;
-        }
-        
-        .highlight-price {
-            color: #95e1d3;
-            font-weight: 700;
-            font-size: 1.1rem;
-        }
-        
-        /* FAQ Section */
-        .faq-section {
+        .faq-list {
             max-width: 800px;
-            margin: 4rem auto;
-            padding: 2rem;
+            margin: 0 auto;
         }
-        
         .faq-item {
-            background: #242936;
-            padding: 1.5rem;
-            border-radius: 12px;
-            border: 1px solid #2d3544;
-            margin-bottom: 1rem;
+            border-bottom: 1px solid #1f2937;
+            padding: 24px 0;
         }
-        
-        .faq-item h3 {
-            color: #ffd580;
-            font-size: 1.1rem;
-            margin-bottom: 0.75rem;
+        .faq-question {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #f3f4f6;
         }
-        
-        .faq-item p {
-            color: #a6a9b0;
-            line-height: 1.6;
+        .faq-answer {
+            color: #9ca3af;
+            line-height: 1.7;
         }
         
         /* Footer */
         footer {
-            border-top: 1px solid #2d3544;
-            padding: 3rem 2rem 2rem;
+            padding: 40px 0;
+            background: #111111;
+            border-top: 1px solid #1f2937;
             text-align: center;
-            color: #6b7280;
-            margin-top: 4rem;
-        }
-        
-        .footer-links {
-            display: flex;
-            justify-content: center;
-            gap: 2rem;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-        }
-        
-        .footer-links a {
-            color: #95e1d3;
-            text-decoration: none;
-            font-size: 0.95rem;
-        }
-        
-        .footer-links a:hover {
-            color: #ffd580;
-        }
-        
-        /* Responsive */
-        @media (max-width: 1024px) {
-            .hero-split {
-                grid-template-columns: 1fr;
-            }
-            
-            .hero-left {
-                padding: 3rem 2rem;
-            }
-            
-            .hero-right {
-                padding: 3rem 2rem;
-                min-height: 600px;
-            }
-            
-            .hero-title {
-                font-size: 2.5rem;
-            }
+            color: #9ca3af;
         }
         
         @media (max-width: 768px) {
-            .hero-title {
-                font-size: 2rem;
-            }
-            
-            .hero-subtitle {
-                font-size: 1.1rem;
-            }
-            
-            .hero-cta-group {
-                flex-direction: column;
-                width: 100%;
-            }
-            
-            .primary-button, .secondary-button {
-                width: 100%;
-                text-align: center;
-            }
-            
-            .waitlist-form .form-group {
-                flex-direction: column;
-            }
+            h1 { font-size: 36px; }
+            .subtitle { font-size: 18px; }
+            .cta-input { flex-direction: column; }
+            nav { display: none; }
         }
     </style>
 </head>
 <body>
-    <!-- Header -->
     <header>
-        <div class="header-content">
-            <a href="#" class="logo">
-                <svg class="logo-k" viewBox="300 320 480 440" xmlns="http://www.w3.org/2000/svg">
-                    <g>
-                        <polygon points="612.6 617.8 385.65 732.06 322.98 670.43 612.6 617.8"/>
-                        <polygon points="476.45 561.78 477.8 621.47 322.56 659.06 332.76 652.38 476.45 561.78"/>
-                        <g>
-                            <polygon points="484.61 619.2 487.58 581.45 497.7 367.46 582.41 344 484.61 619.2"/>
-                            <polygon points="599.78 531.23 547.4 502.55 592.5 344.75 599.78 531.23"/>
-                        </g>
-                        <g>
-                            <polygon points="547.56 509.73 757.44 646.8 735.4 731.89 547.56 509.73"/>
-                            <polygon points="564.57 653.31 615.59 622.29 717.29 727.63 726.52 736 564.57 653.31"/>
-                        </g>
-                    </g>
-                </svg>
-                <span class="logo-text"><span class="highlight">Keywords</span>.chat</span>
-            </a>
-            <a href="#waitlist" class="header-cta">Join Waitlist</a>
+        <div class="container">
+            <div class="logo">🔍 AI Prompt Tracker</div>
+            <nav>
+                <a href="#features">Features</a>
+                <a href="#pricing">Pricing</a>
+                <a href="#faq">FAQ</a>
+            </nav>
+            <div class="header-right">
+                <a href="/app" class="btn-login">Login</a>
+            </div>
         </div>
     </header>
 
-    <!-- Hero Split -->
-    <div class="hero-split">
-        <!-- Left Side - Marketing -->
-        <div class="hero-left">
-            <div class="bg-pattern"></div>
-            <div class="hero-content">
-                <span class="hero-badge">✨ The Simplest SEO Tool</span>
-                
-                <h1 class="hero-title">
-                    The <span class="highlight">Simplest SEO Tool</span><br>
-                    You'll Ever Use
-                </h1>
-                
-                <p class="hero-subtitle">
-                    <strong>Chat-based</strong> keyword research, SERP analysis, and rank tracking. Simple dashboards for tracking your progress. Just ask questions and get instant answers. The easiest, most affordable SEO tool for indie hackers.
-                </p>
-                
-                <ul class="hero-features">
-                    <li>Research keywords with real data</li>
-                    <li>Analyze SERP competition</li>
-                    <li>Track rankings across locations</li>
-                    <li>Audit websites for SEO issues</li>
-                    <li>Analyze backlink profiles</li>
-                </ul>
-                
-                <div class="hero-cta-group">
-                    <a href="#waitlist" class="primary-button" onclick="gtag('event', 'click', {'event_category': 'cta', 'event_label': 'hero_primary_cta'});">
-                        Join the Waitlist →
-                    </a>
-                    <a href="#features" class="secondary-button">
-                        See Features
-                    </a>
+    <section class="hero">
+        <div class="container">
+            <h1>Track your brand<br><span class="highlight-text">visibility in LLMs</span></h1>
+            <p class="subtitle">See how ChatGPT, Gemini, and Perplexity mention your brand. Track visibility, improve rankings, and monitor your AI presence.</p>
+            <div class="input-wrapper">
+                <div class="input-label">Try for free 👉</div>
+                <div class="cta-input">
+                    <span class="globe-icon">🌐</span>
+                    <input type="text" placeholder="yourdomain.com" id="domainInput">
+                    <button class="btn-primary" onclick="startTracking()">Analyze</button>
+                </div>
+            </div>
+            <div class="trusted">
+                <div class="trusted-avatars">
+                    <div class="avatar">🧑</div>
+                    <div class="avatar">👩</div>
+                    <div class="avatar">🧔</div>
+                    <div class="avatar">👨</div>
+                    <div class="avatar">👩‍💼</div>
+                </div>
+                <span>Trusted by <strong>500+ brands</strong></span>
+            </div>
+        </div>
+    </section>
+
+    <section class="features-section" id="features">
+        <div class="container">
+            <div class="features-badge">FEATURES</div>
+            <h2 class="features-title">Everything you need to<br><span class="highlight-green">track your AI presence</span></h2>
+            <p class="features-subtitle">From comprehensive analysis to automated tracking and visibility reports</p>
+            
+            <div class="screenshot-mockup">
+                <div class="mockup-header">
+                    <div class="mockup-dots">
+                        <span></span><span></span><span></span>
+                    </div>
+                    <div class="mockup-title">aiprompttracker.io - Keyword Tracking</div>
+                </div>
+                <div class="mockup-content">
+                    <div class="mockup-table">
+                        <div class="table-header">
+                            <div class="th">Keyword</div>
+                            <div class="th">ChatGPT</div>
+                            <div class="th">Gemini</div>
+                            <div class="th">Perplexity</div>
+                            <div class="th">Overall</div>
+                        </div>
+                        <div class="table-row">
+                            <div class="td keyword">best project management tools</div>
+                            <div class="td"><span class="score high">92</span></div>
+                            <div class="td"><span class="score high">88</span></div>
+                            <div class="td"><span class="score high">95</span></div>
+                            <div class="td"><span class="score high">92</span></div>
+                        </div>
+                        <div class="table-row">
+                            <div class="td keyword">AI tools for small business</div>
+                            <div class="td"><span class="score high">87</span></div>
+                            <div class="td"><span class="score high">91</span></div>
+                            <div class="td"><span class="score medium">78</span></div>
+                            <div class="td"><span class="score high">85</span></div>
+                        </div>
+                        <div class="table-row">
+                            <div class="td keyword">CRM software comparison</div>
+                            <div class="td"><span class="score medium">72</span></div>
+                            <div class="td"><span class="score medium">68</span></div>
+                            <div class="td"><span class="score high">81</span></div>
+                            <div class="td"><span class="score medium">74</span></div>
+                        </div>
+                        <div class="table-row">
+                            <div class="td keyword">marketing automation platform</div>
+                            <div class="td"><span class="score high">89</span></div>
+                            <div class="td"><span class="score medium">76</span></div>
+                            <div class="td"><span class="score high">84</span></div>
+                            <div class="td"><span class="score high">83</span></div>
+                        </div>
+                        <div class="table-row">
+                            <div class="td keyword">customer support software</div>
+                            <div class="td"><span class="score high">94</span></div>
+                            <div class="td"><span class="score low">62</span></div>
+                            <div class="td"><span class="score medium">71</span></div>
+                            <div class="td"><span class="score medium">76</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="feature-description">
+                <h3>📊 Analysis</h3>
+                <p>Get instant visibility scores across ChatGPT, Gemini, and Perplexity. See exactly how each AI model mentions your brand.</p>
+            </div>
+            
+            <div class="screenshot-mockup" style="margin-top: 60px;">
+                <div class="mockup-header">
+                    <div class="mockup-dots">
+                        <span></span><span></span><span></span>
+                    </div>
+                    <div class="mockup-title">aiprompttracker.io - Automated Tracking</div>
+                </div>
+                <div class="mockup-content">
+                    <div class="tracking-timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-date">Today</div>
+                            <div class="timeline-card">
+                                <div class="timeline-header">
+                                    <span class="timeline-status success">✓ Completed</span>
+                                    <span class="timeline-time">2 hours ago</span>
+                                </div>
+                                <div class="timeline-text">Daily scan completed - Overall score: <strong style="color: #10b981;">89</strong></div>
+                                <div class="timeline-change positive">↑ +3 points from yesterday</div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-date">Yesterday</div>
+                            <div class="timeline-card">
+                                <div class="timeline-header">
+                                    <span class="timeline-status success">✓ Completed</span>
+                                    <span class="timeline-time">1 day ago</span>
+                                </div>
+                                <div class="timeline-text">Daily scan completed - Overall score: <strong style="color: #f59e0b;">86</strong></div>
+                                <div class="timeline-change neutral">→ No change</div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-date">2 days ago</div>
+                            <div class="timeline-card">
+                                <div class="timeline-header">
+                                    <span class="timeline-status success">✓ Completed</span>
+                                    <span class="timeline-time">2 days ago</span>
+                                </div>
+                                <div class="timeline-text">Daily scan completed - Overall score: <strong style="color: #f59e0b;">86</strong></div>
+                                <div class="timeline-change positive">↑ +5 points</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="feature-description">
+                <h3>🎯 Tracking</h3>
+                <p>Automated daily scans keep you updated. Track your AI visibility over time and get alerts when rankings change.</p>
+            </div>
+            
+            <button class="btn-cta" onclick="location.href='#pricing'">Start Free Analysis</button>
+        </div>
+    </section>
+
+    <section class="pricing" id="pricing">
+        <div class="container">
+            <h2 class="section-title">Simple, transparent pricing</h2>
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <p class="plan-name">Free</p>
+                    <div class="plan-price">$0<span>/month</span></div>
+                    <ul class="plan-features">
+                        <li>3 scans per month</li>
+                        <li>1 project</li>
+                        <li>OpenAI tracking</li>
+                        <li>Basic reports</li>
+                    </ul>
+                    <button class="btn-plan" onclick="location.href='/app'">Get Started</button>
+                </div>
+                <div class="pricing-card popular">
+                    <span class="popular-badge">MOST POPULAR</span>
+                    <p class="plan-name">Pro</p>
+                    <div class="plan-price">$29<span>/month</span></div>
+                    <ul class="plan-features">
+                        <li>Unlimited scans</li>
+                        <li>10 projects</li>
+                        <li>All AI models</li>
+                        <li>Daily auto-monitoring</li>
+                        <li>Competitive analysis</li>
+                        <li>Historical data</li>
+                    </ul>
+                    <button class="btn-plan" onclick="location.href='/app'">Start Free Trial</button>
+                </div>
+                <div class="pricing-card">
+                    <p class="plan-name">Enterprise</p>
+                    <div class="plan-price">Custom</div>
+                    <ul class="plan-features">
+                        <li>Unlimited everything</li>
+                        <li>Custom AI models</li>
+                        <li>API access</li>
+                        <li>Priority support</li>
+                        <li>Custom reports</li>
+                        <li>Team accounts</li>
+                    </ul>
+                    <button class="btn-plan" onclick="location.href='mailto:hello@aiprompttracker.io'">Contact Sales</button>
                 </div>
             </div>
         </div>
-        
-        <!-- Right Side - Carousel -->
-        <div class="hero-right">
-            <div class="carousel-container">
-                <div class="carousel-slides">
-                    <!-- Slide 1: Demo Video -->
-                    <div class="carousel-slide active">
-                        <video muted playsinline style="max-width: 100%; max-height: 100%; object-fit: contain;" data-video-slide>
-                            <source src="videos/demo.mp4" type="video/mp4">
-                            Your browser does not support the video tag.
-                        </video>
-                    </div>
-                    
-                    <!-- Slide 2: Demo Video Part 2 -->
-                    <div class="carousel-slide">
-                        <video muted playsinline style="max-width: 100%; max-height: 100%; object-fit: contain;" data-video-slide>
-                            <source src="videos/demo2.mp4" type="video/mp4">
-                            Your browser does not support the video tag.
-                        </video>
-                    </div>
-                    
-                    <!-- Slide 3: Keywords Screenshot -->
-                    <div class="carousel-slide">
-                        <img src="images/screenshot-keywords.png" alt="Keywords Research Interface" style="max-width: 100%; max-height: 100%; object-fit: contain;">
-                    </div>
-                    
-                    <!-- Slide 4: Overview Screenshot -->
-                    <div class="carousel-slide">
-                        <img src="images/screenshot-overview.png" alt="Project Overview Dashboard" style="max-width: 100%; max-height: 100%; object-fit: contain;">
-                    </div>
+    </section>
+
+    <section class="faq" id="faq">
+        <div class="container">
+            <h2 class="section-title">Frequently asked questions</h2>
+            <div class="faq-list">
+                <div class="faq-item">
+                    <div class="faq-question">How does AI Prompt Tracker work?</div>
+                    <div class="faq-answer">We run your keywords and brand terms through multiple AI models (ChatGPT, Gemini, Perplexity) to see when and how they mention your brand. You get detailed reports showing your visibility score, mention frequency, and competitive positioning.</div>
                 </div>
-                
-                <!-- Carousel Navigation Dots -->
-                <div class="carousel-dots">
-                    <span class="dot active" onclick="goToSlide(0)"></span>
-                    <span class="dot" onclick="goToSlide(1)"></span>
-                    <span class="dot" onclick="goToSlide(2)"></span>
-                    <span class="dot" onclick="goToSlide(3)"></span>
+                <div class="faq-item">
+                    <div class="faq-question">Which AI models do you track?</div>
+                    <div class="faq-answer">Currently we track ChatGPT (OpenAI), Google Gemini, and Perplexity. We're constantly adding new models based on user demand.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">How often are scans performed?</div>
+                    <div class="faq-answer">Pro users get daily automated scans. Free users can run 3 manual scans per month. You can trigger additional scans anytime on the Pro plan.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">Can I track my competitors?</div>
+                    <div class="faq-answer">Yes! Add competitor domains to your project and see how you rank against them in AI responses. Great for competitive intelligence.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">What's a visibility score?</div>
+                    <div class="faq-answer">It's a 0-100 score showing how prominent your brand is in AI responses. Factors include mention frequency, ranking position, sentiment, and relevance across different prompts and models.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">Do you offer a free trial?</div>
+                    <div class="faq-answer">Yes! The Free plan includes 3 scans per month forever. Pro plan includes a 14-day free trial with full access to all features.</div>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
-    <!-- Features Section -->
-    <div class="content-section" id="features">
-        <h2 class="section-title">Simple SEO Tools That Actually Work</h2>
-        <p class="section-subtitle">Easy keyword research, SERP analysis & rank tracking. No complex dashboard required.</p>
-        
-        <div class="features-grid">
-            <div class="feature-card">
-                <h3>🔍 Keyword Research</h3>
-                <p>Discover high-value keywords with search volume, competition data, and trend analysis.</p>
-            </div>
-            
-            <div class="feature-card">
-                <h3>📊 SERP Analysis</h3>
-                <p>Understand competition and identify ranking opportunities in seconds.</p>
-            </div>
-            
-            <div class="feature-card">
-                <h3>🎯 Rank Tracking</h3>
-                <p>Monitor your rankings across locations and track your SEO progress.</p>
-            </div>
-            
-            <div class="feature-card">
-                <h3>🌐 Website Audits</h3>
-                <p>Comprehensive SEO audits with actionable recommendations.</p>
-            </div>
-            
-            <div class="feature-card">
-                <h3>🔗 Backlink Analysis</h3>
-                <p>Analyze backlink profiles with authority metrics and link quality.</p>
-            </div>
-            
-            <div class="feature-card">
-                <h3>💬 Natural Conversations</h3>
-                <p>No complex menus. Just ask what you need in plain English.</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Comparison Section -->
-    <div class="comparison-section">
-        <h2 class="section-title">Why Choose Keywords.chat?</h2>
-        <p class="section-subtitle">Compare features and pricing with Ahrefs & SEMrush</p>
-        
-        <table class="comparison-table">
-            <thead>
-                <tr>
-                    <th>Feature</th>
-                    <th>Keywords.chat</th>
-                    <th>Ahrefs</th>
-                    <th>SEMrush</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><strong>Pricing (Monthly)</strong></td>
-                    <td class="highlight-price">$59</td>
-                    <td>$129</td>
-                    <td>$140</td>
-                </tr>
-                <tr>
-                    <td><strong>Interface</strong></td>
-                    <td>Chat-based (conversational)</td>
-                    <td>Complex dashboard</td>
-                    <td>Complex dashboard</td>
-                </tr>
-                <tr>
-                    <td><strong>Keyword Research</strong></td>
-                    <td>✅ Yes</td>
-                    <td>✅ Yes</td>
-                    <td>✅ Yes</td>
-                </tr>
-                <tr>
-                    <td><strong>SERP Analysis</strong></td>
-                    <td>✅ Yes</td>
-                    <td>✅ Yes</td>
-                    <td>✅ Yes</td>
-                </tr>
-                <tr>
-                    <td><strong>Rank Tracking</strong></td>
-                    <td>✅ Yes</td>
-                    <td>✅ Yes</td>
-                    <td>✅ Yes</td>
-                </tr>
-                <tr>
-                    <td><strong>Backlink Analysis</strong></td>
-                    <td>✅ Yes</td>
-                    <td>✅ Yes</td>
-                    <td>✅ Yes</td>
-                </tr>
-                <tr>
-                    <td><strong>Learning Curve</strong></td>
-                    <td>5 minutes</td>
-                    <td>Hours/Days</td>
-                    <td>Hours/Days</td>
-                </tr>
-                <tr>
-                    <td><strong>Perfect For</strong></td>
-                    <td>Indie hackers, startups, agencies</td>
-                    <td>SEO agencies, enterprises</td>
-                    <td>Digital marketing teams</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- FAQ Section -->
-    <div class="faq-section">
-        <h2 class="section-title">Frequently Asked Questions</h2>
-        
-        <div class="faq-item">
-            <h3>Is Keywords.chat really an alternative to Ahrefs?</h3>
-            <p>Yes! Keywords.chat provides all the core SEO tools you need: keyword research, SERP analysis, rank tracking, and backlink analysis. The difference? We use a chat-based interface that's faster and easier to use, without the complex dashboard bloat.</p>
-        </div>
-        
-        <div class="faq-item">
-            <h3>What makes Keywords.chat different from other SEO tools?</h3>
-            <p>We're the first truly chat-based SEO tool. Instead of navigating complex menus and dashboards, you simply chat with our AI assistant in natural language. Ask questions like "What keywords should I target for X?" or "Check my rankings for Y" and get instant results.</p>
-        </div>
-        
-        <div class="faq-item">
-            <h3>How accurate is the keyword data?</h3>
-            <p>We use the same data sources as premium SEO tools, including Google's official APIs and trusted third-party providers. You get real search volume, competition metrics, and trend data—not estimates.</p>
-        </div>
-        
-        <div class="faq-item">
-            <h3>Can I use Keywords.chat for client work?</h3>
-            <p>Absolutely! Many SEO agencies and freelancers use Keywords.chat for client keyword research, rank tracking, and reporting. The conversational interface actually makes it faster to generate insights for multiple clients.</p>
-        </div>
-        
-        <div class="faq-item">
-            <h3>Do you offer a free trial?</h3>
-            <p>Yes! Once we launch, you'll get a 7-day free trial to test all features. No credit card required. Join the waitlist to be notified when trials become available.</p>
-        </div>
-        
-        <div class="faq-item">
-            <h3>How much does Keywords.chat cost compared to Ahrefs?</h3>
-            <p>Keywords.chat is $59/month vs Ahrefs at $129/month. That's a savings of $840 per year while still getting all the essential SEO tools you need.</p>
-        </div>
-    </div>
-
-    <!-- Waitlist Section -->
-    <div class="waitlist-section" id="waitlist">
-        <h2>Join the Waitlist</h2>
-        <p>Be among the first to experience AI-powered SEO research</p>
-        
-        <form class="waitlist-form" action="https://formspree.io/f/myzblabo" method="POST" onsubmit="gtag('event', 'waitlist_signup', {'event_category': 'engagement', 'event_label': 'landing_page'});">
-            <div class="form-group">
-                <input 
-                    type="email" 
-                    name="email" 
-                    placeholder="Enter your email" 
-                    required
-                    class="email-input"
-                >
-                <button type="submit" class="submit-button">
-                    Get Early Access →
-                </button>
-            </div>
-            <p class="form-note">🚀 Launching soon! No spam, ever.</p>
-        </form>
-    </div>
-
-    <!-- Footer -->
     <footer>
-        <div class="footer-links">
-            <a href="/blog/simplest-seo-tool-for-indie-hackers">Simple SEO Tool Guide</a>
-            <a href="/blog/why-we-built-an-ahrefs-alternative">Why We Built This</a>
-            <a href="/blog/ahrefs-vs-semrush-vs-keywordschat">Compare SEO Tools</a>
+        <div class="container">
+            <p>&copy; 2025 AI Prompt Tracker. Track your brand across AI models.</p>
         </div>
-        <p>&copy; 2025 Keywords.chat - The Simplest SEO Tool. All rights reserved.</p>
     </footer>
 
     <script>
-        let currentSlide = 0;
-        let carouselTimer = null;
-        const slides = document.querySelectorAll('.carousel-slide');
-        const dots = document.querySelectorAll('.dot');
-        const defaultSlideTime = 10000; // 10 seconds for non-video slides
-        
-        function showSlide(n) {
-            // Clear any existing timer
-            if (carouselTimer) {
-                clearTimeout(carouselTimer);
-            }
-            
-            // Pause and reset all videos
-            slides.forEach(slide => {
-                slide.classList.remove('active');
-                const video = slide.querySelector('video[data-video-slide]');
-                if (video) {
-                    video.pause();
-                    video.currentTime = 0;
-                }
-                // Reset animations
-                const typingText = slide.querySelector('.typing-text');
-                if (typingText) {
-                    typingText.classList.remove('visible');
-                }
-            });
-            dots.forEach(dot => dot.classList.remove('active'));
-            
-            currentSlide = (n + slides.length) % slides.length;
-            
-            slides[currentSlide].classList.add('active');
-            dots[currentSlide].classList.add('active');
-            
-            // Check if current slide has a video
-            const currentVideo = slides[currentSlide].querySelector('video[data-video-slide]');
-            if (currentVideo) {
-                // Speed up videos - both at 50% faster
-                if (currentSlide === 0 || currentSlide === 1) {
-                    currentVideo.playbackRate = 1.5; // 50% faster
-                } else {
-                    currentVideo.playbackRate = 1.0;
-                }
-                // Play video and wait for it to end
-                currentVideo.play();
-                currentVideo.onended = () => {
-                    nextSlide();
-                };
+        function startTracking() {
+            const domain = document.getElementById('domainInput').value;
+            if (domain) {
+                window.location.href = `/app?domain=${encodeURIComponent(domain)}`;
             } else {
-                // No video, use default timer
-                carouselTimer = setTimeout(nextSlide, defaultSlideTime);
-                
-                // Trigger typing animation
-                setTimeout(() => {
-                    const typingText = slides[currentSlide].querySelector('.typing-text');
-                    if (typingText) {
-                        typingText.classList.add('visible');
-                    }
-                }, 100);
+                window.location.href = '/app';
             }
         }
-        
-        function goToSlide(n) {
-            showSlide(n);
-        }
-        
-        function nextSlide() {
-            showSlide(currentSlide + 1);
-        }
-        
-        // Start the carousel
-        showSlide(0);
     </script>
-
 </body>
 </html>
-

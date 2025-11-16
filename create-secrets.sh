@@ -45,7 +45,7 @@ create_secret() {
 }
 
 # Create all secrets
-create_secret "keywordschat-db-url" "$DATABASE_URL"
+create_secret "aiprompttracker-db-url" "$DATABASE_URL"
 create_secret "dataforseo-login" "$DATAFORSEO_LOGIN"
 create_secret "dataforseo-password" "$DATAFORSEO_PASSWORD"
 create_secret "groq-api-key" "$GROQ_API_KEY"

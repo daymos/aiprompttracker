@@ -63,6 +63,15 @@ async def landing_page():
         return FileResponse(landing_file)
     return {"status": "AI Prompt Tracker API", "version": "1.0.0"}
 
+@app.get("/analyze")
+@app.get("/analyze.html")
+async def analyze_page():
+    """Serve analysis page"""
+    analyze_file = landing_dir / "analyze.html"
+    if analyze_file.exists():
+        return FileResponse(analyze_file, media_type="text/html")
+    return {"error": "Analysis page not found"}
+
 @app.get("/robots.txt")
 async def robots():
     """Serve robots.txt for SEO"""
