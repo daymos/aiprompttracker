@@ -71,6 +71,8 @@ else
       --display-name="GitHub Actions Deployer"
     
     echo "✓ Created service account"
+    echo "⏳ Waiting for service account to propagate..."
+    sleep 15
 fi
 
 # Grant permissions
