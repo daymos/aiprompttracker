@@ -153,7 +153,7 @@ docker push gcr.io/$PROJECT_ID/$SERVICE_NAME:latest
 gcloud run deploy $SERVICE_NAME \
   --image gcr.io/$PROJECT_ID/$SERVICE_NAME:latest \
   --platform managed \
-  --region us-central1 \
+  --region europe-west1 \
   --allow-unauthenticated \
   --set-env-vars="ENVIRONMENT=production" \
   --set-secrets="DATABASE_URL=aiprompttracker-db-url:latest,RAPIDAPI_KEY=rapidapi-key:latest,GROQ_API_KEY=groq-api-key:latest,JWT_SECRET_KEY=jwt-secret:latest,GOOGLE_CLIENT_ID=google-client-id:latest,GOOGLE_CLIENT_SECRET=google-client-secret:latest"
@@ -170,7 +170,7 @@ gcloud run deploy $SERVICE_NAME \
 gcloud run domain-mappings create \
   --service=aiprompttracker-api \
   --domain=keywords.chat \
-  --region=us-central1
+  --region=europe-west1
 ```
 
 ### 2. Update DNS Records
@@ -193,7 +193,7 @@ And/or:
 # Check mapping status
 gcloud run domain-mappings describe \
   --domain=keywords.chat \
-  --region=us-central1
+  --region=europe-west1
 ```
 
 ---
@@ -204,10 +204,10 @@ gcloud run domain-mappings describe \
 
 ```bash
 # Stream logs
-gcloud run services logs tail aiprompttracker-api --region=us-central1
+gcloud run services logs tail aiprompttracker-api --region=europe-west1
 
 # View in console
-# https://console.cloud.google.com/run/detail/us-central1/aiprompttracker-api/logs
+# https://console.cloud.google.com/run/detail/europe-west1/aiprompttracker-api/logs
 ```
 
 ### Metrics
@@ -264,7 +264,7 @@ curl http://localhost:8000/api/v1/health    # API health check
 ```bash
 # Get Cloud Run URL
 CLOUD_RUN_URL=$(gcloud run services describe aiprompttracker-api \
-  --region=us-central1 \
+  --region=europe-west1 \
   --format='value(status.url)')
 
 # Test landing page
@@ -285,12 +285,12 @@ curl $CLOUD_RUN_URL/api/v1/health
 
 ```bash
 # List revisions
-gcloud run revisions list --service=aiprompttracker-api --region=us-central1
+gcloud run revisions list --service=aiprompttracker-api --region=europe-west1
 
 # Rollback to specific revision
 gcloud run services update-traffic aiprompttracker-api \
   --to-revisions=aiprompttracker-api-00042-abc=100 \
-  --region=us-central1
+  --region=europe-west1
 ```
 
 ---
@@ -368,12 +368,12 @@ gcloud run services update aiprompttracker-api \
 
 **Check Cloud Run logs**:
 ```bash
-gcloud run services logs tail aiprompttracker-api --region=us-central1
+gcloud run services logs tail aiprompttracker-api --region=europe-west1
 ```
 
 **Check if service is running**:
 ```bash
-gcloud run services describe aiprompttracker-api --region=us-central1
+gcloud run services describe aiprompttracker-api --region=europe-west1
 ```
 
 ### Issue: Database Connection Fails

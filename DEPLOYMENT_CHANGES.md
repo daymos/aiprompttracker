@@ -195,10 +195,10 @@ After deployment, verify:
 
 ```bash
 # Check Cloud Run logs
-gcloud run services logs tail aiprompttracker-api --region=us-central1
+gcloud run services logs tail aiprompttracker-api --region=europe-west1
 
 # Check service status
-gcloud run services describe aiprompttracker-api --region=us-central1
+gcloud run services describe aiprompttracker-api --region=europe-west1
 ```
 
 ---
@@ -264,7 +264,7 @@ COPY backend/ .
 ### Monitor Deployments:
 ```bash
 # Watch deployment in real-time
-gcloud run services logs tail aiprompttracker-api --region=us-central1
+gcloud run services logs tail aiprompttracker-api --region=europe-west1
 ```
 
 ---

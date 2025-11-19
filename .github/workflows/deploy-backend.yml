@@ -11,8 +11,8 @@ on:
       - '.github/workflows/deploy-backend.yml'
 
 env:
-  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  SERVICE_NAME: keywordschat-api
+  PROJECT_ID: youwebsitellmvisibility
+  SERVICE_NAME: aiprompttracker-api
   REGION: europe-west1
 
 jobs:
@@ -60,8 +60,8 @@ jobs:
             --region $REGION \
             --project $PROJECT_ID \
             --allow-unauthenticated \
-            --set-env-vars="ENVIRONMENT=production,WAITLIST_MODE=true" \
-            --set-secrets="DATABASE_URL=keywordschat-db-url:latest,GROQ_API_KEY=groq-api-key:latest,JWT_SECRET_KEY=jwt-secret:latest,GOOGLE_CLIENT_ID=google-client-id:latest,GOOGLE_CLIENT_SECRET=google-client-secret:latest,RAPIDAPI_KEY=rapidapi-key:latest"
+            --set-env-vars="ENVIRONMENT=production" \
+            --set-secrets="DATABASE_URL=aiprompttracker-db-url:latest,OPENAI_API_KEY=openai-api-key:latest,JWT_SECRET_KEY=jwt-secret:latest,GOOGLE_CLIENT_ID=google-client-id:latest,GOOGLE_CLIENT_SECRET=google-client-secret:latest"
 
 
 

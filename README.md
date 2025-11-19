@@ -46,7 +46,17 @@ Track your brand visibility across AI platforms. Monitor how ChatGPT, Gemini, Pe
 - Docker Compose for local DB
 - Environment-based configuration
 
-## Quick Start
+## 🚀 Deploy to Production
+
+**Deploy to GCP in 10 minutes:**
+
+```bash
+./setup-gcp.sh
+```
+
+See [DEPLOY_NOW.md](./DEPLOY_NOW.md) for the complete deployment guide.
+
+## Quick Start (Local Development)
 
 ### Prerequisites
 - Python 3.9+
