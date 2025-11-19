@@ -73,7 +73,7 @@ class HomeScreen extends StatelessWidget {
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 16),
-            Text('Logged in as: ${authProvider.user?.email ?? "Unknown"}'),
+            Text('Logged in as: ${authProvider.email ?? "Unknown"}'),
             const SizedBox(height: 24),
             const Text('Track your brand visibility across AI platforms'),
           ],

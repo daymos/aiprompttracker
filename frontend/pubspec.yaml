@@ -1,5 +1,5 @@
-name: keywordschat
-description: Simple conversational keyword research tool
+name: aiprompttracker
+description: Track your brand visibility across AI platforms
 publish_to: 'none'
 
 version: 1.0.2+3

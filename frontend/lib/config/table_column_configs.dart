@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:keywordschat/utils/formatting_utils.dart';
-import 'package:keywordschat/widgets/competition_chip.dart';
-import 'package:keywordschat/widgets/data_panel.dart'; // Import DataColumnConfig
+import 'package:aiprompttracker/utils/formatting_utils.dart';
+import 'package:aiprompttracker/widgets/competition_chip.dart';
+import 'package:aiprompttracker/widgets/data_panel.dart'; // Import DataColumnConfig
 
 /// Central configuration for all table column layouts
 class TableColumnConfigs {

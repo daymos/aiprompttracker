@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:keywordschat/widgets/chart_painters.dart';
+import 'package:aiprompttracker/widgets/chart_painters.dart';
 
 /// A card that displays a metric with an optional sparkline chart
 class MetricCard extends StatelessWidget {
